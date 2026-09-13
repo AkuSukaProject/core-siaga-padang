@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_256cdf8b863117553126c7d64b776931 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_256cdf8b863117553126c7d64b776931" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_256cdf8b863117553126c7d64b776931 = L.map(
+                "map_256cdf8b863117553126c7d64b776931",
+                {
+                    center: [-0.9415566, 100.3977136],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 15,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_f888f6161fbcea5eebf5b05d5e67a1d3 = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_f888f6161fbcea5eebf5b05d5e67a1d3.addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            var marker_39bdecb9d721ff985b65a524928ec1e1 = L.marker(
+                [-0.9415566, 100.3977136],
+                {
+}
+            ).addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            var icon_b88bd455048201c25c825d3b2bf9e799 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "user",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_0e8264cd1c06e48ed62ca26736af2d9f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_155a04e1742c8110c85ff81a08ac0af4 = $(`<div id="html_155a04e1742c8110c85ff81a08ac0af4" style="width: 100.0%; height: 100.0%;"><b>Posisi Anda Saat Ini</b></div>`)[0];
+                popup_0e8264cd1c06e48ed62ca26736af2d9f.setContent(html_155a04e1742c8110c85ff81a08ac0af4);
+            
+        
+
+        marker_39bdecb9d721ff985b65a524928ec1e1.bindPopup(popup_0e8264cd1c06e48ed62ca26736af2d9f)
+        ;
+
+        
+    
+    
+                marker_39bdecb9d721ff985b65a524928ec1e1.setIcon(icon_b88bd455048201c25c825d3b2bf9e799);
+            
+    
+            var poly_line_096ca01c7973a409e4530db0454e8684 = L.polyline(
+                [[-0.9415566, 100.3977136], [-0.941551, 100.3973526], [-0.9410384, 100.3970042], [-0.9409774, 100.3971285], [-0.9408432, 100.3971809], [-0.9408139, 100.3962098], [-0.9404471, 100.3961757], [-0.940537, 100.3956841], [-0.9406637, 100.3946475], [-0.9409264, 100.3945934], [-0.9412018, 100.3945339], [-0.9410079, 100.3932972], [-0.9409446, 100.3930216], [-0.9408257, 100.3922812], [-0.9408522, 100.3921685], [-0.9409946, 100.3917655], [-0.940657, 100.391565], [-0.9393058, 100.3906124], [-0.938477, 100.3896673], [-0.9383169, 100.3896215], [-0.9377771, 100.3893703], [-0.9377169, 100.3893058], [-0.9375786, 100.389143], [-0.9370987, 100.3887982], [-0.9375713, 100.3879769], [-0.9379883, 100.3872487], [-0.9380573, 100.3871189], [-0.938369, 100.3865408], [-0.9384054, 100.3864653], [-0.9384281, 100.3863723], [-0.9385304, 100.3861528], [-0.9386181, 100.3859726], [-0.9389772, 100.3852929], [-0.9390667, 100.3851256], [-0.9392756, 100.384765], [-0.9396514, 100.3840845], [-0.9400432, 100.3834473], [-0.9400421, 100.383389], [-0.9403407, 100.3828376], [-0.9406473, 100.3822732], [-0.9409732, 100.3816871], [-0.9410121, 100.3816128], [-0.941377, 100.381006], [-0.9415964, 100.3806777], [-0.9419084, 100.3801978], [-0.9422377, 100.3796884], [-0.9425698, 100.3791961], [-0.9430087, 100.3787033], [-0.943102, 100.3784862], [-0.94319126766467, 100.37844640682768]],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "green", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.8, "smoothFactor": 1.0, "stroke": true, "weight": 6}
+            ).addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            poly_line_096ca01c7973a409e4530db0454e8684.bindTooltip(
+                `<div>
+                     RUTE UTAMA: SMPN 30 PADANG (ETA: 38.5 mnt)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var marker_626e4543bdd771656d8515536ca98839 = L.marker(
+                [-0.94319126766467, 100.37844640682768],
+                {
+}
+            ).addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            var icon_3e99cfe302a2ff81cea7fa44e06d9f3b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "green",
+  "iconColor": "white",
+  "icon": "flag",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_83e571e7c30553ccd323fc0a6b1ec947 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_5e322297dec57be0bae7b9eb6f68a319 = $(`<div id="html_5e322297dec57be0bae7b9eb6f68a319" style="width: 100.0%; height: 100.0%;"><b>SMPN 30 PADANG</b><br>Rute Utama (ETA: 38.5 mnt)</div>`)[0];
+                popup_83e571e7c30553ccd323fc0a6b1ec947.setContent(html_5e322297dec57be0bae7b9eb6f68a319);
+            
+        
+
+        marker_626e4543bdd771656d8515536ca98839.bindPopup(popup_83e571e7c30553ccd323fc0a6b1ec947)
+        ;
+
+        
+    
+    
+                marker_626e4543bdd771656d8515536ca98839.setIcon(icon_3e99cfe302a2ff81cea7fa44e06d9f3b);
+            
+    
+            var poly_line_3f5005df4187c0adfd5abf89cee0dc94 = L.polyline(
+                [[-0.9415566, 100.3977136], [-0.9411244, 100.3977468], [-0.9404447, 100.398097], [-0.940163, 100.3980565], [-0.9399487, 100.3985573], [-0.9399047, 100.3989319], [-0.9398347, 100.399685], [-0.9396671, 100.399662], [-0.9386554, 100.3995097], [-0.9380996, 100.3994286], [-0.9378488, 100.3993884], [-0.9371133, 100.3992818], [-0.9366158, 100.399214], [-0.9357556, 100.3990866], [-0.9350154, 100.3989995], [-0.9341452, 100.3988935], [-0.9340594, 100.3988801], [-0.9334707, 100.3988171], [-0.9332012, 100.3987956], [-0.9323792, 100.3987353], [-0.9317919, 100.3986776], [-0.9316665, 100.3986669], [-0.9313587, 100.3986347], [-0.9308418, 100.398579], [-0.9307459, 100.3985703], [-0.9304945, 100.3985495], [-0.9299146, 100.3984885], [-0.9297295, 100.3984617], [-0.9295202, 100.3984419], [-0.9294225, 100.3984295], [-0.9291147, 100.3984033], [-0.9290222, 100.3983926], [-0.9286226, 100.398351], [-0.9284313, 100.3983301], [-0.9281896, 100.3983145], [-0.9271596, 100.3981998], [-0.926547, 100.3981411], [-0.9264861, 100.3981349], [-0.9258421, 100.398069], [-0.9255377, 100.3980381], [-0.9247836, 100.3979512], [-0.9245358, 100.3970841], [-0.9245074, 100.396998], [-0.9242177, 100.3959501], [-0.9240774, 100.3955007], [-0.923737, 100.3944956], [-0.9234062, 100.3937166], [-0.9228251, 100.3924227], [-0.9223182, 100.391276], [-0.9222957, 100.3912203], [-0.9219738, 100.3904685], [-0.9226923, 100.3899792], [-0.9228055, 100.3898675], [-0.9227635082881742, 100.38957550648917]],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": "10, 10", "dashOffset": null, "fill": false, "fillColor": "orange", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.7, "smoothFactor": 1.0, "stroke": true, "weight": 4}
+            ).addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            poly_line_3f5005df4187c0adfd5abf89cee0dc94.bindTooltip(
+                `<div>
+                     ALTERNATIF 1: MESJID ISTIQLAL (ETA: 43.0 mnt)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var marker_f4bc070cabbac0d422e81e2886877a45 = L.marker(
+                [-0.9227635082881742, 100.38957550648917],
+                {
+}
+            ).addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            var icon_018acb86674f322f353a6dc7f979109b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "orange",
+  "iconColor": "white",
+  "icon": "flag",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_701f9b36d2365f0a183d848a5f37e3b6 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e2bd98232cdfdd58829aa031707b0ef4 = $(`<div id="html_e2bd98232cdfdd58829aa031707b0ef4" style="width: 100.0%; height: 100.0%;"><b>MESJID ISTIQLAL</b><br>Alternatif 1 (ETA: 43.0 mnt)</div>`)[0];
+                popup_701f9b36d2365f0a183d848a5f37e3b6.setContent(html_e2bd98232cdfdd58829aa031707b0ef4);
+            
+        
+
+        marker_f4bc070cabbac0d422e81e2886877a45.bindPopup(popup_701f9b36d2365f0a183d848a5f37e3b6)
+        ;
+
+        
+    
+    
+                marker_f4bc070cabbac0d422e81e2886877a45.setIcon(icon_018acb86674f322f353a6dc7f979109b);
+            
+    
+            var poly_line_2c19615055ec3fd65abbe82a5679fde5 = L.polyline(
+                [[-0.9415566, 100.3977136], [-0.9427167, 100.3981504], [-0.9427679, 100.3981272], [-0.9429244, 100.3978994], [-0.943389, 100.3973523], [-0.9437656, 100.3968865], [-0.9435816, 100.396139], [-0.9434734, 100.3958935], [-0.9437542, 100.3957633], [-0.9440444, 100.3956554], [-0.9443959, 100.3955642], [-0.944428, 100.3952283], [-0.9443208, 100.3946409], [-0.9442557, 100.394215], [-0.9444203, 100.3932297], [-0.9445176, 100.3930489], [-0.9449003, 100.3922418], [-0.9451367, 100.3919104], [-0.9451877, 100.3919197], [-0.945524, 100.3917435], [-0.9458453, 100.3915302], [-0.9459611, 100.3914451], [-0.9457851, 100.3910447], [-0.9459322, 100.3907323], [-0.9459536, 100.3906967], [-0.9463518, 100.3895526], [-0.9465085, 100.3894414], [-0.9466093, 100.3893709], [-0.9468258, 100.3892194], [-0.9468956, 100.3886808], [-0.9465382, 100.3878215], [-0.9467371, 100.3876319], [-0.9469924, 100.3874151], [-0.9472468, 100.3872636], [-0.9476046, 100.3871014], [-0.9478025, 100.3868486], [-0.9479336, 100.3867418], [-0.9478085, 100.3864899], [-0.948131, 100.3862576], [-0.9485229, 100.3858536], [-0.9482923, 100.3854968], [-0.9481844, 100.3853504], [-0.9486852, 100.3850011], [-0.9489295, 100.3846792], [-0.9493252, 100.3840755], [-0.9490014, 100.3835184], [-0.9485711, 100.382832], [-0.9482844, 100.3823682], [-0.9477598, 100.3815551], [-0.9473371, 100.3808784], [-0.9468004, 100.3799817], [-0.9466633, 100.3797748], [-0.9455415, 100.3778713], [-0.9450655942316388, 100.37806793966726]],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": "5, 5", "dashOffset": null, "fill": false, "fillColor": "blue", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.6, "smoothFactor": 1.0, "stroke": true, "weight": 3}
+            ).addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            poly_line_2c19615055ec3fd65abbe82a5679fde5.bindTooltip(
+                `<div>
+                     ALTERNATIF 2: SMKN 2 PADANG (ETA: 43.2 mnt)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var marker_00115ec2e8a9604a3fad83382f98f215 = L.marker(
+                [-0.9450655942316388, 100.37806793966726],
+                {
+}
+            ).addTo(map_256cdf8b863117553126c7d64b776931);
+        
+    
+            var icon_6ca0d20a5eeaa3e2093f58f97f723230 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "flag",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_9382d39805f2dd35aaf61bf1d70de374 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_1a4159e2ad1fa5709c0c9a67131b1b12 = $(`<div id="html_1a4159e2ad1fa5709c0c9a67131b1b12" style="width: 100.0%; height: 100.0%;"><b>SMKN 2 PADANG</b><br>Alternatif 2 (ETA: 43.2 mnt)</div>`)[0];
+                popup_9382d39805f2dd35aaf61bf1d70de374.setContent(html_1a4159e2ad1fa5709c0c9a67131b1b12);
+            
+        
+
+        marker_00115ec2e8a9604a3fad83382f98f215.bindPopup(popup_9382d39805f2dd35aaf61bf1d70de374)
+        ;
+
+        
+    
+    
+                marker_00115ec2e8a9604a3fad83382f98f215.setIcon(icon_6ca0d20a5eeaa3e2093f58f97f723230);
+            
+</script>
+</html>

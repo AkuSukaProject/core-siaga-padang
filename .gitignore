@@ -1,0 +1,70 @@
+# ==============================================================================
+# Git Ignore - Core Siaga Padang (Geospatial & Evacuation Simulation)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Virtual Environment & Python Runtime
+# ------------------------------------------------------------------------------
+env/
+venv/
+ENV/
+.env
+.venv/
+env.bak/
+venv.bak/
+
+# Bytecode & Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ------------------------------------------------------------------------------
+# 2. Cache Data Jaringan & API (OSMnx / HTTP Cache)
+# ------------------------------------------------------------------------------
+# Folder cache OSMnx yang memuat ratusan respons JSON lokal
+cache/
+
+# ------------------------------------------------------------------------------
+# 3. Draft & Skrip Uji Coba Sementara (Lokal)
+# ------------------------------------------------------------------------------
+# Folder skrip eksplorasi dan arsip versi lama
+scratch/
+archive/
+
+# Database uji coba usang / prototipe
+database_evakuasi_padang.sqlite
+
+# ------------------------------------------------------------------------------
+# 4. Database Utama (Catatan Ukuran File)
+# ------------------------------------------------------------------------------
+# ranah_siaga.db berukuran ~70 MB.
+# GitHub mengizinkan upload langsung hingga 100 MB (akan ada warning >50 MB).
+# Jika ingin menggunakan Git LFS atau tidak ingin mengunggah database ke GitHub,
+# hapus tanda pagar (#) pada baris di bawah:
+# ranah_siaga.db
+
+# ------------------------------------------------------------------------------
+# 5. Editor, IDE & Tooling
+# ------------------------------------------------------------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.gemini/
+*.log
+
+# ------------------------------------------------------------------------------
+# 6. Sistem Operasi (Windows & macOS)
+# ------------------------------------------------------------------------------
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*

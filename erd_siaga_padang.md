@@ -1,0 +1,271 @@
+# Spesifikasi Detail ERD Database Siaga Padang (`ranah_siaga.db`)
+
+Dokumen ini berisi **spesifikasi detail struktur ERD (Entity Relationship Diagram)** untuk basis data **Siaga Padang** (`ranah_siaga.db`), yang mencakup letak **Primary Key (PK)**, keterkaitan logis antartabel, serta tipe data SQLite yang digunakan.
+
+---
+
+> **Gambar 5.3 Struktur logis basis data lokal pada perangkat Android**
+> 
+> Gambar 5.3 memperlihatkan enam tabel utama pada basis data lokal. Garis putus-putus menunjukkan keterkaitan logis yang digunakan aplikasi, bukan *foreign key constraint* pada SQLite. Tabel `tb_routes` menghubungkan simpul asal dengan tiga peringkat tujuan dan lintasan prakomputasi, sedangkan tabel zona digunakan untuk menentukan posisi pengguna melalui pemeriksaan spasial.
+
+---
+
+## 📌 Rincian Letak Primary Key (PK) & Keterkaitan Logis Antartabel
+
+| Nama Tabel | Kolom / Field | Tipe Data SQLite | Peran (Key) | Referensi Relasi Logis (Target) | Kardinalitas | Penjelasan / Fungsi |
+| :--- | :--- | :---: | :---: | :--- | :---: | :--- |
+| **`tb_nodes`** | `node_id` | `INTEGER` | **Primary Key** | - | 1 | ID Unik simpul persimpangan jalan di Kota Padang. |
+| | `lat` | `REAL` | - | - | - | Koordinat Lintang (Latitude WGS84). |
+| | `lon` | `REAL` | - | - | - | Koordinat Bujur (Longitude WGS84). |
+| | `is_safe` | `INTEGER` | - | - | - | Flag Status Zona (0 = Rawan, 1 = Perbukitan Aman/TEA). |
+| **`tb_edges`** | `edge_id` | `INTEGER` | **Primary Key** | - | 1 | ID Unik ruas jalan penghubung. |
+| | `u` | `INTEGER` | **Relasi Logis** | ➔ `tb_nodes.node_id` | N : 1 | Simpul persimpangan asal ruas jalan. |
+| | `v` | `INTEGER` | **Relasi Logis** | ➔ `tb_nodes.node_id` | N : 1 | Simpul persimpangan tujuan ruas jalan. |
+| | `length` | `REAL` | - | - | - | Panjang ruas jalan faktual (dalam meter). |
+| | `geometry` | `TEXT` | - | - | - | Geometri spasial garis jalan (LineString WKT). |
+| **`tb_tes`** | `tes_id` | `TEXT` | **Primary Key** | - | 1 | Kode unik shelter evakuasi (misal: `TES_001`). |
+| | `nama_tes` | `TEXT` | - | Target Relasi Logis | 1 | Nama resmi shelter evakuasi (target rujukan `tb_routes`). |
+| | `zona` | `TEXT` | - | - | - | Nama kelurahan / kecamatan lokasi shelter. |
+| | `kapasitas` | `REAL` | - | - | - | Kapasitas daya tampung shelter (satuan: jiwa). |
+| | `lat` | `REAL` | - | - | - | Koordinat Lintang lokasi shelter. |
+| | `lon` | `REAL` | - | - | - | Koordinat Bujur lokasi shelter. |
+| **`tb_routes`** | `origin_node_id` | `INTEGER` | **PK & Relasi Logis** | ➔ `tb_nodes.node_id` | 1 : 1 | Node persimpangan posisi awal warga evakuasi. |
+| | `rank_1_tes` | `TEXT` | **Relasi Logis** | ➔ `tb_tes.nama_tes` | N : 1 | Nama shelter TES rekomendasi pilihan ke-1. |
+| | `rank_1_path` | `TEXT` | - | - | - | Deretan ID simpul rute ke-1 (teks list node, tanpa FK langsung). |
+| | `rank_1_eta` | `REAL` | - | - | - | Estimasi waktu tempuh / ETA rute ke-1 (dalam menit). |
+| | `rank_2_tes` | `TEXT` | **Relasi Logis** | ➔ `tb_tes.nama_tes` | N : 1 | Nama shelter TES rekomendasi pilihan ke-2. |
+| | `rank_2_path` | `TEXT` | - | - | - | Deretan ID simpul rute ke-2 (teks list node, tanpa FK langsung). |
+| | `rank_2_eta` | `REAL` | - | - | - | Estimasi waktu tempuh / ETA rute ke-2 (dalam menit). |
+| | `rank_3_tes` | `TEXT` | **Relasi Logis** | ➔ `tb_tes.nama_tes` | N : 1 | Nama shelter TES rekomendasi pilihan ke-3. |
+| | `rank_3_path` | `TEXT` | - | - | - | Deretan ID simpul rute ke-3 (teks list node, tanpa FK langsung). |
+| | `rank_3_eta` | `REAL` | - | - | - | Estimasi waktu tempuh / ETA rute ke-3 (dalam menit). |
+| **`tb_inundation_zones`**| `zone_id` | `INTEGER` | **Primary Key** | - | 1 | ID Unik poligon zona rendaman tsunami. |
+| | `nama_zona` | `TEXT` | - | - | - | Nama kelurahan / kawasan pesisir rawan. |
+| | `tingkat_bahaya` | `TEXT` | - | - | - | Kategori tingkat bahaya tsunami. |
+| | `geometry_wkt` | `TEXT` | - | Spatial Check | - | Geometri poligon spasial rendaman (WKT MultiPolygon). |
+| **`tb_safe_zones`** | `safe_zone_id` | `INTEGER` | **Primary Key** | - | 1 | ID Unik poligon zona aman perbukitan (TEA). |
+| | `nama_zona` | `TEXT` | - | - | - | Nama kawasan perbukitan. |
+| | `elevasi_m` | `REAL` | - | - | - | Ketinggian elevasi dari permukaan laut (dalam meter). |
+| | `geometry_wkt` | `TEXT` | - | Spatial Check | - | Geometri poligon spasial zona aman (WKT MultiPolygon). |
+
+---
+
+## 📄 Kode DBML Detail (Copy-Paste ke `dbdiagram.io`)
+
+```dbml
+// DBML Schema Definition for dbdiagram.io
+// Database: ranah_siaga.db (Sistem Routing Evakuasi Tsunami Kota Padang)
+
+Project SiagaPadangERD {
+  database_type: 'SQLite'
+  Note: '''
+    # STRUKTUR LOGIS DATABASE SIAGA PADANG (ranah_siaga.db)
+    Struktur Basis Data Lokal Pada Perangkat Android.
+    Garis putus-putus menunjukkan keterkaitan logis yang digunakan aplikasi, bukan foreign key constraint pada SQLite.
+  '''
+}
+
+// ============================================================================
+// 1. KELOMPOK GRAF & SPASIAL JALAN (NETWORK GRAPH)
+// ============================================================================
+
+Table tb_nodes {
+  node_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Simpul Persimpangan Jalan"]
+  lat REAL [note: "Koordinat Lintang (Latitude WGS84)"]
+  lon REAL [note: "Koordinat Bujur (Longitude WGS84)"]
+  is_safe INTEGER [default: 0, note: "Flag Status Zona (0 = Rawan Tsunami, 1 = Perbukitan Aman/TEA)"]
+
+  indexes {
+    node_id [pk]
+    (lat, lon) [name: "idx_nodes_coords"]
+  }
+
+  Note: "Master data simpul persimpangan jalan & titik rujukan awal evakuasi warga."
+}
+
+Table tb_edges {
+  edge_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Ruas Jalan"]
+  u INTEGER [ref: > tb_nodes.node_id, note: "Keterkaitan Logis -> tb_nodes.node_id (Simpul Asal Persimpangan)"]
+  v INTEGER [ref: > tb_nodes.node_id, note: "Keterkaitan Logis -> tb_nodes.node_id (Simpul Tujuan Persimpangan)"]
+  length REAL [note: "Panjang Ruas Jalan Faktual (dalam Meter)"]
+  geometry TEXT [note: "Geometri Spasial Garis Jalan (LineString WKT)"]
+
+  indexes {
+    edge_id [pk]
+    u [name: "idx_edges_u"]
+    v [name: "idx_edges_v"]
+  }
+
+  Note: "Master data ruas jalan penghubung antar persimpangan (Jaringan Graf Kota Padang)."
+}
+
+// ============================================================================
+// 2. KELOMPOK ENGINE ROUTING & SHELTER EVAKUASI (ROUTING ENGINE)
+// ============================================================================
+
+Table tb_tes {
+  tes_id TEXT [pk, note: "PRIMARY KEY: Kode Unik Shelter Evakuasi (contoh: TES_001, TES_002)"]
+  nama_tes TEXT [note: "Nama Resmi Gedung / Shelter Evakuasi (Target Relasi Logis tb_routes)"]
+  zona TEXT [note: "Nama Kelurahan / Kecamatan Lokasi Shelter"]
+  kapasitas REAL [default: 0, note: "Kapasitas Daya Tampung Shelter (Satuan: Jiwa / Orang)"]
+  lat REAL [note: "Koordinat Lintang Lokasi Shelter"]
+  lon REAL [note: "Koordinat Bujur Lokasi Shelter"]
+
+  indexes {
+    tes_id [pk]
+    zona [name: "idx_tes_zona"]
+  }
+
+  Note: "Master data Tempat Evakuasi Sementara (TES / Shelter Gedung Bertingkat)."
+}
+
+Table tb_routes {
+  origin_node_id INTEGER [pk, ref: - tb_nodes.node_id, note: "PRIMARY KEY & Keterkaitan Logis -> tb_nodes.node_id (Titik Simpul Awal Warga)"]
+  
+  // Rekomendasi Prioritas Ke-1 (Top Option)
+  rank_1_tes TEXT [ref: > tb_tes.nama_tes, note: "Keterkaitan Logis -> tb_tes.nama_tes (Nama Shelter TES Rekomendasi Utama Ke-1)"]
+  rank_1_path TEXT [note: "Deretan ID Simpul Jalur Rute Ke-1 dalam Teks (Format CSV)"]
+  rank_1_eta REAL [note: "Estimasi Waktu Tempuh / ETA Rute Ke-1 (dalam Menit)"]
+  
+  // Rekomendasi Prioritas Ke-2 (Alternative Option 1)
+  rank_2_tes TEXT [ref: > tb_tes.nama_tes, note: "Keterkaitan Logis -> tb_tes.nama_tes (Nama Shelter TES Rekomendasi Alternatif Ke-2)"]
+  rank_2_path TEXT [note: "Deretan ID Simpul Jalur Rute Ke-2 dalam Teks"]
+  rank_2_eta REAL [note: "Estimasi Waktu Tempuh / ETA Rute Ke-2 (dalam Menit)"]
+  
+  // Rekomendasi Prioritas Ke-3 (Alternative Option 2)
+  rank_3_tes TEXT [ref: > tb_tes.nama_tes, note: "Keterkaitan Logis -> tb_tes.nama_tes (Nama Shelter TES Rekomendasi Alternatif Ke-3)"]
+  rank_3_path TEXT [note: "Deretan ID Simpul Jalur Rute Ke-3 dalam Teks"]
+  rank_3_eta REAL [note: "Estimasi Waktu Tempuh / ETA Rute Ke-3 (dalam Menit)"]
+
+  indexes {
+    origin_node_id [pk]
+    rank_1_tes [name: "idx_routes_rank1"]
+    rank_2_tes [name: "idx_routes_rank2"]
+    rank_3_tes [name: "idx_routes_rank3"]
+  }
+
+  Note: "Matriks hasil algoritma Dijkstra / A* pra-kalkulasi rute evakuasi tercepat & teraman."
+}
+
+// ============================================================================
+// 3. KELOMPOK GEOSPASIAL BENCANA & AMAN (GIS SPATIAL ZONES)
+// ============================================================================
+
+Table tb_inundation_zones {
+  zone_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Zona Rendaman"]
+  nama_zona TEXT [note: "Nama Kelurahan / Kawasan Pesisir Rawan"]
+  tingkat_bahaya TEXT [note: "Tingkat Bahaya Tsunami ('Sangat Rawan', 'Rawan Utama', 'Waspada')"]
+  geometry_wkt TEXT [note: "Geometri Poligon Spasial Zona Rendaman (Format WKT MultiPolygon)"]
+
+  indexes {
+    zone_id [pk]
+    tingkat_bahaya [name: "idx_inundation_level"]
+  }
+
+  Note: "Data geospasial zona rawan limpasan gelombang tsunami. Keterkaitan ditentukan via pemeriksaan spasial."
+}
+
+Table tb_safe_zones {
+  safe_zone_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Zona Aman"]
+  nama_zona TEXT [note: "Nama Kawasan Perbukitan / Tempat Evakuasi Akhir (TEA)"]
+  elevasi_m REAL [note: "Ketinggian Elevasi dari Permukaan Laut (dalam Meter dpl)"]
+  geometry_wkt TEXT [note: "Geometri Poligon Spasial Zona Aman (Format WKT MultiPolygon)"]
+
+  indexes {
+    safe_zone_id [pk]
+  }
+
+  Note: "Data geospasial kawasan perbukitan timur Padang (Zona Bebas Tsunami). Keterkaitan ditentukan via pemeriksaan spasial."
+}
+
+// ============================================================================
+// TABLE GROUPS (PENGELOMPOKAN TABEL DI DBDAGRAM.IO)
+// ============================================================================
+
+TableGroup Network_Graph_Layer {
+  tb_nodes
+  tb_edges
+}
+
+TableGroup Routing_Engine_Layer {
+  tb_routes
+  tb_tes
+}
+
+TableGroup GIS_Spatial_Layer {
+  tb_inundation_zones
+  tb_safe_zones
+}
+```
+
+---
+
+## 📊 Visualisasi Relasi Entitas (Mermaid ERD)
+
+```mermaid
+erDiagram
+    tb_nodes ||..o{ tb_edges : "u (relasi logis simpul asal)"
+    tb_nodes ||..o{ tb_edges : "v (relasi logis simpul tujuan)"
+    tb_nodes ||..|| tb_routes : "origin_node_id (relasi logis 1:1)"
+    tb_tes ||..o{ tb_routes : "rank_1_tes (relasi logis ke nama_tes)"
+    tb_tes ||..o{ tb_routes : "rank_2_tes (relasi logis ke nama_tes)"
+    tb_tes ||..o{ tb_routes : "rank_3_tes (relasi logis ke nama_tes)"
+
+    tb_nodes {
+        INTEGER node_id PK "ID Persimpangan Jalan"
+        REAL lat "Latitude"
+        REAL lon "Longitude"
+        INTEGER is_safe "Flag 0=Rawan, 1=Aman"
+    }
+
+    tb_edges {
+        INTEGER edge_id PK "ID Ruas Jalan"
+        INTEGER u "Simpul Asal (Relasi Logis ke tb_nodes.node_id)"
+        INTEGER v "Simpul Tujuan (Relasi Logis ke tb_nodes.node_id)"
+        REAL length "Panjang Jalan (m)"
+        TEXT geometry "WKT LineString"
+    }
+
+    tb_tes {
+        TEXT tes_id PK "Kode Shelter TES"
+        TEXT nama_tes "Nama Shelter (Target Relasi Logis tb_routes)"
+        TEXT zona "Kelurahan"
+        REAL kapasitas "Daya Tampung"
+        REAL lat "Latitude"
+        REAL lon "Longitude"
+    }
+
+    tb_routes {
+        INTEGER origin_node_id PK "Node Asal Warga (Relasi Logis 1:1 ke tb_nodes.node_id)"
+        TEXT rank_1_tes "Nama Shelter 1 (Relasi Logis ke tb_tes.nama_tes)"
+        TEXT rank_1_path "Deretan ID Simpul Rute 1 (Teks List Node)"
+        REAL rank_1_eta "Waktu Tempuh 1 (menit)"
+        TEXT rank_2_tes "Nama Shelter 2 (Relasi Logis ke tb_tes.nama_tes)"
+        TEXT rank_2_path "Deretan ID Simpul Rute 2 (Teks List Node)"
+        REAL rank_2_eta "Waktu Tempuh 2 (menit)"
+        TEXT rank_3_tes "Nama Shelter 3 (Relasi Logis ke tb_tes.nama_tes)"
+        TEXT rank_3_path "Deretan ID Simpul Rute 3 (Teks List Node)"
+        REAL rank_3_eta "Waktu Tempuh 3 (menit)"
+    }
+
+    tb_inundation_zones {
+        INTEGER zone_id PK "ID Zona Rendaman"
+        TEXT nama_zona "Nama Kelurahan"
+        TEXT tingkat_bahaya "Kategori Rawan"
+        TEXT geometry_wkt "WKT MultiPolygon (Pemeriksaan Spasial)"
+    }
+
+    tb_safe_zones {
+        INTEGER safe_zone_id PK "ID Zona Aman"
+        TEXT nama_zona "Nama Perbukitan"
+        REAL elevasi_m "Ketinggian (m dpl)"
+        TEXT geometry_wkt "WKT MultiPolygon (Pemeriksaan Spasial)"
+    }
+```
+
+---
+
+## 📁 Berkas Terkait
+
+- **Berkas DBML Terbarui**: [`siaga_padang_erd.dbml`](file:///c:/gemastik/siaga_padang_erd.dbml)
+- **Database SQLite Utama**: [`ranah_siaga.db`](file:///c:/gemastik/ranah_siaga.db)
