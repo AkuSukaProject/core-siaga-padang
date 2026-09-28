@@ -47,6 +47,9 @@ database_evakuasi_padang.sqlite
 # hapus tanda pagar (#) pada baris di bawah:
 # ranah_siaga.db
 
+# Database V2 dengan rute TEA (124 MB - melebihi batas 100 MB GitHub tanpa Git LFS)
+ranah_siaga_v2.db
+
 # ------------------------------------------------------------------------------
 # 5. Editor, IDE & Tooling
 # ------------------------------------------------------------------------------

@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 import os
 
-db_filename = "ranah_siaga.db"
+db_filename = "ranah_siaga_v3.db"
 
 if not os.path.exists(db_filename):
     print(f"[ERROR] File database '{db_filename}' tidak ditemukan di direktori saat ini.")

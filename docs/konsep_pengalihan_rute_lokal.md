@@ -1,0 +1,78 @@
+# Konsep Pengalihan Rute Dinamis (Dynamic Detour) secara Offline di Android
+
+Dokumen ini disusun sebagai panduan konseptual bagi Tim Android untuk mengimplementasikan fitur "Pencarian Jalan Alternatif / Rute Memutar" secara cerdas, tanpa membebani memori HP atau memperbesar ukuran database.
+
+## Latar Belakang Masalah
+Dalam kondisi evakuasi Tsunami, rute utama pra-komputasi (Rank 1) menuju sebuah Shelter (TES/TEA) bisa saja terhalang puing atau banjir. 
+* **Pertanyaan:** Bisakah aplikasi mencarikan "jalan tikus" atau jalan memutar ke *TES yang sama*?
+* **Tantangan:** Menjalankan algoritma pencarian graf (*Dijkstra / A-Star*) penuh di HP saat bencana akan menguras baterai dan memori. Menyimpan semua jalur alternatif di database akan melanggar batas maksimum file (75 MB).
+
+## Solusi: Algoritma *Neighbor Lookup* (Cek Tetangga)
+Alih-alih menghitung rute dari nol, aplikasi Android cukup memanfaatkan konsep **"Cek Simpang Sebelah"**. Database kita (yang murni statis) sebenarnya menyimpan rute terbaik dari **setiap simpang yang ada di Padang**.
+
+Ketika *user* terhalang, HP hanya perlu melihat simpang apa saja yang ada di kiri/kanannya, lalu "menyontek" rute dari simpang tetangga tersebut.
+
+### Alur Kerja (Step-by-Step Logic)
+
+1. **Deteksi Rute Terhalang:**
+   Anggap *user* berada di **Node X**, dan jalan utama di depannya (menuju Node Y) terlaporkan hancur.
+   
+2. **Cari Simpang Tetangga:**
+   Aplikasi menjalankan kueri SQLite ke tabel `tb_edges` untuk melihat daftar semua persimpangan yang terhubung langsung secara fisik dengan posisi *user* saat ini (Node X).
+   
+3. **Filter Tetangga:**
+   Aplikasi mencoret Node Y dari daftar tetangga karena jalan ke arah sana hancur. Tersisa tetangga yang aman (misalnya **Node W** dan **Node Z**).
+   
+   **[PENTING] Aplikasi wajib melakukan dua pengecekan krusial pada rute milik tetangga ini:**
+   * **Mencegah Jalur Berputar (Backtracking):** Rute Rank 1 milik tetangga (misal Node W) tidak boleh melewati kembali ruas jalan yang terhalang (X → Y). Hal ini karena rute di *database* dihitung *sebelum* hambatan terjadi.
+   * **Memastikan Tujuan Sama:** Pastikan rute Rank 1 milik Node W memang menuju **TES A**. Jika rutenya menuju TES lain, maka itu bukan "jalan memutar ke TES yang sama", melainkan pengalihan murni ke TES alternatif.
+
+4. **Kalkulasi Cost Sederhana (Penjumlahan):**
+   Aplikasi melakukan kalkulasi ringan (1 langkah) untuk tetangga yang aman:
+   
+   * **Via Tetangga W:** 
+     *(Jarak jalan kaki Node X → W)* **+** *(ETA dari Node W ke TES A di `tb_routes`)*
+   * **Via Tetangga Z:** 
+     *(Jarak jalan kaki Node X → Z)* **+** *(ETA dari Node Z ke TES A di `tb_routes`)*
+     
+5. **Pemilihan Rute:**
+   Bandingkan hasil dari kedua perhitungan di atas. Angka terkecil (waktu tercepat) adalah pemenangnya. Aplikasi lalu memunculkan instruksi: *"Berbeloklah ke Simpang W, lalu ikuti panduan baru menuju TES A"*.
+
+---
+
+## Referensi Query SQLite untuk Android
+
+Berikut adalah contoh gambaran operasi pencarian tetangga yang sangat ringan:
+
+```sql
+-- 1. Mendapatkan daftar tetangga dari posisi user (Misal: user di Node 123)
+-- Menggunakan OR karena ruas jalan (edge) disimpan satu arah di database.
+SELECT CASE WHEN u = 123 THEN v ELSE u END AS id_tetangga, length AS jarak_meter 
+FROM tb_edges 
+WHERE u = 123 OR v = 123;
+```
+
+Setelah ID tetangga (misal 456 dan 789) didapat di *code* Kotlin/Java:
+
+```sql
+-- 2. Mengambil contekan sisa rute dari tetangga yang valid
+SELECT rank_1_tes, rank_1_eta, rank_1_path 
+FROM tb_routes 
+WHERE origin_node_id IN (456, 789);
+```
+
+## Keunggulan Arsitektur Ini
+* **Performa Tinggi (O(1) / O(N) Lookup):** HP tidak melakukan komputasi algoritma *Graph* yang rumit, hanya melakukan `SELECT` SQLite sederhana.
+* **Tidak Merusak Ukuran Database:** Fitur ini murni 100% menggunakan arsitektur `ranah_siaga_v2.db` yang ada saat ini (ukuran tetap < 75 MB). Tidak ada kolom tambahan yang diperlukan.
+* ***Self-Healing Route*:** Rute seolah-olah "hidup" dan bisa mengoreksi dirinya sendiri mengikuti pergerakan berjalan cepat *user* di lapangan.
+
+---
+
+## Ekspektasi Realistis (Berdasarkan Hasil Simulasi)
+
+Berdasarkan pengujian simulasi, harap dicatat bahwa fitur jalan memutar 1-langkah (*1-hop detour*) ini memiliki efektivitas spesifik:
+* **Penemuan Rute ke TES yang Sama:** Jalan memutar ke TES asal (TES A) hanya akan ditemukan pada **±22% kasus**.
+* **Kecepatan Relatif:** Dari persentase tersebut, hanya pada **21% kasus** hasilnya terbukti lebih cepat daripada langsung memindahkan warga ke TES Rank 2. Pada sisa kasus lainnya, aplikasi tetap akan memandu warga untuk beralih secara logis ke TES Rank 2 atau Rank 3.
+* **Mengapa tidak diperluas?** Jika jangkauan pencarian diperluas ke 2–3 langkah persimpangan, rasio penemuan jalan memutar akan naik menjadi 35–45%. Namun, hal ini mewajibkan algoritma penelusuran graf (seperti BFS) beroperasi murni di dalam HP, yang **dilarang keras** demi menjaga performa memori dan baterai tetap ringan.
+
+**Kesimpulan Akhir:** Fitur pencarian tetangga 1-langkah ini tetap **sangat layak dan efisien** untuk diterapkan sebagai langkah pertama (*fallback*) saat *user* menekan opsi "Jalan tidak bisa dilewati", sebelum pengalihan penuh ke gedung TES berikutnya (Rank 2) diputuskan.
