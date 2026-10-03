@@ -299,7 +299,10 @@ for n, d in G.nodes(data=True):
         n_id = int(n)
         lat_val = float(d['y'])
         lon_val = float(d['x'])
-        kel_name = node_to_kelurahan.get(n_id, "")
+        # Kunci node_to_kelurahan adalah ID simpul graphml (teks), bukan int. Dengan kunci int,
+        # kelurahan tidak pernah ditemukan dan semua simpul jatuh ke aturan bujur > 100.38 di bawah,
+        # sehingga 5.618 simpul berbeda dari poligon zona (build lama 2026.09.26, SHA b29422ac).
+        kel_name = node_to_kelurahan.get(n, "")
         if kel_name:
             safe_val = is_kelurahan_safe(kel_name)
         else:

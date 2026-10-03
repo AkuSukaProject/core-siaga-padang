@@ -17,7 +17,9 @@ try:
 except:
     df_tea = pd.DataFrame()
 try:
-    df_safe = pd.read_sql_query("SELECT origin_node_id, safe_zone_nama, safe_eta FROM tb_safe_routes", conn)
+    df_safe = pd.read_sql_query(
+        "SELECT r.origin_node_id, z.nama_zona AS safe_zone_nama, r.safe_eta "
+        "FROM tb_safe_routes r JOIN tb_safe_zones z ON z.safe_zone_id = r.safe_zone_id", conn)
 except:
     df_safe = pd.DataFrame()
 

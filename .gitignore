@@ -50,6 +50,9 @@ database_evakuasi_padang.sqlite
 # Database V2 dengan rute TEA (124 MB - melebihi batas 100 MB GitHub tanpa Git LFS)
 ranah_siaga_v2.db
 
+# DB rilis aplikasi dari spatial/rilis_aplikasi.bat (distribusi lewat Drive, bukan Git)
+ranah_siaga_rilis.db
+
 # ------------------------------------------------------------------------------
 # 5. Editor, IDE & Tooling
 # ------------------------------------------------------------------------------
