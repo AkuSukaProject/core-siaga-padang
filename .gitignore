@@ -40,6 +40,8 @@ cache/
 # hasil_build/ranah_siaga_v4.db (±30 MB) dan dataset_manifest.json di-commit. Zip-nya dibuat
 # ulang oleh build_db.py dan didistribusikan terpisah; checksum-nya tercatat di manifest.
 *.db.zip
+# Paket kiriman untuk tim mobile & backend (dibuat ulang dari hasil_build/ + docs/)
+hasil_build/kirim_*.zip
 
 # ------------------------------------------------------------------------------
 # 4b. Data Mentah BPBD (±1,4 GB: KRB 2023-2027, shapefile TES/TEA, PDF)
