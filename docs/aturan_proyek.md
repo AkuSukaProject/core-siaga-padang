@@ -4,19 +4,38 @@ Untuk memastikan lingkungan pengembangan yang terstandar, dapat direproduksi (*r
 
 ## 1. Konvensi Kode dan Penamaan File
 
-*   **Prefix Eksperimen**: Semua skrip eksperimen atau uji coba sementara yang tidak terkait dengan keluaran produksi (Tabel 6.4 atau build `.db`) harus ditempatkan di direktori `scratch/`.
+*   **Engine Kanonis**: Database untuk aplikasi hanya boleh dibangun oleh [`build_db.py`](../build_db.py). Skrip lama (`core.py`, `build_db_v2_with_tea.py`, `spatial/`) sudah dipindah ke `legacy/pipeline_db/` dan hanya rujukan historis.
+*   **Arsip Skrip Lama**: Skrip yang tidak dipakai lagi dipindah ke `legacy/` (dengan `git mv` agar riwayat terjaga), bukan dihapus atau dibiarkan di root. Root hanya berisi skrip aktif. Lihat [`legacy/README.md`](../legacy/README.md).
+*   **Struktur Root**: Root hanya berisi skrip aktif, `requirements.txt`, `dataset_manifest.json`, `padang_full.graphml`, dan `ranah_siaga_v4.db`. Dokumen ada di `docs/`, dokumen rujukan (PDF) di `referensi/`, data mentah BPBD di `Data BPBD/`, dan semua data/keluaran lama di `legacy/data/` dan `legacy/output/`.
+*   **Prefix Eksperimen**: Semua skrip eksperimen atau uji coba sementara yang tidak terkait dengan keluaran produksi (build `.db` atau simulasi kanonis) harus ditempatkan di direktori `scratch/`.
 *   **Kejelasan Eksekusi**: File generator (seperti pembuatan peta atau ekstraksi data) harus menggunakan awalan deskriptif (contoh: `buat_peta_...`, `generate_...`, `ekstrak_...`).
 *   **Encoding Teks**: Setiap pengolahan *String* atau akses standar *output/print* direkomendasikan mengonfigurasi encoding UTF-8 di awal skrip (`sys.stdout.reconfigure(encoding='utf-8')`) mengingat data lapangan di Indonesia banyak menggunakan karakter spasial khusus atau tanda baca lokal.
+*   **Dokumen Turunan**: `docs/siaga_padang_erd.dbml` dibangkitkan oleh `generate_dbml_file.py` dari DB. Jangan diedit manual; jalankan ulang generator setiap skema berubah.
 
-## 2. Aturan Data & Pembersihan
+## 2. Aturan Sumber Data
 
-*   **Pembersihan Numerik Otomatis**: Data dari CSV/Excel resmi pemerintah sering kali mengandung notasi yang tidak konsisten (misal: "3000 Jiwa", "1.500", atau angka dalam list Python jika terpotong). Selalu gunakan fungsi pembersih *string-to-float* tahan banting (seperti fungsi `bersihkan_angka_osm()` atau `parse_kapasitas()`) sebelum komputasi matematis.
+*   **Data BPBD adalah sumber utama.** Fasilitas evakuasi, zona merah, penduduk terpapar, dan jalur evakuasi diambil dari folder `Data BPBD/` (KRB 2023–2027, TES/TEA 2025, verifikasi 2019). Daftar data yang dipakai dan alasannya ada di [build_db_v4.md](build_db_v4.md).
+*   **Data lama tidak boleh dipakai** untuk produksi: peta dan tabel berbasis data 2013, peta 2014/2017, serta CSV turunan lama (`data_tes_padang_lengkap_berkoordinat.csv`, `data_tea_padang_lengkap_berkoordinat.csv`, `penduduk_kota_padang.csv`, `batas_kelurahan_kota_padang.geojson`), yang sekarang disimpan di `legacy/data/`. Menurut BPBD data tersebut sudah tidak relevan.
+*   **Jangan mengubah data sumber BPBD.** Koreksi (duplikat, salah ketik kelurahan, kapasitas kosong) dilakukan di dalam skrip dan dicatat, misalnya lewat kolom `kapasitas_sumber` atau `alasan_tidak_dipakai`. Hal yang meragukan dilaporkan ke BPBD, bukan diubah diam-diam.
+*   **Folder `Data BPBD/` tidak di-commit** (±1,4 GB). Simpan salinannya di luar git dan ekstrak `SHP kecamatan.rar` ke `Data BPBD/SHP kecamatan/` sebelum build.
+
+## 3. Aturan Data & Pembersihan
+
+*   **Pembersihan Numerik Otomatis**: Data dari CSV/Excel resmi pemerintah sering kali mengandung notasi yang tidak konsisten (misal: "3000 Jiwa", "1.500", atau angka dalam list Python jika terpotong). Selalu gunakan fungsi pembersih *string-to-float* tahan banting (seperti `bersihkan_angka_osm()` atau `pd.to_numeric(..., errors="coerce")`) sebelum komputasi matematis.
 *   **Pemisah Desimal**: Data lokal cenderung menggunakan tanda koma (`,`) sebagai pemisah desimal koordinat/kapasitas. Penguraian *string* menjadi *float* harus menangani substitusi `,` ke `.` terlebih dahulu.
 *   **Validasi Koordinat**: Koordinat yang bernilai 0.0, bernilai *NaN*, atau tidak rasional (berada jauh dari ekuator/wilayah Sumatera Barat) harus difilter secara langsung (dijatuhkan/di-*drop* dari *Dataframe*).
+*   **Proyeksi**: Perhitungan jarak dan luas memakai UTM 47S (`EPSG:32747`). Data BPBD memakai beberapa CRS (World Mercator `EPSG:3395`, UTM), jadi selalu transformasikan sebelum dibandingkan. Koordinat yang disimpan ke DB memakai WGS84 (`EPSG:4326`).
+*   **Pencocokan Nama**: Saat mencocokkan nama gedung antar dataset, nomor di nama (SMPN 3 vs SMPN 36) harus sama persis. Kemiripan teks saja tidak cukup.
 
-## 3. Reproduktibilitas Ilmiah
+## 4. Aturan Evakuasi
+
+Semua logika routing dan simulasi wajib mengikuti [aturan_evakuasi_bpbd.md](aturan_evakuasi_bpbd.md), terutama: batas waktu 20 menit, kecepatan orang terlemah 0,894 m/s, menjauhi pantai (mutlak), penalti jembatan sungai, dan istilah "berjalan cepat" (bukan "berlari"). Bila aturan berubah, perbarui dokumen itu lebih dulu, lalu engine.
+
+## 5. Reproduktibilitas Ilmiah
 
 Karena proyek ini menghasilkan data evaluasi fisik untuk pengajuan riset akademik / kompetisi (Tabel 6.4 Proposal), ketegasan ilmiah adalah suatu keharusan:
 *   **Fix Random Seed**: Semua proses pemilihan sampel (*random sampling* agen populasi demografi) harus menetapkan seed statis (misal `np.random.seed(42)`). Jika di-run 100 kali, harus keluar 100 hasil simulasi yang persis sama.
-*   **Parameter Tidak Boleh Hard-Coded Asal-asalan**: Jauhi penggunaan *magic numbers*. Setiap konstanta kecepatan, konversi EPSG, batas waktu evakuasi harus dideklarasikan sebagai variabel global konfigurasi di bagian atas *script* dan diberikan anotasi rujukan asalnya (misal: `"Kecepatan jalan standar BNPB = 1.2 m/s"`).
-*   **Hindari Duplikasi Skrip Engine Inti**: Bila ada perubahan logika distribusi agen ke TES, pastikan logika kanonisnya diperbaiki secara *upstream* di `core.py` dan disinkronkan ke `simulasi_resmi_padang.py`, bukan dengan membuat variasi duplikat `core_v7.py` di dalam *root directory*.
+*   **Build Deterministik**: `build_db.py` dengan input yang sama harus menghasilkan SHA-256 yang sama. Jika berubah tanpa perubahan input, cari sumber ketidakpastiannya.
+*   **Parameter Tidak Boleh Hard-Coded Asal-asalan**: Jauhi penggunaan *magic numbers*. Setiap konstanta kecepatan, penalti, konversi EPSG, dan batas waktu evakuasi harus dideklarasikan sebagai variabel konfigurasi di bagian atas skrip dan diberi anotasi rujukan asalnya (misal: `"Kecepatan orang terlemah FEMA P-646 = 0.894 m/s"`). Parameter build juga dicatat di tabel `tb_metadata`.
+*   **Hindari Duplikasi Skrip Engine Inti**: Perubahan logika routing atau penugasan dilakukan di `build_db.py` dan disinkronkan ke simulasi kanonis, bukan dengan membuat variasi duplikat (misal `build_db_v5.py`) di *root directory*.
+*   **Verifikasi Setelah Build**: Setiap perubahan engine harus dicek minimal: skema tabel inti tetap sama dengan versi sebelumnya (kontrak Room Android), tidak ada rute yang melanggar aturan pantai, jalur tersambung, dan ETA sesuai panjang rute.

@@ -9,27 +9,26 @@ Bergantung pada tujuannya, terdapat dua skrip utama yang memegang peran kanonis 
 ### 1. `simulasi_resmi_padang.py` (Engine Simulasi Evaluasi Murni)
 Skrip ini didedikasikan secara eksklusif untuk menjalankan eksperimen simulasi komparatif formal (Skenario Baseline vs Skenario Siaga Padang).
 * **Sifat**: Deterministik, menggunakan *fixed random seed* (`42`).
-* **Status Terkini**: *Script* ini **telah di-update** sepenuhnya untuk mengakomodasi skenario Hibrida V2 (termasuk alokasi rute ke 12 TEA tanpa batas kapasitas). Metrik kelulusan simulasi yang dihasilkan sudah merepresentasikan *survival rate* terbaru.
+* **Status Terkini (Oktober 2026)**: ⚠️ **Belum diselaraskan dengan data BPBD dan aturan evakuasi terbaru.** Skrip masih membaca CSV lama dari `legacy/data/` (143 TES, 12 TEA, `penduduk_kota_padang.csv`), memakai kecepatan 1,2 m/s, dan menulis petanya ke `legacy/output/`. Hasil di bagian bawah dokumen ini adalah hasil versi Hibrida V2 dan **tidak boleh dipakai sebagai angka final** sampai skrip dijalankan ulang dengan masukan yang sama dengan `build_db.py` (lihat "Pekerjaan yang tersisa").
 
-### 2. Pipa Pembangun Database (*Database Builder Pipeline*)
-Merupakan urat nadi repositori ini untuk menggenerasi basis data SQLite (`ranah_siaga_v2.db`) bagi *client* (Android). Prosesnya terbagi menjadi dua tahap kanonis:
-* **`core.py`**: Menjalankan algoritma pra-komputasi untuk Tempat Evakuasi Sementara (TES) berbasis kapasitas (*Capacity-Aware Assignment*) dan membentuk skema 6 tabel dasar (`ranah_siaga.db`).
-* **`build_db_v2_with_tea.py`**: Skrip ekstensi wajib (NF-03) yang menyalin *baseline* dan menanamkan simulasi jarak terdekat (*Nearest Dijkstra*) untuk 12 Tempat Evakuasi Akhir (TEA) tanpa batas kapasitas, serta menghasilkan tabel navigasi dinamis yang sangat efisien (`tb_tea_next`).
+### 2. Pembangun Database (`build_db.py`)
+Satu skrip yang menghasilkan `ranah_siaga_v4.db` untuk Android langsung dari data BPBD, menggantikan rantai lama `core.py` → `build_db_v2_with_tea.py` → `spatial/` (diarsipkan di `legacy/pipeline_db/`). Skrip ini juga menghitung metrik cakupan berbasis penugasan (jiwa dengan tujuan ≤ 20 menit). Rincian: [build_db_v4.md](build_db_v4.md).
 
 ## Parameter Resmi Simulasi
 
-Semua simulasi kanonis di repositori ini harus mematuhi parameter standar berikut untuk menjaga validitas ilmiah:
+Semua simulasi kanonis di repositori ini harus mematuhi parameter berikut (sumber: [aturan_evakuasi_bpbd.md](aturan_evakuasi_bpbd.md)):
 
-1. **Kecepatan Evakuasi Pejalan Kaki**: `1.2 m/s` (merujuk pada standar BNPB).
-2. **Batas Waktu Tiba (*Golden Time*) Tsunami**: `20.0 menit`.
-3. **Populasi Agen Uji**: `20.000 agen` (dibangkitkan secara spasial proporsional terhadap distribusi total populasi terdampak dari data demografi BPS).
-4. **Skenario Evaluasi**:
+1. **Kecepatan Evakuasi Pejalan Kaki**: `0.894 m/s` (2 mph, kecepatan orang terlemah menurut FEMA P-646, dipakai BPBD untuk radius 1 km / 20 menit). Kecepatan 1,2 m/s boleh dipakai hanya sebagai skenario pembanding (rata-rata), dan harus disebut demikian.
+2. **Batas Waktu Tiba (*Golden Time*) Tsunami**: `20.0 menit` (skenario terburuk BPBD).
+3. **Populasi**: 242.750 jiwa terpapar dari tabel KRB 2023–2027, disebar ke node zona merah menurut jejak bangunan RTRW. Jumlah agen sampel boleh berbeda, tetapi harus proporsional terhadap sebaran ini.
+4. **Aturan Rute**: Tujuan dan rute harus menjauhi pantai; jembatan sungai diberi penalti; jalur evakuasi resmi diutamakan.
+5. **Skenario Evaluasi**:
    * **Baseline**: Agen berjalan cepat ke TES (*Tempat Evakuasi Sementara*) terdekat secara murni (tanpa batasan kapasitas; memungkinkan kelebihan beban ekstrem).
-   * **Siaga Padang (Hibrida V2)**: Sistem alokasi cerdas gabungan, di mana:
+   * **Siaga Padang**: Sistem alokasi gabungan, di mana:
      - Evakuasi menuju TES menghormati kapasitas gedung (*Capacity-Aware*), memaksa agen mencari rute alternatif jika penuh.
-     - Evakuasi menuju TEA murni menggunakan jarak/waktu tempuh tercepat tanpa batas kapasitas, demi kecepatan memasuki zona aman.
+     - Evakuasi menuju TEA dan zona aman memakai waktu tempuh tercepat tanpa batas kapasitas.
 
-## Aturan & Alur Logika Evakuasi (Skenario Hibrida V2)
+## Aturan & Alur Logika Evakuasi (Skenario Siaga Padang)
 
 Agar simulasi berjalan valid dan menyerupai kondisi nyata, skrip kanonis wajib mengimplementasikan alur evakuasi dengan aturan ketat berikut:
 
@@ -51,14 +50,20 @@ Agar simulasi berjalan valid dan menyerupai kondisi nyata, skrip kanonis wajib m
    * Agen yang baru tiba pada menit `20.1`, atau kehabisan tempat di TES dan terlambat lari ke TEA, dikategorikan `TIDAK SELAMAT` (Terpapar).
 
 ## Dataset Kanonis
-Skrip simulasi wajib menggunakan referensi data spasial riil yang telah divalidasi:
+Skrip simulasi dan pembangun DB wajib memakai data berikut (rincian di [build_db_v4.md](build_db_v4.md)):
 * Graf jalan: `padang_full.graphml`
-* Data Shelter Vertikal: `data_tes_padang_lengkap_berkoordinat.csv` (143 TES Resmi BPBD)
-* Data Shelter Horizontal: `data_tea_padang_lengkap_berkoordinat.csv` (12 Lahan Terbuka TEA)
-* Batas Administrasi: `batas_kelurahan_kota_padang.geojson`
-* Data Demografi: `penduduk_kota_padang.csv`
+* TES & TEA: `Data BPBD/SHP kecamatan/2_TES_TEA_Padang.shp` (BPBD 2025), setelah filter di `build_db.py` (234 TES, 25 TEA). Cara termudah: baca dari `tb_tes`, `tb_tea`, dan `tb_fasilitas_info` di `ranah_siaga_v4.db`.
+* Zona merah: raster `Peta_Bahaya_Tsunami` KRB 2023–2027 (`tb_nodes.is_safe`).
+* Batas administrasi: `Basemap.gdb` → `Batas_Administrasi_Kelurahan_AR`.
+* Penduduk: tabel KRB 2023–2027 (`tb_node_info.demand_jiwa`, `tb_kelurahan_info`).
 
-## Hasil Simulasi Resmi Hibrida V2 (Per September 2026)
+## Pekerjaan yang tersisa
+* Selaraskan `simulasi_resmi_padang.py` dengan dataset dan parameter di atas, lalu jalankan ulang Baseline vs Siaga Padang.
+* Perbarui angka di [draft_revisi_proposal.md](draft_revisi_proposal.md) (143 TES, 12 TEA, 524 ribu jiwa, 81,0% / 53,2%) dengan hasil simulasi baru.
+
+## Arsip: Hasil Simulasi Hibrida V2 (September 2026, data lama)
+
+> Angka di bagian ini dihasilkan dengan data dan parameter lama (143 TES, 12 TEA, 1,2 m/s). Disimpan sebagai rujukan historis, bukan hasil resmi.
 
 Berdasarkan eksekusi terbaru dari skrip `simulasi_resmi_padang.py` menggunakan 20.000 agen (merepresentasikan total 524.728 jiwa populasi terpapar), didapatkan metrik evaluasi definitif sebagai berikut:
 

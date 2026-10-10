@@ -61,9 +61,25 @@ FROM tb_routes
 WHERE origin_node_id IN (456, 789);
 ```
 
+## Penyesuaian untuk Database V4
+
+Dua perubahan di `ranah_siaga_v4.db` memengaruhi logika cek tetangga:
+
+1. **Tetangga di zona aman tidak punya baris `tb_routes`.** Jika kueri langkah 2 tidak mengembalikan baris untuk sebuah tetangga, periksa `tb_nodes.is_safe` tetangga itu. Jika `1`, tetangga tersebut sudah di zona aman: arahkan pengguna ke sana (jarak X → tetangga saja), karena itu pilihan terbaik.
+2. **Aturan menjauhi pantai berlaku juga untuk pengalihan.** Jangan memilih tetangga yang lebih dekat ke pantai daripada posisi pengguna, kecuali selisihnya kecil (≤ 50 m, sama dengan toleransi engine). Jarak ke pantai tersedia di `tb_node_info.d_pantai_m`:
+
+```sql
+-- Jarak ke pantai untuk posisi user dan tetangganya
+SELECT node_id, d_pantai_m FROM tb_node_info WHERE node_id IN (123, 456, 789);
+```
+
+Jika semua tetangga tersaring, aplikasi langsung beralih ke TES Rank 2/3 atau ke rute zona aman (`tb_safe_routes`).
+
+> Angka efektivitas di bagian "Ekspektasi Realistis" berasal dari simulasi dengan database lama (v2) dan perlu dihitung ulang dengan v4.
+
 ## Keunggulan Arsitektur Ini
 * **Performa Tinggi (O(1) / O(N) Lookup):** HP tidak melakukan komputasi algoritma *Graph* yang rumit, hanya melakukan `SELECT` SQLite sederhana.
-* **Tidak Merusak Ukuran Database:** Fitur ini murni 100% menggunakan arsitektur `ranah_siaga_v2.db` yang ada saat ini (ukuran tetap < 75 MB). Tidak ada kolom tambahan yang diperlukan.
+* **Tidak Merusak Ukuran Database:** Fitur ini murni memakai tabel yang sudah ada di `ranah_siaga_v4.db` (±29 MB). Tidak ada kolom tambahan yang diperlukan.
 * ***Self-Healing Route*:** Rute seolah-olah "hidup" dan bisa mengoreksi dirinya sendiri mengikuti pergerakan berjalan cepat *user* di lapangan.
 
 ---

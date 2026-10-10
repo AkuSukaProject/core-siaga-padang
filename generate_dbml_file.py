@@ -1,160 +1,164 @@
-import os
-
-dbml_detailed_content = """// DBML Schema Definition for dbdiagram.io
-// Database: ranah_siaga.db (Sistem Routing Evakuasi Tsunami Kota Padang)
-
-Project SiagaPadangERD {
-  database_type: 'SQLite'
-  Note: '''
-    # ERD DETAIL DATABASE SIAGA PADANG (ranah_siaga.db)
-    Spesifikasi Lengkap Primary Key (PK), Foreign Key (FK), Tipe Data & Relasi Entitas.
-    Sistem Informasi Geografis & Routing Evakuasi Tsunami Kota Padang.
-  '''
-}
-
-// ============================================================================
-// 1. KELOMPOK GRAF & SPASIAL JALAN (NETWORK GRAPH)
-// ============================================================================
-
-Table tb_nodes {
-  node_id integer [pk, increment, note: "PRIMARY KEY: ID Unik Simpul Persimpangan Jalan"]
-  lat float [not null, note: "Koordinat Lintang (Latitude WGS84)"]
-  lon float [not null, note: "Koordinat Bujur (Longitude WGS84)"]
-  is_safe integer [not null, default: 0, note: "Flag Status Zona (0 = Rawan Tsunami, 1 = Perbukitan Aman/TEA)"]
-
-  indexes {
-    node_id [pk]
-    (lat, lon) [name: "idx_nodes_coords"]
-  }
-
-  Note: "Master data simpul persimpangan jalan & titik rujukan awal evakuasi warga."
-}
-
-Table tb_edges {
-  edge_id integer [pk, increment, note: "PRIMARY KEY: ID Unik Ruas Jalan"]
-  u integer [not null, ref: > tb_nodes.node_id, note: "FOREIGN KEY -> tb_nodes.node_id (Simpul Asal Persimpangan)"]
-  v integer [not null, ref: > tb_nodes.node_id, note: "FOREIGN KEY -> tb_nodes.node_id (Simpul Tujuan Persimpangan)"]
-  length float [not null, note: "Panjang Ruas Jalan Faktual (dalam Meter)"]
-  geometry text [note: "Geometri Spasial Garis Jalan (LineString WKT)"]
-
-  indexes {
-    edge_id [pk]
-    u [name: "idx_edges_u"]
-    v [name: "idx_edges_v"]
-  }
-
-  Note: "Master data ruas jalan penghubung antar persimpangan (Jaringan Graf Kota Padang)."
-}
-
-// ============================================================================
-// 2. KELOMPOK ENGINE ROUTING & SHELTER EVAKUASI (ROUTING ENGINE)
-// ============================================================================
-
-Table tb_tes {
-  tes_id varchar(50) [pk, note: "PRIMARY KEY: Kode Unik Shelter Evakuasi (contoh: TES_001, TES_002)"]
-  nama_tes varchar(255) [not null, note: "Nama Resmi Gedung / Shelter Evakuasi"]
-  zona varchar(100) [note: "Nama Kelurahan / Kecamatan Lokasi Shelter"]
-  kapasitas float [not null, default: 0, note: "Kapasitas Daya Tampung Shelter (Satuan: Jiwa / Orang)"]
-  lat float [not null, note: "Koordinat Lintang Lokasi Shelter"]
-  lon float [not null, note: "Koordinat Bujur Lokasi Shelter"]
-
-  indexes {
-    tes_id [pk]
-    zona [name: "idx_tes_zona"]
-  }
-
-  Note: "Master data Tempat Evakuasi Sementara (TES / Shelter Gedung Bertingkat)."
-}
-
-Table tb_routes {
-  origin_node_id integer [pk, ref: - tb_nodes.node_id, note: "PRIMARY KEY & FOREIGN KEY -> tb_nodes.node_id (Titik Simpul Awal Warga)"]
-  
-  // Rekomendasi Prioritas Ke-1 (Top Option)
-  rank_1_tes varchar(50) [ref: > tb_tes.tes_id, note: "FOREIGN KEY -> tb_tes.tes_id (Shelter TES Rekomendasi Utama Ke-1)"]
-  rank_1_path text [note: "Array Node Path Jalur Rute Ke-1 (Format JSON/Text: [101, 105, 209])"]
-  rank_1_eta float [note: "Estimasi Waktu Tempuh / ETA Rute Ke-1 (dalam Menit)"]
-  
-  // Rekomendasi Prioritas Ke-2 (Alternative Option 1)
-  rank_2_tes varchar(50) [ref: > tb_tes.tes_id, note: "FOREIGN KEY -> tb_tes.tes_id (Shelter TES Rekomendasi Alternatif Ke-2)"]
-  rank_2_path text [note: "Array Node Path Jalur Rute Ke-2"]
-  rank_2_eta float [note: "Estimasi Waktu Tempuh / ETA Rute Ke-2 (dalam Menit)"]
-  
-  // Rekomendasi Prioritas Ke-3 (Alternative Option 2)
-  rank_3_tes varchar(50) [ref: > tb_tes.tes_id, note: "FOREIGN KEY -> tb_tes.tes_id (Shelter TES Rekomendasi Alternatif Ke-3)"]
-  rank_3_path text [note: "Array Node Path Jalur Rute Ke-3"]
-  rank_3_eta float [note: "Estimasi Waktu Tempuh / ETA Rute Ke-3 (dalam Menit)"]
-
-  indexes {
-    origin_node_id [pk]
-    rank_1_tes [name: "idx_routes_rank1"]
-    rank_2_tes [name: "idx_routes_rank2"]
-    rank_3_tes [name: "idx_routes_rank3"]
-  }
-
-  Note: "Matriks hasil algoritma Dijkstra / A* pra-kalkulasi rute evakuasi tercepat & teraman."
-}
-
-// ============================================================================
-// 3. KELOMPOK GEOSPASIAL BENCANA & AMAN (GIS SPATIAL ZONES)
-// ============================================================================
-
-Table tb_inundation_zones {
-  zone_id integer [pk, increment, note: "PRIMARY KEY: ID Unik Zona Rendaman"]
-  nama_zona varchar(100) [not null, note: "Nama Kelurahan / Kawasan Pesisir Rawan"]
-  tingkat_bahaya varchar(50) [not null, note: "Tingkat Bahaya Tsunami ('Sangat Rawan', 'Rawan Utama', 'Waspada')"]
-  geometry_wkt text [note: "Geometri Poligon Spasial Zona Rendaman (Format WKT MultiPolygon)"]
-
-  indexes {
-    zone_id [pk]
-    tingkat_bahaya [name: "idx_inundation_level"]
-  }
-
-  Note: "Data geospasial zona rawan limpasan gelombang tsunami."
-}
-
-Table tb_safe_zones {
-  safe_zone_id integer [pk, increment, note: "PRIMARY KEY: ID Unik Zona Aman"]
-  nama_zona varchar(100) [not null, note: "Nama Kawasan Perbukitan / Tempat Evakuasi Akhir (TEA)"]
-  elevasi_m float [not null, note: "Ketinggian Elevasi dari Permukaan Laut (dalam Meter dpl)"]
-  geometry_wkt text [note: "Geometri Poligon Spasial Zona Aman (Format WKT MultiPolygon)"]
-
-  indexes {
-    safe_zone_id [pk]
-  }
-
-  Note: "Data geospasial kawasan perbukitan timur Padang (Zona Bebas Tsunami)."
-}
-
-// ============================================================================
-// TABLE GROUPS (PENGELOMPOKAN TABEL DI DBDAGRAM.IO)
-// ============================================================================
-
-TableGroup Network_Graph_Layer {
-  tb_nodes
-  tb_edges
-}
-
-TableGroup Routing_Engine_Layer {
-  tb_routes
-  tb_tes
-}
-
-TableGroup GIS_Spatial_Layer {
-  tb_inundation_zones
-  tb_safe_zones
-}
 """
+Generator DBML (dbdiagram.io) untuk database Siaga Padang.
 
-output_path_local = r"c:\gemastik\siaga_padang_erd.dbml"
-output_path_artifact = r"C:\Users\Lenovo\.gemini\antigravity-ide\brain\6e25ee83-e7a5-43ef-bb35-d49386fe793a\siaga_padang_erd.dbml"
+Skema dibaca langsung dari berkas SQLite hasil build_db.py sehingga ERD selalu sinkron dengan DB.
+Catatan kolom & relasi logis didefinisikan di bawah; kolom tanpa catatan tetap ditulis apa adanya.
+Keluaran: docs/siaga_padang_erd.dbml
+"""
+import os
+import sqlite3
+import sys
 
-with open(output_path_local, "w", encoding="utf-8") as f:
-    f.write(dbml_detailed_content)
+sys.stdout.reconfigure(encoding="utf-8")
 
-os.makedirs(os.path.dirname(output_path_artifact), exist_ok=True)
-with open(output_path_artifact, "w", encoding="utf-8") as f:
-    f.write(dbml_detailed_content)
+DB_PATH = "ranah_siaga_v4.db"
+OUTPUT_PATH = os.path.join("docs", "siaga_padang_erd.dbml")
 
-print("Detailed DBML file successfully created at:")
-print(f" - {output_path_local}")
-print(f" - {output_path_artifact}")
+# Kelompok tabel (urutan = urutan di berkas DBML).
+KELOMPOK = {
+    "Graf_Jalan": ["tb_nodes", "tb_edges"],
+    "Rute_TES_Vertikal": ["tb_tes", "tb_routes"],
+    "Rute_TEA_Horizontal": ["tb_tea", "tb_tea_routes", "tb_tea_next"],
+    "Rute_Zona_Aman": ["tb_safe_routes", "tb_safe_next"],
+    "Zona_Spasial": ["tb_inundation_zones", "tb_safe_zones"],
+    "Penugasan": ["tb_route_shares"],
+    "Info_V4_Tambahan": ["tb_fasilitas_info", "tb_node_info", "tb_kelurahan_info",
+                         "tb_jembatan_sungai", "tb_jalur_resmi", "tb_metadata"],
+}
+
+CATATAN_TABEL = {
+    "tb_nodes": "Simpul persimpangan jalan (OSM). is_safe dari raster bahaya tsunami KRB 2023-2027.",
+    "tb_edges": "Ruas jalan untuk menggambar rute di peta.",
+    "tb_tes": "TES yang dipakai routing (BPBD 2025). Skema sama dengan v3.",
+    "tb_routes": "3 TES terbaik per node ZONA MERAH (aturan menjauhi pantai, penalti jembatan, jalur resmi). Node zona aman tidak punya baris.",
+    "tb_tea": "TEA yang dipakai routing (di luar area landaan).",
+    "tb_tea_routes": "TEA utama & alternatif per node.",
+    "tb_tea_next": "Tabel next-hop menuju tiap TEA (rangkai rute di memori).",
+    "tb_safe_routes": "Zona aman terdekat per node (multi-source Dijkstra).",
+    "tb_safe_next": "Next-hop menuju zona aman terdekat.",
+    "tb_inundation_zones": "Zona merah per kelurahan dari raster bahaya tsunami. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau).",
+    "tb_safe_zones": "Bagian kelurahan di luar area landaan (zona hijau).",
+    "tb_route_shares": "Porsi penugasan warga per node ke TES/TEA/zona aman (greedy berkapasitas).",
+    "tb_fasilitas_info": "Semua TES/TEA sumber BPBD termasuk yang tidak dipakai, beserta alasan & sumber kapasitas.",
+    "tb_node_info": "Atribut tambahan node: kelurahan, jarak ke pantai, indeks bahaya, demand, ketergantungan jembatan.",
+    "tb_kelurahan_info": "Profil tsunami per kelurahan dari tabel KRB 2023-2027.",
+    "tb_jembatan_sungai": "Ruas jembatan sungai yang diberi penalti routing.",
+    "tb_jalur_resmi": "Ruas graf yang mengikuti jalur evakuasi resmi BPBD.",
+    "tb_metadata": "Versi, sumber data, dan parameter build.",
+}
+
+CATATAN_KOLOM = {
+    ("tb_nodes", "is_safe"): "0 = zona merah (area landaan), 1 = zona aman",
+    ("tb_tes", "nama_tes"): "Target relasi logis rank_X_tes",
+    ("tb_tes", "zona"): "Kelurahan",
+    ("tb_tes", "kapasitas"): "Jiwa; sumber lihat tb_fasilitas_info.kapasitas_sumber",
+    ("tb_routes", "rank_1_path"): "ID node dipisah koma, dari asal ke TES",
+    ("tb_routes", "rank_1_eta"): "Menit, berjalan 0,894 m/s (tanpa penalti)",
+    ("tb_tea", "kapasitas"): "0 = tidak tersedia (TEA tidak dibatasi kapasitas saat routing)",
+    ("tb_safe_zones", "elevasi_m"): "NULL (belum ada data elevasi)",
+    ("tb_route_shares", "jenis"): "TES / TEA / ZONA_AMAN",
+    ("tb_fasilitas_info", "dipakai"): "1 = dipakai routing",
+    ("tb_fasilitas_info", "d_pantai_m"): "Jarak ke garis pantai (batimetri BPBD)",
+    ("tb_fasilitas_info", "indeks_bahaya"): "Indeks bahaya tsunami; NULL = di luar landaan",
+    ("tb_node_info", "demand_jiwa"): "Jiwa terpapar KRB, disebar menurut jejak bangunan",
+    ("tb_jembatan_sungai", "indeks_bahaya_gempa"): "Raster Peta_Bahaya_Gempabumi KRB",
+}
+
+# Relasi logis (bukan foreign key SQLite): (tabel, kolom) -> "tabel.kolom".
+RELASI = {
+    ("tb_edges", "u"): "tb_nodes.node_id",
+    ("tb_edges", "v"): "tb_nodes.node_id",
+    ("tb_routes", "origin_node_id"): "tb_nodes.node_id",
+    ("tb_routes", "rank_1_tes"): "tb_tes.nama_tes",
+    ("tb_routes", "rank_2_tes"): "tb_tes.nama_tes",
+    ("tb_routes", "rank_3_tes"): "tb_tes.nama_tes",
+    ("tb_tea", "nearest_node_id"): "tb_nodes.node_id",
+    ("tb_tea_routes", "origin_node_id"): "tb_nodes.node_id",
+    ("tb_tea_routes", "nearest_tea_id"): "tb_tea.tea_id",
+    ("tb_tea_routes", "alt_tea_id"): "tb_tea.tea_id",
+    ("tb_tea_next", "tea_id"): "tb_tea.tea_id",
+    ("tb_tea_next", "node_id"): "tb_nodes.node_id",
+    ("tb_tea_next", "next_node_id"): "tb_nodes.node_id",
+    ("tb_safe_routes", "origin_node_id"): "tb_nodes.node_id",
+    ("tb_safe_routes", "safe_node_id"): "tb_nodes.node_id",
+    ("tb_safe_next", "node_id"): "tb_nodes.node_id",
+    ("tb_safe_next", "next_node_id"): "tb_nodes.node_id",
+    ("tb_route_shares", "origin_node_id"): "tb_nodes.node_id",
+    ("tb_fasilitas_info", "nearest_node_id"): "tb_nodes.node_id",
+    ("tb_node_info", "node_id"): "tb_nodes.node_id",
+    ("tb_jembatan_sungai", "u"): "tb_nodes.node_id",
+    ("tb_jembatan_sungai", "v"): "tb_nodes.node_id",
+    ("tb_jalur_resmi", "u"): "tb_nodes.node_id",
+    ("tb_jalur_resmi", "v"): "tb_nodes.node_id",
+}
+# Relasi 1:1 (PK yang juga merujuk node).
+SATU_SATU = {("tb_routes", "origin_node_id"), ("tb_tea_routes", "origin_node_id"),
+             ("tb_safe_routes", "origin_node_id"), ("tb_node_info", "node_id")}
+
+
+def esc(teks):
+    return teks.replace('"', "'")
+
+
+def main():
+    if not os.path.exists(DB_PATH):
+        sys.exit(f"[ERROR] {DB_PATH} tidak ditemukan. Jalankan build_db.py terlebih dahulu.")
+    conn = sqlite3.connect(DB_PATH)
+    tabel_db = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+    versi = dict(conn.execute("SELECT kunci, nilai FROM tb_metadata")).get("versi", "?") if "tb_metadata" in tabel_db else "?"
+
+    out = [
+        "// DBML Schema Definition for dbdiagram.io",
+        f"// Dibangkitkan otomatis oleh generate_dbml_file.py dari {DB_PATH} (versi data {versi}). Jangan diedit manual.",
+        "",
+        "Project SiagaPadangERD {",
+        "  database_type: 'SQLite'",
+        "  Note: '''",
+        f"    Database lokal Android Siaga Padang ({DB_PATH}).",
+        "    Relasi adalah keterkaitan logis yang dipakai aplikasi, bukan foreign key constraint SQLite.",
+        "  '''",
+        "}",
+        "",
+    ]
+    tertulis = []
+    for grup, daftar in KELOMPOK.items():
+        for t in daftar:
+            if t not in tabel_db:
+                continue
+            tertulis.append(t)
+            info = conn.execute(f"PRAGMA table_info({t})").fetchall()
+            pk_cols = [c[1] for c in sorted(info, key=lambda c: c[5]) if c[5] > 0]
+            out.append(f"Table {t} {{")
+            for _, nama, tipe, notnull, default, pk in info:
+                atribut = []
+                if pk and len(pk_cols) == 1:
+                    atribut.append("pk")
+                if notnull and not pk:
+                    atribut.append("not null")
+                if default is not None:
+                    atribut.append(f"default: {default}")
+                ref = RELASI.get((t, nama))
+                if ref:
+                    atribut.append(f"ref: {'-' if (t, nama) in SATU_SATU else '>'} {ref}")
+                cat = CATATAN_KOLOM.get((t, nama))
+                if cat:
+                    atribut.append(f'note: "{esc(cat)}"')
+                out.append(f"  {nama} {tipe or 'TEXT'}" + (f" [{', '.join(atribut)}]" if atribut else ""))
+            if len(pk_cols) > 1:
+                out += ["", "  indexes {", f"    ({', '.join(pk_cols)}) [pk]", "  }"]
+            out += ["", f'  Note: "{esc(CATATAN_TABEL.get(t, ""))}"', "}", ""]
+        anggota = [t for t in daftar if t in tabel_db]
+        if anggota:
+            out += [f"TableGroup {grup} {{"] + [f"  {t}" for t in anggota] + ["}", ""]
+
+    lain = sorted(tabel_db - set(tertulis))
+    if lain:
+        print(f"[PERINGATAN] Tabel belum dikelompokkan, tidak ditulis: {', '.join(lain)}")
+
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        f.write("\n".join(out))
+    print(f"DBML ditulis ke {OUTPUT_PATH} ({len(tertulis)} tabel, versi data {versi})")
+
+
+if __name__ == "__main__":
+    main()

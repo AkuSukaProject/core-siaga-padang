@@ -1,205 +1,272 @@
 // DBML Schema Definition for dbdiagram.io
-// Database: ranah_siaga.db (Sistem Routing Evakuasi Tsunami Kota Padang)
+// Dibangkitkan otomatis oleh generate_dbml_file.py dari ranah_siaga_v4.db (versi data 2026.10.10). Jangan diedit manual.
 
 Project SiagaPadangERD {
   database_type: 'SQLite'
   Note: '''
-    # STRUKTUR LOGIS DATABASE SIAGA PADANG (ranah_siaga.db)
-    Struktur Basis Data Lokal Pada Perangkat Android.
-    Garis putus-putus menunjukkan keterkaitan logis yang digunakan aplikasi, bukan foreign key constraint pada SQLite.
+    Database lokal Android Siaga Padang (ranah_siaga_v4.db).
+    Relasi adalah keterkaitan logis yang dipakai aplikasi, bukan foreign key constraint SQLite.
   '''
 }
 
-// ============================================================================
-// 1. KELOMPOK GRAF & SPASIAL JALAN (NETWORK GRAPH)
-// ============================================================================
-
 Table tb_nodes {
-  node_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Simpul Persimpangan Jalan"]
-  lat REAL [note: "Koordinat Lintang (Latitude WGS84)"]
-  lon REAL [note: "Koordinat Bujur (Longitude WGS84)"]
-  is_safe INTEGER [default: 0, note: "Flag Status Zona (0 = Rawan Tsunami, 1 = Tanda simpul di kawasan aman)"]
+  node_id INTEGER [pk]
+  lat REAL
+  lon REAL
+  is_safe INTEGER [default: 0, note: "0 = zona merah (area landaan), 1 = zona aman"]
 
-  
-
-  Note: "Master data simpul persimpangan jalan & titik rujukan awal evakuasi warga."
+  Note: "Simpul persimpangan jalan (OSM). is_safe dari raster bahaya tsunami KRB 2023-2027."
 }
 
 Table tb_edges {
-  edge_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Ruas Jalan"]
-  u INTEGER [ref: > tb_nodes.node_id, note: "Keterkaitan Logis -> tb_nodes.node_id (Simpul Asal Persimpangan)"]
-  v INTEGER [ref: > tb_nodes.node_id, note: "Keterkaitan Logis -> tb_nodes.node_id (Simpul Tujuan Persimpangan)"]
-  length REAL [note: "Panjang Ruas Jalan Faktual (dalam Meter)"]
-  geometry TEXT [note: "Geometri Spasial Garis Jalan (LineString WKT)"]
+  edge_id INTEGER [pk]
+  u INTEGER [ref: > tb_nodes.node_id]
+  v INTEGER [ref: > tb_nodes.node_id]
+  length REAL
+  geometry TEXT
 
-  
-
-  Note: "Master data ruas jalan penghubung antar persimpangan (Jaringan Graf Kota Padang)."
+  Note: "Ruas jalan untuk menggambar rute di peta."
 }
 
-// ============================================================================
-// 2. KELOMPOK ENGINE ROUTING & SHELTER EVAKUASI (ROUTING ENGINE)
-// ============================================================================
-
-Table tb_tes {
-  tes_id TEXT [pk, note: "PRIMARY KEY: Kode Unik TES (contoh: TES_001, TES_002)"]
-  nama_tes TEXT [note: "Nama Resmi Gedung / TES (Target Relasi Logis tb_routes)"]
-  zona TEXT [note: "Nama Kelurahan / Kecamatan Lokasi TES"]
-  kapasitas REAL [default: 0, note: "Kapasitas Daya Tampung TES (Satuan: Jiwa / Orang)"]
-  lat REAL [note: "Koordinat Lintang Lokasi TES"]
-  lon REAL [note: "Koordinat Bujur Lokasi TES"]
-
-  indexes {
-    tes_id [pk]
-    zona [name: "idx_tes_zona"]
-  }
-
-  Note: "Master data Tempat Evakuasi Sementara (TES / TES Gedung Bertingkat)."
-}
-
-Table tb_routes {
-  origin_node_id INTEGER [pk, ref: - tb_nodes.node_id, note: "PRIMARY KEY & Keterkaitan Logis -> tb_nodes.node_id (Titik Simpul Awal Warga)"]
-  
-  // Rekomendasi Prioritas Ke-1 (Top Option)
-  rank_1_tes TEXT [ref: > tb_tes.nama_tes, note: "Keterkaitan Logis -> tb_tes.nama_tes (Nama TES Rekomendasi Utama Ke-1)"]
-  rank_1_path TEXT [note: "Deretan ID Simpul Jalur Rute Ke-1 dalam Teks (Format CSV)"]
-  rank_1_eta REAL [note: "Estimasi Waktu Tempuh / ETA Rute Ke-1 (dalam Menit)"]
-  
-  // Rekomendasi Prioritas Ke-2 (Alternative Option 1)
-  rank_2_tes TEXT [ref: > tb_tes.nama_tes, note: "Keterkaitan Logis -> tb_tes.nama_tes (Nama TES Rekomendasi Alternatif Ke-2)"]
-  rank_2_path TEXT [note: "Deretan ID Simpul Jalur Rute Ke-2 dalam Teks"]
-  rank_2_eta REAL [note: "Estimasi Waktu Tempuh / ETA Rute Ke-2 (dalam Menit)"]
-  
-  // Rekomendasi Prioritas Ke-3 (Alternative Option 2)
-  rank_3_tes TEXT [ref: > tb_tes.nama_tes, note: "Keterkaitan Logis -> tb_tes.nama_tes (Nama TES Rekomendasi Alternatif Ke-3)"]
-  rank_3_path TEXT [note: "Deretan ID Simpul Jalur Rute Ke-3 dalam Teks"]
-  rank_3_eta REAL [note: "Estimasi Waktu Tempuh / ETA Rute Ke-3 (dalam Menit)"]
-
-  
-
-  Note: "Matriks hasil algoritma Reverse Dijkstra pra-kalkulasi rute evakuasi tercepat & teraman."
-}
-
-// ============================================================================
-// 3. KELOMPOK GEOSPASIAL BENCANA & AMAN (GIS SPATIAL ZONES)
-// ============================================================================
-
-Table tb_inundation_zones {
-  zone_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Zona Rendaman"]
-  nama_zona TEXT [note: "Nama Kelurahan / Kawasan Pesisir Rawan"]
-  tingkat_bahaya TEXT [note: "Tingkat Bahaya Tsunami (Rendah, Sedang, Tinggi)"]
-  geometry_wkt TEXT [note: "Geometri Poligon Spasial Zona Rendaman (Format WKT MultiPolygon)"]
-
-  
-
-  Note: "Data geospasial zona rawan limpasan gelombang tsunami. Keterkaitan ditentukan via pemeriksaan spasial."
-}
-
-Table tb_safe_zones {
-  safe_zone_id INTEGER [pk, increment, note: "PRIMARY KEY: ID Unik Zona Aman"]
-  nama_zona TEXT [note: "Nama Kawasan Perbukitan / 31 poligon kawasan aman"]
-  elevasi_m REAL [note: "Ketinggian Elevasi dari Permukaan Laut (dalam Meter dpl)"]
-  geometry_wkt TEXT [note: "Geometri Poligon Spasial Zona Aman (Format WKT MultiPolygon)"]
-
-  
-
-  Note: "Data geospasial kawasan perbukitan timur Padang (Zona Bebas Tsunami). Keterkaitan ditentukan via pemeriksaan spasial."
-}
-
-// ============================================================================
-// TABLE GROUPS (PENGELOMPOKAN TABEL DI DBDAGRAM.IO)
-// ============================================================================
-
-TableGroup Network_Graph_Layer {
+TableGroup Graf_Jalan {
   tb_nodes
   tb_edges
 }
 
-TableGroup Routing_Engine_Layer {
-  tb_routes
+Table tb_tes {
+  tes_id TEXT [pk]
+  nama_tes TEXT [note: "Target relasi logis rank_X_tes"]
+  zona TEXT [note: "Kelurahan"]
+  kapasitas REAL [note: "Jiwa; sumber lihat tb_fasilitas_info.kapasitas_sumber"]
+  lat REAL
+  lon REAL
+
+  Note: "TES yang dipakai routing (BPBD 2025). Skema sama dengan v3."
+}
+
+Table tb_routes {
+  origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
+  rank_1_tes TEXT [ref: > tb_tes.nama_tes]
+  rank_1_path TEXT [note: "ID node dipisah koma, dari asal ke TES"]
+  rank_1_eta REAL [note: "Menit, berjalan 0,894 m/s (tanpa penalti)"]
+  rank_2_tes TEXT [ref: > tb_tes.nama_tes]
+  rank_2_path TEXT
+  rank_2_eta REAL
+  rank_3_tes TEXT [ref: > tb_tes.nama_tes]
+  rank_3_path TEXT
+  rank_3_eta REAL
+
+  Note: "3 TES terbaik per node ZONA MERAH (aturan menjauhi pantai, penalti jembatan, jalur resmi). Node zona aman tidak punya baris."
+}
+
+TableGroup Rute_TES_Vertikal {
   tb_tes
+  tb_routes
 }
-
-TableGroup GIS_Spatial_Layer {
-  tb_inundation_zones
-  tb_safe_zones
-}
-
-// ============================================================================
-// 4. KELOMPOK FASILITAS TEA & RUTE HORIZONTAL (NF-03)
-// ============================================================================
 
 Table tb_tea {
-  tea_id TEXT [pk, note: "PRIMARY KEY: Kode Unik TEA (contoh: TEA_A1)"]
-  kode_tea TEXT [note: "Kode Sektor (misal: TEA A1)"]
-  sektor TEXT [note: "Zona Sektor (A-I)"]
-  nama_tea TEXT [note: "Nama Resmi Lokasi Lahan / Bukit (Tanpa Rekomendasi)"]
-  kelurahan TEXT [note: "Kelurahan Lokasi TEA"]
-  kecamatan TEXT [note: "Kecamatan Lokasi TEA"]
-  tipe_fasilitas TEXT [note: "Tipe Lahan (Lahan Terbuka, Perbukitan, dll)"]
-  kapasitas REAL [note: "Daya Tampung TEA"]
-  lat REAL [note: "Koordinat Lintang TEA"]
-  lon REAL [note: "Koordinat Bujur TEA"]
-  nearest_node_id INTEGER [ref: > tb_nodes.node_id, note: "Node Jaringan Terdekat ke TEA"]
-  rute_evakuasi TEXT [note: "Panduan Jalur Jalan Raya menuju TEA"]
-  
-  indexes {
-    tea_id [pk]
-    sektor [name: "idx_tea_sektor"]
-  }
+  tea_id TEXT [pk]
+  kode_tea TEXT [not null]
+  sektor TEXT [not null]
+  nama_tea TEXT [not null]
+  kelurahan TEXT
+  kecamatan TEXT
+  tipe_fasilitas TEXT
+  kapasitas REAL [not null, note: "0 = tidak tersedia (TEA tidak dibatasi kapasitas saat routing)"]
+  lat REAL [not null]
+  lon REAL [not null]
+  nearest_node_id INTEGER [ref: > tb_nodes.node_id]
+  rute_evakuasi TEXT
+
+  Note: "TEA yang dipakai routing (di luar area landaan)."
 }
 
 Table tb_tea_routes {
-  origin_node_id INTEGER [pk, ref: - tb_nodes.node_id, note: "PRIMARY KEY: Node Awal Warga"]
-  nearest_tea_id TEXT [ref: > tb_tea.tea_id, note: "TEA Terdekat Utama"]
-  nearest_tea_nama TEXT [note: "Nama TEA Utama"]
-  nearest_tea_eta REAL [note: "Estimasi Waktu Tempuh ke TEA Utama (Menit)"]
-  nearest_tea_dist_m REAL [note: "Jarak Mutlak ke TEA Utama (Meter)"]
-  alt_tea_id TEXT [ref: > tb_tea.tea_id, note: "TEA Alternatif Kedua"]
-  alt_tea_nama TEXT [note: "Nama TEA Alternatif"]
-  alt_tea_eta REAL [note: "Estimasi Waktu Tempuh ke TEA Alternatif (Menit)"]
-  
-  indexes {
-    origin_node_id [pk]
-    nearest_tea_id [name: "idx_tea_routes_tea_id"]
-  }
+  origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
+  nearest_tea_id TEXT [ref: > tb_tea.tea_id]
+  alt_tea_id TEXT [ref: > tb_tea.tea_id]
+
+  Note: "TEA utama & alternatif per node."
 }
 
 Table tb_tea_next {
-  tea_id TEXT [ref: > tb_tea.tea_id, note: "ID TEA Tujuan Rute"]
-  node_id INTEGER [ref: > tb_nodes.node_id, note: "Simpul Saat Ini"]
-  next_node_id INTEGER [ref: > tb_nodes.node_id, note: "Simpul Berikutnya yang harus dituju"]
-  
+  tea_id TEXT [ref: > tb_tea.tea_id]
+  node_id INTEGER [ref: > tb_nodes.node_id]
+  next_node_id INTEGER [not null, ref: > tb_nodes.node_id]
+
   indexes {
     (tea_id, node_id) [pk]
   }
-  
-  Note: "Tabel relasi navigasi langkah-demi-langkah (GPS-style) menuju TEA untuk menghemat ukuran file."
+
+  Note: "Tabel next-hop menuju tiap TEA (rangkai rute di memori)."
 }
 
-// ============================================================================
-// 5. VIEW GABUNGAN
-// ============================================================================
-
-Table v_fasilitas_evakuasi {
-  facility_id TEXT [note: "Gabungan tes_id dan tea_id"]
-  kode TEXT [note: "Kode Fasilitas"]
-  nama TEXT [note: "Nama Fasilitas Evakuasi"]
-  jenis TEXT [note: "'TES' atau 'TEA'"]
-  tipe_evakuasi TEXT [note: "'Vertikal' atau 'Horizontal'"]
-  zona_sektor TEXT [note: "Zona/Sektor Lahan"]
-  kapasitas REAL [note: "Daya Tampung"]
-  lat REAL [note: "Koordinat Lintang"]
-  lon REAL [note: "Koordinat Bujur"]
-  
-  Note: "View SQLite (Virtual Table) yang menggabungkan tb_tes dan tb_tea untuk kemudahan akses list."
-}
-
-TableGroup Horizontal_Evacuation_Layer {
+TableGroup Rute_TEA_Horizontal {
   tb_tea
   tb_tea_routes
   tb_tea_next
 }
-TableGroup Unified_Views {
-  v_fasilitas_evakuasi
+
+Table tb_safe_routes {
+  origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
+  safe_node_id INTEGER [ref: > tb_nodes.node_id]
+  safe_zone_nama TEXT
+  safe_eta REAL
+
+  Note: "Zona aman terdekat per node (multi-source Dijkstra)."
+}
+
+Table tb_safe_next {
+  node_id INTEGER [ref: > tb_nodes.node_id]
+  next_node_id INTEGER [ref: > tb_nodes.node_id]
+
+  indexes {
+    (node_id, next_node_id) [pk]
+  }
+
+  Note: "Next-hop menuju zona aman terdekat."
+}
+
+TableGroup Rute_Zona_Aman {
+  tb_safe_routes
+  tb_safe_next
+}
+
+Table tb_inundation_zones {
+  zone_id INTEGER [pk]
+  nama_zona TEXT
+  tingkat_bahaya TEXT
+  geometry_wkt TEXT
+
+  Note: "Zona merah per kelurahan dari raster bahaya tsunami. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau)."
+}
+
+Table tb_safe_zones {
+  safe_zone_id INTEGER [pk]
+  nama_zona TEXT
+  elevasi_m REAL [note: "NULL (belum ada data elevasi)"]
+  geometry_wkt TEXT
+
+  Note: "Bagian kelurahan di luar area landaan (zona hijau)."
+}
+
+TableGroup Zona_Spasial {
+  tb_inundation_zones
+  tb_safe_zones
+}
+
+Table tb_route_shares {
+  origin_node_id INTEGER [ref: > tb_nodes.node_id]
+  jenis TEXT [note: "TES / TEA / ZONA_AMAN"]
+  nama_tujuan TEXT
+  porsi REAL
+
+  Note: "Porsi penugasan warga per node ke TES/TEA/zona aman (greedy berkapasitas)."
+}
+
+TableGroup Penugasan {
+  tb_route_shares
+}
+
+Table tb_fasilitas_info {
+  facility_id TEXT [pk]
+  jenis TEXT
+  nama TEXT
+  kelurahan TEXT
+  kecamatan TEXT
+  dipakai INTEGER [note: "1 = dipakai routing"]
+  alasan_tidak_dipakai TEXT
+  kapasitas REAL
+  kapasitas_sumber TEXT
+  d_pantai_m REAL [note: "Jarak ke garis pantai (batimetri BPBD)"]
+  indeks_bahaya REAL [note: "Indeks bahaya tsunami; NULL = di luar landaan"]
+  jumlah_lantai_2019 INTEGER
+  status_bpbd_2019 TEXT
+  nama_bpbd_2019 TEXT
+  kapasitas_2019 REAL
+  luas_jejak_bangunan_m2 REAL
+  nearest_node_id INTEGER [ref: > tb_nodes.node_id]
+  snap_dist_m REAL
+  lat REAL
+  lon REAL
+
+  Note: "Semua TES/TEA sumber BPBD termasuk yang tidak dipakai, beserta alasan & sumber kapasitas."
+}
+
+Table tb_node_info {
+  node_id INTEGER [pk, ref: - tb_nodes.node_id]
+  kelurahan TEXT
+  d_pantai_m REAL
+  indeks_bahaya REAL
+  demand_jiwa REAL [note: "Jiwa terpapar KRB, disebar menurut jejak bangunan"]
+  rute_tes_lewat_jembatan INTEGER
+  rute_aman_lewat_jembatan INTEGER
+
+  Note: "Atribut tambahan node: kelurahan, jarak ke pantai, indeks bahaya, demand, ketergantungan jembatan."
+}
+
+Table tb_kelurahan_info {
+  kecamatan TEXT
+  kelurahan TEXT
+  luas_bahaya_rendah_ha REAL
+  luas_bahaya_sedang_ha REAL
+  luas_bahaya_tinggi_ha REAL
+  luas_bahaya_total_ha REAL
+  kelas_bahaya TEXT
+  jiwa_terpapar REAL
+  jiwa_umur_rentan REAL
+  jiwa_miskin REAL
+  jiwa_disabilitas REAL
+  kelas_penduduk_terpapar TEXT
+  kerugian_total_juta_rp REAL
+  kelas_kerentanan TEXT
+  indeks_kesiapsiagaan REAL
+  kelas_kesiapsiagaan TEXT
+  indeks_kapasitas REAL
+  kelas_kapasitas TEXT
+  indeks_risiko REAL
+  kelas_risiko TEXT
+  node_zona_merah INTEGER
+
+  Note: "Profil tsunami per kelurahan dari tabel KRB 2023-2027."
+}
+
+Table tb_jembatan_sungai {
+  u INTEGER [ref: > tb_nodes.node_id]
+  v INTEGER [ref: > tb_nodes.node_id]
+  panjang_ruas_m REAL
+  indeks_bahaya_gempa REAL [note: "Raster Peta_Bahaya_Gempabumi KRB"]
+
+  indexes {
+    (u, v) [pk]
+  }
+
+  Note: "Ruas jembatan sungai yang diberi penalti routing."
+}
+
+Table tb_jalur_resmi {
+  u INTEGER [ref: > tb_nodes.node_id]
+  v INTEGER [ref: > tb_nodes.node_id]
+
+  indexes {
+    (u, v) [pk]
+  }
+
+  Note: "Ruas graf yang mengikuti jalur evakuasi resmi BPBD."
+}
+
+Table tb_metadata {
+  kunci TEXT [pk]
+  nilai TEXT
+
+  Note: "Versi, sumber data, dan parameter build."
+}
+
+TableGroup Info_V4_Tambahan {
+  tb_fasilitas_info
+  tb_node_info
+  tb_kelurahan_info
+  tb_jembatan_sungai
+  tb_jalur_resmi
+  tb_metadata
 }
