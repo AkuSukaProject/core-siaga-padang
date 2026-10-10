@@ -4,7 +4,7 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4: 
 
 - **DBML lengkap** (impor ke dbdiagram.io): [`siaga_padang_erd.dbml`](siaga_padang_erd.dbml). Berkas ini dibangkitkan otomatis oleh [`generate_dbml_file.py`](../generate_dbml_file.py) dari DB, jadi jalankan ulang generator setiap skema berubah.
 - Semua relasi adalah **keterkaitan logis** yang dipakai aplikasi, bukan *foreign key constraint* SQLite.
-- 12 tabel inti dan 1 view memiliki skema **identik dengan v3** (dipakai Room di Android). 6 tabel lainnya baru di v4 dan bersifat opsional.
+- 12 tabel inti dan 1 view memiliki skema yang sama dengan v3 (dipakai Room di Android), ditambah kolom `tb_safe_routes.safe_zone_id` yang dipakai aplikasi sejak dataset 2026.09.28. 6 tabel lainnya baru di v4 dan bersifat opsional.
 
 ---
 
@@ -126,6 +126,7 @@ erDiagram
         INTEGER safe_node_id
         TEXT safe_zone_nama
         REAL safe_eta
+        INTEGER safe_zone_id
     }
     tb_safe_next {
         INTEGER node_id PK
@@ -137,6 +138,7 @@ erDiagram
         INTEGER safe_node_id
         REAL safe_eta
         REAL mendekat_pantai_maks_m
+        INTEGER safe_zone_id
     }
     tb_safe_next_v2 {
         INTEGER kelompok PK

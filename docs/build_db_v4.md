@@ -79,7 +79,7 @@ Ada imbal-baliknya. Dibanding versi awal, lebih banyak rute memilih melintasi je
 
 ## Perubahan untuk tim Android
 
-Ringkasan perubahan perilaku dan panduan integrasi ada di [handoff_android.md](handoff_android.md). Skema 12 tabel inti dan view sama persis dengan v3.
+Ringkasan perubahan perilaku dan panduan integrasi ada di [handoff_android.md](handoff_android.md). Skema 12 tabel inti dan view sama dengan v3, ditambah `tb_safe_routes.safe_zone_id` (→ `tb_safe_zones`) yang dipakai aplikasi sejak dataset 2026.09.28.
 
 Tabel baru di v4 (opsional, dibaca dengan `@SkipQueryVerification`):
 

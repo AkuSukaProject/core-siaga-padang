@@ -87,6 +87,8 @@ RELASI = {
     ("tb_tea_next", "next_node_id"): "tb_nodes.node_id",
     ("tb_safe_routes", "origin_node_id"): "tb_nodes.node_id",
     ("tb_safe_routes", "safe_node_id"): "tb_nodes.node_id",
+    ("tb_safe_routes", "safe_zone_id"): "tb_safe_zones.safe_zone_id",
+    ("tb_safe_routes_v2", "safe_zone_id"): "tb_safe_zones.safe_zone_id",
     ("tb_safe_next", "node_id"): "tb_nodes.node_id",
     ("tb_safe_next", "next_node_id"): "tb_nodes.node_id",
     ("tb_safe_routes_v2", "origin_node_id"): "tb_nodes.node_id",

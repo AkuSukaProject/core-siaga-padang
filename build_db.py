@@ -798,8 +798,18 @@ cur.execute("""CREATE TABLE tb_tea_next (
 ) WITHOUT ROWID""")
 cur.executemany("INSERT INTO tb_tea_next VALUES (?, ?, ?)", tea_next_rows)
 
-cur.execute("CREATE TABLE tb_safe_routes (origin_node_id INTEGER PRIMARY KEY, safe_node_id INTEGER, safe_zone_nama TEXT, safe_eta REAL)")
-cur.executemany("INSERT INTO tb_safe_routes VALUES (?, ?, ?, ?)", safe_route_rows)
+# safe_zone_id merujuk ke tb_safe_zones (zona hijau kelurahan tempat node tujuan berada). Kolom ini
+# dipakai aplikasi sejak dataset 2026.09.28 (JOIN ke tb_safe_zones untuk nama zona).
+id_zona_aman = {nama: i + 1 for i, (nama, _, _) in enumerate(safe_zone_rows)}
+
+
+def id_zona_node(node_id):
+    return id_zona_aman.get(kel_node[idx_of[str(node_id)]].title())
+
+
+cur.execute("CREATE TABLE tb_safe_routes (origin_node_id INTEGER PRIMARY KEY, safe_node_id INTEGER, safe_zone_nama TEXT, "
+            "safe_eta REAL, safe_zone_id INTEGER)")
+cur.executemany("INSERT INTO tb_safe_routes VALUES (?, ?, ?, ?, ?)", [r + (id_zona_node(r[1]),) for r in safe_route_rows])
 cur.execute("CREATE TABLE tb_safe_next (node_id INTEGER, next_node_id INTEGER, PRIMARY KEY (node_id, next_node_id))")
 cur.executemany("INSERT INTO tb_safe_next VALUES (?, ?)", safe_next_rows)
 
@@ -819,8 +829,9 @@ SELECT tea_id AS facility_id, kode_tea AS kode, nama_tea AS nama, 'TEA' AS jenis
 # Aplikasi menelusuri tb_safe_next_v2 dengan kelompok milik node asal sampai node tanpa next hop.
 cur.execute("""CREATE TABLE tb_safe_routes_v2 (
     origin_node_id INTEGER PRIMARY KEY, kelompok INTEGER NOT NULL, safe_node_id INTEGER NOT NULL,
-    safe_zone_nama TEXT, safe_eta REAL, safe_d_pantai_m REAL, mendekat_pantai_maks_m REAL)""")
-cur.executemany("INSERT INTO tb_safe_routes_v2 VALUES (?, ?, ?, ?, ?, ?, ?)", safe2_route_rows)
+    safe_zone_nama TEXT, safe_eta REAL, safe_d_pantai_m REAL, mendekat_pantai_maks_m REAL, safe_zone_id INTEGER)""")
+cur.executemany("INSERT INTO tb_safe_routes_v2 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [r + (id_zona_node(r[2]),) for r in safe2_route_rows])
 cur.execute("""CREATE TABLE tb_safe_next_v2 (
     kelompok     INTEGER NOT NULL,
     node_id      INTEGER NOT NULL,

@@ -26,7 +26,7 @@ Semua berkas build ada di folder **`hasil_build/`** dan juga dilampirkan di GitH
 
 ## 2. Kompatibilitas skema
 
-Semua tabel yang sudah dipakai aplikasi (`tb_nodes`, `tb_edges`, `tb_tes`, `tb_routes`, `tb_tea`, `tb_tea_routes`, `tb_tea_next`, `tb_safe_routes`, `tb_safe_next`, `tb_inundation_zones`, `tb_safe_zones`, `tb_route_shares`, dan view `v_fasilitas_evakuasi`) punya **skema identik dengan v3**. Entity Room tidak perlu diubah dan validasi skema Room tidak akan gagal.
+Semua tabel yang sudah dipakai aplikasi (`tb_nodes`, `tb_edges`, `tb_tes`, `tb_routes`, `tb_tea`, `tb_tea_routes`, `tb_tea_next`, `tb_safe_routes`, `tb_safe_next`, `tb_inundation_zones`, `tb_safe_zones`, `tb_route_shares`, dan view `v_fasilitas_evakuasi`) punya skema yang sama dengan v3, ditambah kolom `tb_safe_routes.safe_zone_id` (dipakai `EvacuationDao.findSafeRoute` sejak dataset 2026.09.28). Entity Room tidak perlu diubah, validasi skema Room tidak akan gagal, dan ke-21 kueri `@Query` aplikasi sudah diuji berjalan di DB ini.
 
 Tabel tambahan (`tb_safe_routes_v2`, `tb_safe_next_v2`, `tb_fasilitas_info`, `tb_node_info`, `tb_kelurahan_info`, `tb_jembatan_sungai`, `tb_jalur_resmi`, `tb_metadata`) tidak mengubah tabel lama. Dua tabel zona aman v2 **wajib** dipakai untuk navigasi zona aman (lihat 3.E dan 4); yang lainnya opsional. Jika ingin dibaca, gunakan kueri dengan `@SkipQueryVerification` dan kelas baris biasa, sama seperti tabel TEA. Jangan menambahkan *entity* baru.
 
@@ -56,7 +56,11 @@ TES di arah laut tidak pernah muncul sebagai rekomendasi untuk posisi itu. Janga
 ### E. Rute zona aman pindah ke tabel v2
 `tb_safe_routes` / `tb_safe_next` adalah satu pohon rute untuk seluruh kota, sehingga tidak bisa menyaring tujuan per warga. Akibatnya 1.175 node zona merah diarahkan ke titik zona aman yang **lebih dekat ke pantai** daripada posisinya, sehingga melanggar aturan BPBD. Dua tabel itu tetap diisi hanya supaya aplikasi versi lama tidak rusak.
 
-Aplikasi baru membaca `tb_safe_routes_v2` + `tb_safe_next_v2`:
+Aplikasi baru membaca `tb_safe_routes_v2` + `tb_safe_next_v2`. Perubahan di `EvacuationDao.kt` cukup dua:
+*   `findSafeRoute`: ganti `FROM tb_safe_routes` menjadi `FROM tb_safe_routes_v2` (kolom `safe_zone_id`, `safe_node_id`, `safe_eta` tetap ada), dan ikut ambil kolom `kelompok`.
+*   `findSafePathSteps`: ganti `tb_safe_next` menjadi `tb_safe_next_v2` di kedua tempat, dan tambahkan `kelompok = :kelompok` di kedua `WHERE`/`JOIN`.
+
+Rinciannya:
 *   Baris hanya ada untuk node zona merah (8.812). Semua tujuannya lebih jauh dari pantai daripada titik asal.
 *   Kolom `kelompok` adalah kunci pohon rute. Rangkai dengan `SELECT node_id, next_node_id FROM tb_safe_next_v2 WHERE kelompok = ?` (kelompok milik **node asal**), lalu ikuti next-hop sampai node tanpa baris; node itu sama dengan `safe_node_id`.
 *   Jangan mengganti kelompok di tengah jalan. Saat pengguna bergerak, yang dipakai adalah node asal baru beserta `kelompok`-nya sendiri.

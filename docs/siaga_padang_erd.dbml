@@ -115,6 +115,7 @@ Table tb_safe_routes_v2 {
   safe_eta REAL
   safe_d_pantai_m REAL
   mendekat_pantai_maks_m REAL [note: "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal"]
+  safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
   Note: "Zona aman per node ZONA MERAH yang patuh aturan pantai: tujuan selalu lebih jauh dari pantai daripada asal. Dipakai aplikasi baru."
 }
@@ -136,6 +137,7 @@ Table tb_safe_routes {
   safe_node_id INTEGER [ref: > tb_nodes.node_id]
   safe_zone_nama TEXT
   safe_eta REAL
+  safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
   Note: "LAMA (kompatibilitas): zona aman terdekat per node dari satu pohon global; tidak menjamin aturan pantai."
 }
