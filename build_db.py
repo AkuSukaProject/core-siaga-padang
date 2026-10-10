@@ -13,9 +13,9 @@ Sumber data (folder "Data BPBD/", rincian & daftar data yang sengaja tidak dipak
   - Daftar Shelter OK.xlsx                   : verifikasi BPBD 2019 (jumlah lantai & kapasitas)
 Graf jalan: padang_full.graphml (OSM).
 
-Keluaran: ranah_siaga_v4.db. Skema tabel lama dipertahankan persis (Android memakai Room);
+Keluaran (folder hasil_build/): ranah_siaga_v4.db, ranah_siaga_v4.db.zip, dataset_manifest.json. Skema tabel lama dipertahankan persis (Android memakai Room);
 informasi baru ditaruh di tabel tambahan (tb_fasilitas_info, tb_node_info, tb_kelurahan_info,
-tb_jembatan_sungai, tb_jalur_resmi, tb_metadata).
+tb_jembatan_sungai, tb_jalur_resmi, tb_safe_routes_v2, tb_safe_next_v2, tb_metadata).
 """
 import sys
 import os
@@ -23,6 +23,8 @@ import re
 import time
 import sqlite3
 import hashlib
+import json
+import zipfile
 import difflib
 from datetime import datetime
 
@@ -37,10 +39,13 @@ from shapely import wkt as shapely_wkt
 from shapely.geometry import shape, LineString
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
+from scipy import ndimage
 from scipy.spatial import cKDTree
 from pyproj import Transformer
 
 sys.stdout.reconfigure(encoding='utf-8')
+# Semua path relatif terhadap root repositori, dari folder mana pun skrip dijalankan.
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # ==============================================================================
 # KONFIGURASI (rujukan: docs/aturan_evakuasi_bpbd.md)
@@ -50,9 +55,22 @@ sys.stdout.reconfigure(encoding='utf-8')
 KECEPATAN_JALAN_MS = 0.894
 # Batas waktu evakuasi skenario terburuk BPBD (bagian 3).
 BATAS_WAKTU_MENIT = 20.0
-# Aturan menjauhi pantai (bagian 5.1.1): ruas yang mendekati pantai lebih dari toleransi diberi penalti.
+# Aturan menjauhi pantai (bagian 5.1.1), dua lapis penalti di jalur:
+#  - setiap meter rute bergerak ke arah pantai dihitung seperti berjalan BOBOT meter tambahan
+#    (mencegah rute "merayap" ke pantai lewat banyak ruas pendek; jalan sejajar pantai nyaris tak kena);
+#  - ruas yang sekaligus mendekati pantai lebih dari toleransi dikalikan PENALTI.
+# Nilai dipilih dari uji sensitivitas (docs/build_db_v4.md): larangan total membuat sebagian warga
+# Koto Tangah tidak punya jalan keluar, jadi penalti dipakai alih-alih larangan.
 TOLERANSI_MENDEKAT_PANTAI_M = 50.0
-PENALTI_MENDEKAT_PANTAI = 10.0
+PENALTI_MENDEKAT_PANTAI = 50.0
+BOBOT_PER_METER_MENDEKAT_PANTAI = 10.0
+# Rute zona aman juga wajib berakhir lebih jauh dari pantai daripada posisi warga (bagian 5.1.1).
+# Warga zona merah dikelompokkan per 100 m jarak pantai; tiap kelompok punya pohon rute sendiri
+# yang hanya menuju node zona aman lebih jauh dari batas atas kelompoknya (tb_safe_next_v2).
+LEBAR_KELOMPOK_PANTAI_M = 100.0
+# Kantong aman: bagian zona aman yang dikelilingi zona merah dan luasnya < nilai ini tidak dijadikan
+# tujuan evakuasi (warga harus keluar dari zona merah, bukan berhenti di pulau kecil di tengahnya).
+LUAS_MIN_ZONA_AMAN_HA = 50.0
 # Aturan jembatan (bagian 5.2.1): jembatan sungai diberi penalti, bukan dihapus.
 PENALTI_JEMBATAN_SUNGAI = 20.0
 # TES dengan jumlah lantai <= nilai ini (menurut verifikasi BPBD 2019) dikeluarkan (bagian 6.1).
@@ -80,7 +98,11 @@ RASTER_GEMPA = "OpenFileGDB:" + os.path.join(DIR_KRB, "03_TEMATIK", "Bahaya.gdb"
 FILE_KRB_TABEL = os.path.join(DIR_KRB, "04_TABEL", "FINAL MATRIKS KRB KOTA PADANG - DOKUMEN.xlsx")
 FILE_SHELTER_2019 = os.path.join(DIR_BPBD, "Daftar Shelter OK.xlsx")
 FILE_GRAF = "padang_full.graphml"
-DB_PATH = "ranah_siaga_v4.db"
+DIR_HASIL = "hasil_build"
+DB_PATH = os.path.join(DIR_HASIL, "ranah_siaga_v4.db")
+# Paket distribusi untuk aplikasi (zip deterministik) dan manifestnya.
+ZIP_PATH = DB_PATH + ".zip"
+MANIFEST_PATH = os.path.join(DIR_HASIL, "dataset_manifest.json")
 
 INF = np.inf
 start_total = time.time()
@@ -165,12 +187,17 @@ class Raster:
         self.crs = self.src.crs.to_wkt()
         self.ke_raster = Transformer.from_crs(CRS_METER, self.crs, always_xy=True)
 
-    def sampel(self, x_m, y_m):
+    def sel(self, x_m, y_m):
+        """(baris, kolom, di_dalam) sel raster untuk titik meter UTM."""
         rx, ry = self.ke_raster.transform(np.asarray(x_m, dtype=float), np.asarray(y_m, dtype=float))
         rows, cols = rasterio.transform.rowcol(self.src.transform, rx, ry)
         rows, cols = np.atleast_1d(rows), np.atleast_1d(cols)
-        hasil = np.full(rows.shape, np.nan)
         di_dalam = (rows >= 0) & (rows < self.src.height) & (cols >= 0) & (cols < self.src.width)
+        return rows, cols, di_dalam
+
+    def sampel(self, x_m, y_m):
+        rows, cols, di_dalam = self.sel(x_m, y_m)
+        hasil = np.full(rows.shape, np.nan)
         nilai = self.data[rows[di_dalam], cols[di_dalam]]
         hasil[di_dalam] = np.where(np.ma.getmaskarray(nilai), np.nan, np.ma.getdata(nilai))
         return hasil
@@ -264,7 +291,8 @@ mendekat = (d_pantai[src] - d_pantai[dst]) > TOLERANSI_MENDEKAT_PANTAI_M
 biaya = (waktu_riil
          * np.where(mendekat, PENALTI_MENDEKAT_PANTAI, 1.0)
          * np.where(lewat_jembatan, PENALTI_JEMBATAN_SUNGAI, 1.0)
-         * np.where(di_jalur_resmi, JALUR_RESMI_FAKTOR, 1.0))
+         * np.where(di_jalur_resmi, JALUR_RESMI_FAKTOR, 1.0)
+         + BOBOT_PER_METER_MENDEKAT_PANTAI * menit(np.maximum(d_pantai[src] - d_pantai[dst], 0.0)))
 
 # Matriks transpose: Dijkstra dari tujuan pada graf terbalik = biaya dari setiap node MENUJU tujuan.
 # Predecessor pada graf terbalik = node berikutnya (next hop) pada rute asli.
@@ -314,6 +342,11 @@ def jalur(n, next_hop):
     while next_hop[path[-1]] >= 0:
         path.append(int(next_hop[path[-1]]))
     return path
+
+
+def mendekat_pantai_m(path):
+    """Seberapa jauh (m) rute pernah lebih dekat ke pantai daripada titik awalnya (0 = tidak pernah)."""
+    return float(d_pantai[path[0]] - d_pantai[path].min())
 
 
 # ==============================================================================
@@ -465,6 +498,7 @@ urut_tes = np.argsort(biaya_tes, axis=0)
 route_rows, rank1_tes = [], np.full(N, -1)
 rank_tes = {}  # n -> [(indeks TES, eta)] untuk penugasan kapasitas
 rank1_jembatan = np.zeros(N, dtype=bool)
+rank1_mendekat = np.zeros(N)
 # Rute TES hanya untuk node zona merah: warga di zona aman tidak perlu evakuasi vertikal.
 for n in np.flatnonzero(is_safe == 0):
     pilihan = []
@@ -482,8 +516,10 @@ for n in np.flatnonzero(is_safe == 0):
     rank1_tes[n] = pilihan[0]
     rank_tes[n] = [(k, float(eta_tes[k, n])) for k in dict.fromkeys(pilihan)]
     baris = [int(node_ids[n])]
-    for k in pilihan:
+    for r, k in enumerate(pilihan):
         path = jalur(n, pred_tes[inv_tes[k]])
+        if r == 0:
+            rank1_mendekat[n] = mendekat_pantai_m(path)
         baris += [nama_tes[k], ",".join(str(node_ids[p]) for p in path), round(float(eta_tes[k, n]), 2)]
     rank1_jembatan[n] = jemb_tes[inv_tes[pilihan[0]], n]
     route_rows.append(tuple(baris))
@@ -516,10 +552,31 @@ for k in range(len(tea)):
 print(f"      tb_routes: {len(route_rows):,} node | tb_tea_routes: {len(tea_route_rows):,} | tb_tea_next: {len(tea_next_rows):,}")
 
 # ==============================================================================
-# 6. RUTE KE ZONA AMAN (MULTI-SOURCE)
+# 6. RUTE KE ZONA AMAN (KANTONG AMAN DIKELUARKAN + PER KELOMPOK JARAK PANTAI)
 # ==============================================================================
-langkah("[6/9] Menghitung rute ke zona aman terdekat...")
-safe_idx = np.flatnonzero(is_safe == 1)
+langkah("[6/9] Menghitung rute ke zona aman...")
+# Kantong aman: komponen sel raster tanpa landaan (8-tetangga) yang tidak menyentuh tepi raster
+# dan luasnya < LUAS_MIN_ZONA_AMAN_HA. Laut juga bernilai kosong, jadi tebing pantai yang
+# bersambung dengan laut tidak dihitung kantong (aturan pantai yang menyaringnya).
+sel_aman = np.ma.getmaskarray(raster_bahaya)
+label_aman, _ = ndimage.label(sel_aman, structure=np.ones((3, 3), dtype=int))
+luas_sel_ha = abs(raster_src.transform.a * raster_src.transform.e) / 1e4
+luas_komponen_ha = np.bincount(label_aman.ravel()) * luas_sel_ha
+tepi = np.unique(np.concatenate([label_aman[0], label_aman[-1], label_aman[:, 0], label_aman[:, -1]]))
+komponen_kantong = luas_komponen_ha < LUAS_MIN_ZONA_AMAN_HA
+komponen_kantong[0] = False
+komponen_kantong[tepi] = False
+r_sel, c_sel, di_raster = r_tsunami.sel(x_node, y_node)
+kantong_node = np.zeros(N, dtype=bool)
+kantong_node[di_raster] = komponen_kantong[label_aman[r_sel[di_raster], c_sel[di_raster]]]
+kantong_node &= is_safe == 1
+tujuan_aman = (is_safe == 1) & ~kantong_node
+print(f"      Kantong aman (< {LUAS_MIN_ZONA_AMAN_HA:.0f} ha, dikelilingi zona merah): {komponen_kantong.sum():,} "
+      f"({luas_komponen_ha[komponen_kantong].sum():,.0f} ha) | node di kantong (bukan tujuan): {kantong_node.sum():,}")
+
+# 6a. tb_safe_routes / tb_safe_next (skema lama, satu pohon global untuk kompatibilitas aplikasi lama).
+#     Tidak bisa menyaring tujuan per warga, jadi aturan "tujuan lebih jauh dari pantai" tidak dijamin.
+safe_idx = np.flatnonzero(tujuan_aman)
 biaya_aman, pred_aman, asal_aman = dijkstra(W_balik, directed=True, indices=safe_idx,
                                              return_predecessors=True, min_only=True)
 # Node yang sudah di zona aman adalah sumbernya sendiri (tidak punya next hop).
@@ -531,7 +588,45 @@ for n in np.flatnonzero(np.isfinite(biaya_aman)):
     safe_route_rows.append((int(node_ids[n]), int(node_ids[s]), nama, round(float(eta_aman[n]), 2)))
     if pred_aman[n] >= 0:
         safe_next_rows.append((int(node_ids[n]), int(node_ids[pred_aman[n]])))
-print(f"      tb_safe_routes: {len(safe_route_rows):,} | tb_safe_next: {len(safe_next_rows):,}")
+
+# 6b. tb_safe_routes_v2 / tb_safe_next_v2: satu pohon per kelompok jarak pantai, sehingga tujuan
+#     selalu lebih jauh dari pantai daripada warga (sama mutlaknya dengan filter TES/TEA).
+merah_idx = np.flatnonzero(is_safe == 0)
+kelompok_node = np.floor(d_pantai / LEBAR_KELOMPOK_PANTAI_M).astype(int)
+eta_aman2 = np.full(N, np.nan)
+jemb_aman2 = np.zeros(N, dtype=bool)
+mendekat_aman2 = np.full(N, np.nan)
+safe2_route_rows, safe2_next_rows = [], []
+for g in np.unique(kelompok_node[merah_idx]):
+    asal = merah_idx[kelompok_node[merah_idx] == g]
+    sumber = np.flatnonzero(tujuan_aman & (d_pantai > (g + 1) * LEBAR_KELOMPOK_PANTAI_M))
+    if len(sumber) == 0:
+        continue
+    b_g, p_g, s_g = dijkstra(W_balik, directed=True, indices=sumber, return_predecessors=True, min_only=True)
+    eta_g, jemb_g = akumulasi_riil_baris(p_g)
+    asal = asal[np.isfinite(b_g[asal])]
+    tanda = np.zeros(N, dtype=bool)
+    tanda[asal] = True
+    while True:
+        lanjut = p_g[np.flatnonzero(tanda & (p_g >= 0))]
+        baru = tanda.copy()
+        baru[lanjut] = True
+        if np.array_equal(baru, tanda):
+            break
+        tanda = baru
+    for n in np.flatnonzero(tanda & (p_g >= 0)):
+        safe2_next_rows.append((int(g), int(node_ids[n]), int(node_ids[p_g[n]])))
+    for n in asal:
+        s = int(s_g[n])
+        nama = f"Zona Aman - {kel_node[s].title()}" if kel_node[s] else "Zona Aman"
+        eta_aman2[n], jemb_aman2[n] = eta_g[n], jemb_g[n]
+        mendekat_aman2[n] = mendekat_pantai_m(jalur(n, p_g))
+        safe2_route_rows.append((int(node_ids[n]), int(g), int(node_ids[s]), nama, round(float(eta_g[n]), 2),
+                                 round(float(d_pantai[s]), 1), round(mendekat_aman2[n], 1)))
+safe2_route_rows.sort()
+print(f"      tb_safe_routes: {len(safe_route_rows):,} | tb_safe_next: {len(safe_next_rows):,} | "
+      f"tb_safe_routes_v2: {len(safe2_route_rows):,} (dari {len(merah_idx):,} node merah) | "
+      f"tb_safe_next_v2: {len(safe2_next_rows):,} ({len(np.unique(kelompok_node[merah_idx]))} kelompok)")
 
 # ==============================================================================
 # 7. DEMAND PENDUDUK (KRB 2023-2027) & PENUGASAN BERBASIS KAPASITAS
@@ -579,8 +674,10 @@ for n, daftar in rank_tes.items():
 for n in np.flatnonzero(tea_r1 >= 0):
     kand.append((n, "TEA", tea.at[tea_r1[n], "facility_id"], float(eta_tea[tea_r1[n], n])))
     kand.append((n, "TEA", tea.at[tea_r2[n], "facility_id"], float(eta_tea[tea_r2[n], n])))
-for n in np.flatnonzero(np.isfinite(biaya_aman)):
-    kand.append((n, "ZONA_AMAN", "Zona Aman", float(eta_aman[n])))
+# Zona aman: node merah memakai rute v2 (patuh aturan pantai); node aman berdemand memakai pohon global.
+eta_aman_alok = np.where(is_safe == 0, eta_aman2, np.where(np.isfinite(biaya_aman), eta_aman, np.nan))
+for n in np.flatnonzero(~np.isnan(eta_aman_alok)):
+    kand.append((n, "ZONA_AMAN", "Zona Aman", float(eta_aman_alok[n])))
 df_k = pd.DataFrame(kand, columns=["n", "jenis", "tujuan", "eta"]).drop_duplicates(["n", "jenis", "tujuan"])
 df_k = df_k[demand[df_k["n"]] > 0]
 # Greedy dua tahap: semua kandidat <= batas waktu dialokasikan dulu (urut ETA), lalu sisa warga
@@ -636,6 +733,7 @@ print(f"      Zona merah: {len(inundation_rows)} poligon kelurahan | zona aman: 
 # 9. TULIS SQLITE
 # ==============================================================================
 langkah(f"[9/9] Menulis {DB_PATH}...")
+os.makedirs(DIR_HASIL, exist_ok=True)
 if os.path.exists(DB_PATH):
     os.remove(DB_PATH)
 conn = sqlite3.connect(DB_PATH)
@@ -713,6 +811,20 @@ SELECT tea_id AS facility_id, kode_tea AS kode, nama_tea AS nama, 'TEA' AS jenis
        sektor AS zona_sektor, kapasitas, lat, lon FROM tb_tea""")
 
 # --- Tabel tambahan V4 ---
+# Rute zona aman yang patuh aturan pantai: kelompok = floor(d_pantai_asal / LEBAR_KELOMPOK_PANTAI_M).
+# Aplikasi menelusuri tb_safe_next_v2 dengan kelompok milik node asal sampai node tanpa next hop.
+cur.execute("""CREATE TABLE tb_safe_routes_v2 (
+    origin_node_id INTEGER PRIMARY KEY, kelompok INTEGER NOT NULL, safe_node_id INTEGER NOT NULL,
+    safe_zone_nama TEXT, safe_eta REAL, safe_d_pantai_m REAL, mendekat_pantai_maks_m REAL)""")
+cur.executemany("INSERT INTO tb_safe_routes_v2 VALUES (?, ?, ?, ?, ?, ?, ?)", safe2_route_rows)
+cur.execute("""CREATE TABLE tb_safe_next_v2 (
+    kelompok     INTEGER NOT NULL,
+    node_id      INTEGER NOT NULL,
+    next_node_id INTEGER NOT NULL,
+    PRIMARY KEY (kelompok, node_id)
+) WITHOUT ROWID""")
+cur.executemany("INSERT INTO tb_safe_next_v2 VALUES (?, ?, ?)", safe2_next_rows)
+
 cur.execute("""CREATE TABLE tb_fasilitas_info (
     facility_id TEXT PRIMARY KEY, jenis TEXT, nama TEXT, kelurahan TEXT, kecamatan TEXT,
     dipakai INTEGER, alasan_tidak_dipakai TEXT, kapasitas REAL, kapasitas_sumber TEXT,
@@ -731,11 +843,16 @@ cur.executemany("INSERT INTO tb_fasilitas_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?
 
 cur.execute("""CREATE TABLE tb_node_info (
     node_id INTEGER PRIMARY KEY, kelurahan TEXT, d_pantai_m REAL, indeks_bahaya REAL, demand_jiwa REAL,
-    rute_tes_lewat_jembatan INTEGER, rute_aman_lewat_jembatan INTEGER)""")
-cur.executemany("INSERT INTO tb_node_info VALUES (?, ?, ?, ?, ?, ?, ?)",
+    rute_tes_lewat_jembatan INTEGER, rute_aman_lewat_jembatan INTEGER,
+    kantong_aman INTEGER, rute_tes_mendekat_pantai_m REAL, rute_aman_mendekat_pantai_m REAL)""")
+jemb_aman_node = np.where(is_safe == 0, jemb_aman2, jemb_aman.astype(bool))
+cur.executemany("INSERT INTO tb_node_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [(int(node_ids[i]), kel_node[i].title() or None, round(float(d_pantai[i]), 1),
                   None if np.isnan(indeks_bahaya_node[i]) else round(float(indeks_bahaya_node[i]), 4),
-                  round(float(demand[i]), 3), int(rank1_jembatan[i]), int(jemb_aman[i])) for i in range(N)])
+                  round(float(demand[i]), 3), int(rank1_jembatan[i]), int(jemb_aman_node[i]), int(kantong_aman_i),
+                  round(float(rank1_mendekat[i]), 1) if rank1_tes[i] >= 0 else None,
+                  None if np.isnan(mendekat_aman2[i]) else round(float(mendekat_aman2[i]), 1))
+                 for i, kantong_aman_i in zip(range(N), kantong_node)])
 
 cur.execute("CREATE TABLE tb_jembatan_sungai (u INTEGER, v INTEGER, panjang_ruas_m REAL, indeks_bahaya_gempa REAL, PRIMARY KEY (u, v))")
 cur.executemany("INSERT INTO tb_jembatan_sungai VALUES (?, ?, ?, ?)",
@@ -756,6 +873,12 @@ kolom_krb = {3: "luas_bahaya_rendah_ha", 4: "luas_bahaya_sedang_ha", 5: "luas_ba
 tb_kel = krb[[1, 2] + list(kolom_krb)].rename(columns={1: "kecamatan", 2: "kelurahan", **kolom_krb})
 tb_kel["kecamatan"] = tb_kel["kecamatan"].astype(str).str.title()
 tb_kel["node_zona_merah"] = [int(((kel_node == k) & (is_safe == 0)).sum()) for k in krb["KEL"]]
+# Sisa pelanggaran yang tak terhindarkan: jiwa yang rute zona aman v2-nya sempat mendekati pantai
+# lebih dari toleransi (jalan memang hanya ke arah itu) -> usulan lokasi TES/jalur baru ke BPBD.
+mendekat_berarti = (is_safe == 0) & (np.nan_to_num(mendekat_aman2) > TOLERANSI_MENDEKAT_PANTAI_M)
+tanpa_rute_aman = (is_safe == 0) & np.isnan(eta_aman2)
+tb_kel["jiwa_rute_aman_mendekat_pantai"] = [round(float(demand[(kel_node == k) & mendekat_berarti].sum()), 1) for k in krb["KEL"]]
+tb_kel["jiwa_tanpa_rute_aman"] = [round(float(demand[(kel_node == k) & tanpa_rute_aman].sum()), 1) for k in krb["KEL"]]
 tb_kel.to_sql("tb_kelurahan_info", conn, index=False)
 
 versi = datetime.now().strftime("%Y.%m.%d")
@@ -774,7 +897,12 @@ metadata = {
     "batas_waktu_menit": str(BATAS_WAKTU_MENIT),
     "toleransi_mendekat_pantai_m": str(TOLERANSI_MENDEKAT_PANTAI_M),
     "penalti_mendekat_pantai": str(PENALTI_MENDEKAT_PANTAI),
+    "bobot_per_meter_mendekat_pantai": str(BOBOT_PER_METER_MENDEKAT_PANTAI),
     "penalti_jembatan_sungai": str(PENALTI_JEMBATAN_SUNGAI),
+    "lebar_kelompok_pantai_m": str(LEBAR_KELOMPOK_PANTAI_M),
+    "luas_min_zona_aman_ha": str(LUAS_MIN_ZONA_AMAN_HA),
+    "catatan_rute_aman": "Pakai tb_safe_routes_v2 + tb_safe_next_v2 (kelompok node asal): tujuan selalu lebih jauh dari pantai. "
+                         "tb_safe_routes/tb_safe_next hanya untuk kompatibilitas aplikasi lama dan tidak menjamin aturan pantai.",
     "catatan_tingkat_bahaya": "tb_inundation_zones.tingkat_bahaya bernilai 'Tinggi' untuk seluruh zona merah (peta evakuasi hanya merah/hijau)",
 }
 cur.execute("CREATE TABLE tb_metadata (kunci TEXT PRIMARY KEY, nilai TEXT)")
@@ -786,6 +914,26 @@ conn.close()
 
 sha = hashlib.sha256(open(DB_PATH, "rb").read()).hexdigest()
 ukuran = os.path.getsize(DB_PATH)
+
+# Zip dengan tanggal tetap supaya checksum zip ikut deterministik.
+info = zipfile.ZipInfo(os.path.basename(DB_PATH), date_time=(1980, 1, 1, 0, 0, 0))
+info.compress_type = zipfile.ZIP_DEFLATED
+with zipfile.ZipFile(ZIP_PATH, "w") as zf:
+    with open(DB_PATH, "rb") as f:
+        zf.writestr(info, f.read(), compresslevel=9)
+sha_zip = hashlib.sha256(open(ZIP_PATH, "rb").read()).hexdigest()
+with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
+    json.dump({
+        "version": versi,
+        "filename": os.path.basename(ZIP_PATH),
+        "size_bytes": os.path.getsize(ZIP_PATH),
+        "checksum_sha256": sha_zip.upper(),
+        "db_filename": os.path.basename(DB_PATH),
+        "db_size_bytes": ukuran,
+        "db_checksum_sha256": sha.upper(),
+        "description": "Siaga Padang V4 Database (data BPBD KRB 2023-2027, TES/TEA 2025, aturan evakuasi BPBD)",
+    }, f, indent=2)
+    f.write("\n")
 
 # ==============================================================================
 # LAPORAN
@@ -802,7 +950,17 @@ print(f"Node zona merah tanpa TES valid  : {tanpa_tes.sum():,} dari {merah.sum()
 print(f"Jiwa dengan tujuan <= {BATAS_WAKTU_MENIT:.0f} menit   : {jiwa_selamat_20:,.0f} dari {total_jiwa:,.0f} ({jiwa_selamat_20 / max(total_jiwa, 1) * 100:.1f}%)")
 print(f"Jiwa belum teralokasi            : {jiwa_tanpa_tujuan:,.0f}")
 print(f"Jiwa yang rute TES-nya lewat jembatan sungai: {demand[rank1_jembatan].sum():,.0f}")
-print(f"Jiwa yang rute zona amannya lewat jembatan  : {demand[jemb_aman.astype(bool)].sum():,.0f}")
+print(f"Jiwa yang rute zona amannya lewat jembatan  : {demand[jemb_aman_node & (is_safe == 0)].sum():,.0f}")
+v2_ada = (is_safe == 0) & ~np.isnan(mendekat_aman2)
+print(f"Aturan pantai, rute zona aman v2 : tujuan lebih jauh dari pantai {sum(1 for r in safe2_route_rows if r[5] > d_pantai[idx_of[str(r[0])]]):,} "
+      f"dari {len(safe2_route_rows):,} | node merah tanpa rute: {tanpa_rute_aman.sum():,} ({demand[tanpa_rute_aman].sum():,.0f} jiwa)")
+for ambang in (TOLERANSI_MENDEKAT_PANTAI_M, 200.0):
+    print(f"Rute sempat mendekati pantai > {ambang:.0f} m : TES rank-1 {(rank1_mendekat[merah & (rank1_tes >= 0)] > ambang).mean() * 100:.1f}% node | "
+          f"zona aman v2 {(mendekat_aman2[v2_ada] > ambang).mean() * 100:.1f}% node, "
+          f"{demand[v2_ada & (np.nan_to_num(mendekat_aman2) > ambang)].sum():,.0f} jiwa")
+top = tb_kel.sort_values("jiwa_rute_aman_mendekat_pantai", ascending=False).head(5)
+print("Kelurahan dengan jiwa terbanyak yang rute zona amannya terpaksa mendekati pantai: "
+      + ", ".join(f"{k.title()} ({j:,.0f})" for k, j in zip(top["kelurahan"], top["jiwa_rute_aman_mendekat_pantai"]) if j > 0))
 tes_rank1 = [r[2] for r in route_rows]
 pasangan_resmi = {(int(node_ids[a]), int(node_ids[b])) for a, b in kunci_arr[jalur_resmi]}
 ruas_rute = [(min(int(p), int(q)), max(int(p), int(q))) for path in tes_rank1 for p, q in zip(path.split(",")[:-1], path.split(",")[1:])]
@@ -829,6 +987,7 @@ for r in cocok.itertuples():
     print(f"  - {r.Nama_Fasum}  <->  {r.nama_2019} ({r.status_2019}, {r.lantai_2019} lantai)")
 print(f"\nDatabase  : {DB_PATH} ({ukuran / 1024 / 1024:.2f} MB)")
 print(f"SHA-256   : {sha}")
+print(f"Paket     : {ZIP_PATH} ({os.path.getsize(ZIP_PATH) / 1024 / 1024:.2f} MB), manifest: {MANIFEST_PATH}")
 print(f"Versi     : {versi}")
 print(f"Waktu     : {time.time() - start_total:.1f} detik")
 print("=" * 80)

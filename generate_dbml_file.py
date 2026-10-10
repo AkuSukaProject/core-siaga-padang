@@ -10,8 +10,9 @@ import sqlite3
 import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-DB_PATH = "ranah_siaga_v4.db"
+DB_PATH = os.path.join("hasil_build", "ranah_siaga_v4.db")
 OUTPUT_PATH = os.path.join("docs", "siaga_padang_erd.dbml")
 
 # Kelompok tabel (urutan = urutan di berkas DBML).
@@ -19,7 +20,7 @@ KELOMPOK = {
     "Graf_Jalan": ["tb_nodes", "tb_edges"],
     "Rute_TES_Vertikal": ["tb_tes", "tb_routes"],
     "Rute_TEA_Horizontal": ["tb_tea", "tb_tea_routes", "tb_tea_next"],
-    "Rute_Zona_Aman": ["tb_safe_routes", "tb_safe_next"],
+    "Rute_Zona_Aman": ["tb_safe_routes_v2", "tb_safe_next_v2", "tb_safe_routes", "tb_safe_next"],
     "Zona_Spasial": ["tb_inundation_zones", "tb_safe_zones"],
     "Penugasan": ["tb_route_shares"],
     "Info_V4_Tambahan": ["tb_fasilitas_info", "tb_node_info", "tb_kelurahan_info",
@@ -34,8 +35,10 @@ CATATAN_TABEL = {
     "tb_tea": "TEA yang dipakai routing (di luar area landaan).",
     "tb_tea_routes": "TEA utama & alternatif per node.",
     "tb_tea_next": "Tabel next-hop menuju tiap TEA (rangkai rute di memori).",
-    "tb_safe_routes": "Zona aman terdekat per node (multi-source Dijkstra).",
-    "tb_safe_next": "Next-hop menuju zona aman terdekat.",
+    "tb_safe_routes_v2": "Zona aman per node ZONA MERAH yang patuh aturan pantai: tujuan selalu lebih jauh dari pantai daripada asal. Dipakai aplikasi baru.",
+    "tb_safe_next_v2": "Next-hop menuju zona aman per kelompok jarak pantai (kelompok milik node asal).",
+    "tb_safe_routes": "LAMA (kompatibilitas): zona aman terdekat per node dari satu pohon global; tidak menjamin aturan pantai.",
+    "tb_safe_next": "LAMA (kompatibilitas): next-hop pohon global menuju zona aman.",
     "tb_inundation_zones": "Zona merah per kelurahan dari raster bahaya tsunami. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau).",
     "tb_safe_zones": "Bagian kelurahan di luar area landaan (zona hijau).",
     "tb_route_shares": "Porsi penugasan warga per node ke TES/TEA/zona aman (greedy berkapasitas).",
@@ -57,6 +60,9 @@ CATATAN_KOLOM = {
     ("tb_tea", "kapasitas"): "0 = tidak tersedia (TEA tidak dibatasi kapasitas saat routing)",
     ("tb_safe_zones", "elevasi_m"): "NULL (belum ada data elevasi)",
     ("tb_route_shares", "jenis"): "TES / TEA / ZONA_AMAN",
+    ("tb_safe_routes_v2", "kelompok"): "floor(d_pantai_m asal / 100 m); kunci penelusuran tb_safe_next_v2",
+    ("tb_safe_routes_v2", "mendekat_pantai_maks_m"): "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal",
+    ("tb_node_info", "kantong_aman"): "1 = zona aman kecil (< 50 ha) dikelilingi zona merah; bukan tujuan evakuasi",
     ("tb_fasilitas_info", "dipakai"): "1 = dipakai routing",
     ("tb_fasilitas_info", "d_pantai_m"): "Jarak ke garis pantai (batimetri BPBD)",
     ("tb_fasilitas_info", "indeks_bahaya"): "Indeks bahaya tsunami; NULL = di luar landaan",
@@ -83,6 +89,10 @@ RELASI = {
     ("tb_safe_routes", "safe_node_id"): "tb_nodes.node_id",
     ("tb_safe_next", "node_id"): "tb_nodes.node_id",
     ("tb_safe_next", "next_node_id"): "tb_nodes.node_id",
+    ("tb_safe_routes_v2", "origin_node_id"): "tb_nodes.node_id",
+    ("tb_safe_routes_v2", "safe_node_id"): "tb_nodes.node_id",
+    ("tb_safe_next_v2", "node_id"): "tb_nodes.node_id",
+    ("tb_safe_next_v2", "next_node_id"): "tb_nodes.node_id",
     ("tb_route_shares", "origin_node_id"): "tb_nodes.node_id",
     ("tb_fasilitas_info", "nearest_node_id"): "tb_nodes.node_id",
     ("tb_node_info", "node_id"): "tb_nodes.node_id",
@@ -93,7 +103,8 @@ RELASI = {
 }
 # Relasi 1:1 (PK yang juga merujuk node).
 SATU_SATU = {("tb_routes", "origin_node_id"), ("tb_tea_routes", "origin_node_id"),
-             ("tb_safe_routes", "origin_node_id"), ("tb_node_info", "node_id")}
+             ("tb_safe_routes", "origin_node_id"), ("tb_safe_routes_v2", "origin_node_id"),
+             ("tb_node_info", "node_id")}
 
 
 def esc(teks):

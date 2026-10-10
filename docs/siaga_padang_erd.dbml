@@ -1,10 +1,10 @@
 // DBML Schema Definition for dbdiagram.io
-// Dibangkitkan otomatis oleh generate_dbml_file.py dari ranah_siaga_v4.db (versi data 2026.10.10). Jangan diedit manual.
+// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.10). Jangan diedit manual.
 
 Project SiagaPadangERD {
   database_type: 'SQLite'
   Note: '''
-    Database lokal Android Siaga Padang (ranah_siaga_v4.db).
+    Database lokal Android Siaga Padang (hasil_build\ranah_siaga_v4.db).
     Relasi adalah keterkaitan logis yang dipakai aplikasi, bukan foreign key constraint SQLite.
   '''
 }
@@ -107,13 +107,37 @@ TableGroup Rute_TEA_Horizontal {
   tb_tea_next
 }
 
+Table tb_safe_routes_v2 {
+  origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
+  kelompok INTEGER [not null, note: "floor(d_pantai_m asal / 100 m); kunci penelusuran tb_safe_next_v2"]
+  safe_node_id INTEGER [not null, ref: > tb_nodes.node_id]
+  safe_zone_nama TEXT
+  safe_eta REAL
+  safe_d_pantai_m REAL
+  mendekat_pantai_maks_m REAL [note: "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal"]
+
+  Note: "Zona aman per node ZONA MERAH yang patuh aturan pantai: tujuan selalu lebih jauh dari pantai daripada asal. Dipakai aplikasi baru."
+}
+
+Table tb_safe_next_v2 {
+  kelompok INTEGER
+  node_id INTEGER [ref: > tb_nodes.node_id]
+  next_node_id INTEGER [not null, ref: > tb_nodes.node_id]
+
+  indexes {
+    (kelompok, node_id) [pk]
+  }
+
+  Note: "Next-hop menuju zona aman per kelompok jarak pantai (kelompok milik node asal)."
+}
+
 Table tb_safe_routes {
   origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
   safe_node_id INTEGER [ref: > tb_nodes.node_id]
   safe_zone_nama TEXT
   safe_eta REAL
 
-  Note: "Zona aman terdekat per node (multi-source Dijkstra)."
+  Note: "LAMA (kompatibilitas): zona aman terdekat per node dari satu pohon global; tidak menjamin aturan pantai."
 }
 
 Table tb_safe_next {
@@ -124,10 +148,12 @@ Table tb_safe_next {
     (node_id, next_node_id) [pk]
   }
 
-  Note: "Next-hop menuju zona aman terdekat."
+  Note: "LAMA (kompatibilitas): next-hop pohon global menuju zona aman."
 }
 
 TableGroup Rute_Zona_Aman {
+  tb_safe_routes_v2
+  tb_safe_next_v2
   tb_safe_routes
   tb_safe_next
 }
@@ -201,6 +227,9 @@ Table tb_node_info {
   demand_jiwa REAL [note: "Jiwa terpapar KRB, disebar menurut jejak bangunan"]
   rute_tes_lewat_jembatan INTEGER
   rute_aman_lewat_jembatan INTEGER
+  kantong_aman INTEGER [note: "1 = zona aman kecil (< 50 ha) dikelilingi zona merah; bukan tujuan evakuasi"]
+  rute_tes_mendekat_pantai_m REAL
+  rute_aman_mendekat_pantai_m REAL
 
   Note: "Atribut tambahan node: kelurahan, jarak ke pantai, indeks bahaya, demand, ketergantungan jembatan."
 }
@@ -227,6 +256,8 @@ Table tb_kelurahan_info {
   indeks_risiko REAL
   kelas_risiko TEXT
   node_zona_merah INTEGER
+  jiwa_rute_aman_mendekat_pantai REAL
+  jiwa_tanpa_rute_aman REAL
 
   Note: "Profil tsunami per kelurahan dari tabel KRB 2023-2027."
 }
