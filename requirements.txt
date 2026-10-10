@@ -13,6 +13,7 @@ geopandas>=1.0.0
 shapely>=2.0.0
 pyproj>=3.6.0
 pyogrio>=0.7.0
+rasterio>=1.4.0   # membaca raster bahaya tsunami di File Geodatabase BPBD (GDAL >= 3.7)
 
 # Network & Graph Routing Analysis
 networkx>=3.0

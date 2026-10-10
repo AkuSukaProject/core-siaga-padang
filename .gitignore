@@ -51,6 +51,13 @@ database_evakuasi_padang.sqlite
 ranah_siaga_v2.db
 
 # ------------------------------------------------------------------------------
+# 4b. Data Mentah BPBD (±1,4 GB: KRB 2023-2027, shapefile TES/TEA, PDF)
+# ------------------------------------------------------------------------------
+# Input build_db.py. Simpan salinannya di luar git (lihat docs/aturan_proyek.md).
+# ranah_siaga_v4.db (±29 MB) tetap di-commit sebagai keluaran build.
+Data BPBD/
+
+# ------------------------------------------------------------------------------
 # 5. Editor, IDE & Tooling
 # ------------------------------------------------------------------------------
 .vscode/
