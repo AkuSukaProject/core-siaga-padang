@@ -8,7 +8,7 @@ Database baru `ranah_siaga_v4.db` dibangun ulang dari data BPBD Kota Padang (KRB
 
 ## 1. Berkas yang perlu Anda gunakan
 
-Semua berkas build ada di folder **`hasil_build/`**:
+Semua berkas build ada di folder **`hasil_build/`** dan juga dilampirkan di GitHub Release repo engine dengan tag `db-<versi>`. Untuk mengganti aset bawaan aplikasi, jalankan `salin_db_ke_android.py <repo-aplikasi> --tulis` dari repo engine. Skrip ini menyalin `.db` (tanpa zip) sebagai `assets/ranah_siaga.db` dan menulis `assets/dataset_manifest.json` dalam format aplikasi (`version`, `checksum` = SHA-256 file `.db`, `size_bytes`).
 
 1.  **`ranah_siaga_v4.db` (±30 MB)** atau paketnya **`ranah_siaga_v4.db.zip` (±6 MB)**, keduanya dibuat oleh `build_db.py`.
 2.  **`dataset_manifest.json`**: sudah menunjuk ke `ranah_siaga_v4.db.zip`, dengan `checksum_sha256` untuk zip dan `db_checksum_sha256` untuk file `.db`. Seperti sebelumnya, jangan menempelkan manifest pembuat basis data ke `assets/dataset_manifest.json`; pakai checksum yang sesuai dengan file yang benar-benar dibundel.
