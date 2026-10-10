@@ -1,6 +1,6 @@
 # Handoff Android: Integrasi Database Siaga Padang V4
 
-Halo Tim Android (Sheva)!
+Halo Tim Android (Mikail)!
 
 Database baru `ranah_siaga_v4.db` dibangun ulang dari data BPBD Kota Padang (KRB 2023–2027 dan data TES/TEA 2025) serta aturan evakuasi hasil wawancara BPBD. Dokumen ini merangkum yang perlu Anda sesuaikan di aplikasi (Kotlin/Room).
 
@@ -8,19 +8,21 @@ Database baru `ranah_siaga_v4.db` dibangun ulang dari data BPBD Kota Padang (KRB
 
 ## 1. Berkas yang perlu Anda gunakan
 
-Semua berkas build ada di folder **`hasil_build/`** dan juga dilampirkan di GitHub Release repo engine dengan tag `db-<versi>`. Untuk mengganti aset bawaan aplikasi, jalankan `salin_db_ke_android.py <repo-aplikasi> --tulis` dari repo engine. Skrip ini menyalin `.db` (tanpa zip) sebagai `assets/ranah_siaga.db` dan `hasil_build/dataset_manifest_android.json` sebagai `assets/dataset_manifest.json` (format aplikasi: `version`, `checksum` = SHA-256 file `.db`, `size_bytes`).
+Ambil dari folder `hasil_build/` repo engine (atau lampiran GitHub Release tag `db-<versi>`):
 
-| Penerima | Berkas dari `hasil_build/` |
+| Berkas | Taruh sebagai |
 |---|---|
-| Aplikasi (aset bawaan) | `ranah_siaga_v4.db` → `assets/ranah_siaga.db`; `dataset_manifest_android.json` → `assets/dataset_manifest.json` |
-| Backend (pembaruan lewat jaringan) | `ranah_siaga_v4.db`; versi, checksum, dan ukuran diambil dari `dataset_manifest_android.json` (semuanya milik file `.db`) |
+| `ranah_siaga_v4.db` | `android/app/src/main/assets/ranah_siaga.db` |
+| `dataset_manifest_android.json` | `android/app/src/main/assets/dataset_manifest.json` |
 
-`dataset_manifest.json` milik engine (checksum zip dan `.db`), jangan dipakai sebagai aset aplikasi.
+Manifest aplikasi berformat `version`, `checksum` (SHA-256 file `.db`), dan `size_bytes`. Cara paling aman: jalankan `salin_db_ke_android.py <repo-aplikasi> --tulis` dari repo engine. Skrip ini memeriksa checksum lalu menyalin kedua berkas dengan nama yang benar. Berkas lain di `hasil_build/` (`dataset_manifest.json` dan `.zip`) **bukan** untuk aplikasi.
 
-1.  **`ranah_siaga_v4.db` (±30 MB)** atau paketnya **`ranah_siaga_v4.db.zip` (±6 MB)**, keduanya dibuat oleh `build_db.py`.
-2.  **`dataset_manifest.json`**: sudah menunjuk ke `ranah_siaga_v4.db.zip`, dengan `checksum_sha256` untuk zip dan `db_checksum_sha256` untuk file `.db`. Seperti sebelumnya, jangan menempelkan manifest pembuat basis data ke `assets/dataset_manifest.json`; pakai checksum yang sesuai dengan file yang benar-benar dibundel.
-3.  **[`docs/erd_siaga_padang.md`](erd_siaga_padang.md)** dan **[`docs/siaga_padang_erd.dbml`](siaga_padang_erd.dbml)**: struktur tabel lengkap.
-4.  **[`docs/aturan_evakuasi_bpbd.md`](aturan_evakuasi_bpbd.md)**: aturan evakuasi BPBD yang juga berlaku untuk teks dan UI aplikasi.
+> **Aset sekarang perlu diganti.** `assets/ranah_siaga.db` yang terbundel saat ini adalah DB lama (13 September, 130 MB): belum punya `tb_safe_routes` dan indeks `idx_tb_nodes_lat_lon` yang diwajibkan `NodeEntity`. Manifestnya pun tidak cocok (menyebut 71 MB, versi 2026.09.28). Ganti kedua berkas sekaligus.
+
+Dokumen pendukung:
+*   **[`docs/erd_siaga_padang.md`](erd_siaga_padang.md)** dan **[`docs/siaga_padang_erd.dbml`](siaga_padang_erd.dbml)**: struktur tabel lengkap.
+*   **[`docs/aturan_evakuasi_bpbd.md`](aturan_evakuasi_bpbd.md)**: aturan evakuasi BPBD yang juga berlaku untuk teks dan UI aplikasi.
+*   **[`docs/handoff_backend.md`](handoff_backend.md)**: sisi backend (pembaruan DB lewat jaringan), dikerjakan Sheva.
 
 ---
 

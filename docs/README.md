@@ -25,8 +25,8 @@ Selamat datang di direktori dokumentasi `core-siaga-padang`. Proyek ini merupaka
    Metodologi, parameter, dan hasil resmi simulasi Baseline vs Siaga Padang (`analisis/simulasi_resmi_padang.py`).
 
 ### Integrasi Android
-8. **[Handoff Android](handoff_android.md)**
-   Perubahan perilaku database v4 yang perlu ditangani aplikasi.
+8. **[Handoff Android](handoff_android.md)** dan **[Handoff Backend](handoff_backend.md)**
+   Berkas yang dipakai dan perubahan yang perlu ditangani aplikasi (Mikail) dan backend (Sheva).
 9. **[Konsep Pengalihan Rute Lokal](konsep_pengalihan_rute_lokal.md)**
    Pencarian jalan memutar secara offline dengan cek simpang tetangga.
 
