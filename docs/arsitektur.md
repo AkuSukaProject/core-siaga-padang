@@ -6,7 +6,7 @@ Dokumen ini menjelaskan alur pemrosesan data (*routing engine*) dan basis data S
 
 ```
 Data BPBD/ (KRB 2023-2027, TES/TEA 2025, jalur evakuasi, verifikasi 2019) ─┐
-padang_full.graphml (jaringan jalan OSM) ───────────────────────────────────┼─► build_db.py ─► ranah_siaga_v4.db ─► Android (Room, offline)
+padang_full.graphml (jaringan jalan OSM) ───────────────────────────────────┼─► build_db.py ─► hasil_build/ranah_siaga_v4.db ─► Android (Room, offline)
 docs/aturan_evakuasi_bpbd.md (aturan dari wawancara BPBD) ─────────────────┘                        │
                                                                                                      └─► generate_dbml_file.py ─► docs/siaga_padang_erd.dbml
 ```
@@ -22,7 +22,7 @@ Semua rute dihitung di depan (*pre-computed offline routing*). Aplikasi tidak me
    - Kelurahan dari batas administrasi BPBD.
 3. **Bobot ruas berarah.** Graf tak berarah diubah menjadi dua arah karena biaya bergantung arah:
    - Biaya dasar = panjang / 0,894 m/s (orang terlemah, FEMA).
-   - ×10 jika ruas mendekati pantai lebih dari 50 m.
+   - + 10 m jalan untuk setiap meter ruas bergerak ke arah pantai, dan ×50 jika ruas mendekati pantai lebih dari 50 m.
    - ×20 jika ruas adalah jembatan sungai (tag OSM `bridge` yang memotong poligon sungai BPBD).
    - ×0,8 jika ruas mengikuti jalur evakuasi resmi BPBD.
 
@@ -30,12 +30,12 @@ Semua rute dihitung di depan (*pre-computed offline routing*). Aplikasi tidak me
 4. **Fasilitas.** TES/TEA dari `2_TES_TEA_Padang.shp`, duplikat persis dibuang, kelurahan ditentukan secara spasial, dicocokkan dengan verifikasi 2019 untuk jumlah lantai dan kapasitas. TES ≤ 2 lantai dan TEA di dalam area landaan dikeluarkan. Kapasitas kosong diisi dari verifikasi 2019, jejak bangunan, atau median.
 5. **Reverse Dijkstra.** Dijalankan dari setiap TES/TEA pada graf terbalik (`scipy.sparse.csgraph.dijkstra`), sehingga satu pencarian menghasilkan biaya dari *semua* node menuju fasilitas itu. *Predecessor* pada graf terbalik adalah *next-hop* pada rute asli. Waktu riil dan flag jembatan sepanjang rute diakumulasi dengan *pointer jumping*.
 6. **Aturan menjauhi pantai (filter keras).** Fasilitas hanya menjadi kandidat untuk node asal jika `d_pantai(fasilitas) > d_pantai(node)`.
-7. **Zona aman terdekat.** *Multi-source* Dijkstra dari semua node `is_safe = 1`.
+7. **Zona aman.** Kantong aman (< 50 ha, dikelilingi zona merah) tidak dijadikan tujuan. Node zona merah dikelompokkan per 100 m jarak pantai; untuk tiap kelompok dijalankan *multi-source* Dijkstra hanya dari node aman yang lebih jauh dari pantai daripada batas atas kelompok (`tb_safe_routes_v2` / `tb_safe_next_v2`). Satu pohon global lama (`tb_safe_routes` / `tb_safe_next`) tetap ditulis untuk kompatibilitas.
 8. **Demand & penugasan.** Jiwa terpapar per kelurahan (tabel KRB) disebar ke node zona merah menurut luas jejak bangunan, lalu dialokasikan secara *greedy* berbasis ETA: TES dibatasi kapasitas, TEA dan zona aman tidak. Tujuan ≤ 20 menit didahulukan.
 9. **Zona spasial.** Raster landaan dipoligonkan, dipotong per kelurahan menjadi zona merah dan zona hijau, lalu disimpan sebagai WKT.
-10. **SQLite.** Tabel ditulis, lalu `VACUUM`. Laporan build (cakupan ≤ 20 menit, ketergantungan jembatan, fasilitas yang dikeluarkan) dicetak di terminal.
+10. **SQLite & paket.** Tabel ditulis, lalu `VACUUM`. DB dipaketkan ke `ranah_siaga_v4.db.zip` dan checksum-nya ditulis ke `dataset_manifest.json`. Laporan build (cakupan ≤ 20 menit, kepatuhan aturan pantai, ketergantungan jembatan, fasilitas yang dikeluarkan) dicetak di terminal.
 
-Build bersifat deterministik: input yang sama menghasilkan SHA-256 DB yang sama.
+Build bersifat deterministik: input yang sama (pada tanggal yang sama, karena versi = tanggal build) menghasilkan SHA-256 DB dan zip yang sama.
 
 ## Cara aplikasi memakai database
 
@@ -44,7 +44,7 @@ Build bersifat deterministik: input yang sama menghasilkan SHA-256 DB yang sama.
 | Posisi pengguna di zona merah atau aman | `tb_nodes.is_safe` di node terdekat, atau pemeriksaan poligon `tb_inundation_zones` / `tb_safe_zones` |
 | Rute ke TES (evakuasi vertikal) | `tb_routes` (hanya ada untuk node zona merah) → `rank_X_path` |
 | Rute ke TEA (evakuasi horizontal) | `tb_tea_routes` → rangkai dari `tb_tea_next` dalam satu kueri |
-| Rute keluar ke zona aman terdekat | `tb_safe_routes` → rangkai dari `tb_safe_next` |
+| Rute keluar ke zona aman | `tb_safe_routes_v2` → rangkai dari `tb_safe_next_v2` dengan `kelompok` node asal (tabel lama `tb_safe_routes` tidak menjamin aturan pantai) |
 | Daftar & peta fasilitas | `v_fasilitas_evakuasi` |
 | Jalan tidak bisa dilewati | Cek tetangga di `tb_edges` lalu pakai rute tetangga ([konsep_pengalihan_rute_lokal.md](konsep_pengalihan_rute_lokal.md)) |
 

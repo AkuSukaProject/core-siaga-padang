@@ -29,33 +29,27 @@ htmlcov/
 cache/
 
 # ------------------------------------------------------------------------------
-# 3. Draft & Skrip Uji Coba Sementara (Lokal)
+# 3. Skrip Uji Coba Sementara (Lokal)
 # ------------------------------------------------------------------------------
-# Folder skrip eksplorasi dan arsip versi lama
-scratch/
-archive/
-
-# Database uji coba usang / prototipe
-database_evakuasi_padang.sqlite
+# Eksperimen lokal yang belum layak di-commit (lihat docs/aturan_proyek.md).
+/scratch/
 
 # ------------------------------------------------------------------------------
-# 4. Database Utama (Catatan Ukuran File)
+# 4. Paket Distribusi Database
 # ------------------------------------------------------------------------------
-# ranah_siaga.db berukuran ~70 MB.
-# GitHub mengizinkan upload langsung hingga 100 MB (akan ada warning >50 MB).
-# Jika ingin menggunakan Git LFS atau tidak ingin mengunggah database ke GitHub,
-# hapus tanda pagar (#) pada baris di bawah:
-# ranah_siaga.db
-
-# Database V2 dengan rute TEA (124 MB - melebihi batas 100 MB GitHub tanpa Git LFS)
-ranah_siaga_v2.db
+# hasil_build/ranah_siaga_v4.db (±30 MB) dan dataset_manifest.json di-commit. Zip-nya dibuat
+# ulang oleh build_db.py dan didistribusikan terpisah; checksum-nya tercatat di manifest.
+*.db.zip
 
 # ------------------------------------------------------------------------------
 # 4b. Data Mentah BPBD (±1,4 GB: KRB 2023-2027, shapefile TES/TEA, PDF)
 # ------------------------------------------------------------------------------
 # Input build_db.py. Simpan salinannya di luar git (lihat docs/aturan_proyek.md).
-# ranah_siaga_v4.db (±29 MB) tetap di-commit sebagai keluaran build.
+# hasil_build/ranah_siaga_v4.db tetap di-commit sebagai keluaran build.
 Data BPBD/
+
+# Peta contoh rute (acak, dibuat ulang dengan analisis/contoh_rute_evakuasi.py)
+analisis/output/contoh_rute_*.html
 
 # ------------------------------------------------------------------------------
 # 5. Editor, IDE & Tooling

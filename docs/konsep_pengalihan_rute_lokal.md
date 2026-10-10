@@ -73,7 +73,7 @@ Dua perubahan di `ranah_siaga_v4.db` memengaruhi logika cek tetangga:
 SELECT node_id, d_pantai_m FROM tb_node_info WHERE node_id IN (123, 456, 789);
 ```
 
-Jika semua tetangga tersaring, aplikasi langsung beralih ke TES Rank 2/3 atau ke rute zona aman (`tb_safe_routes`).
+Jika semua tetangga tersaring, aplikasi langsung beralih ke TES Rank 2/3 atau ke rute zona aman (`tb_safe_routes_v2`).
 
 > Angka efektivitas di bagian "Ekspektasi Realistis" berasal dari simulasi dengan database lama (v2) dan perlu dihitung ulang dengan v4.
 

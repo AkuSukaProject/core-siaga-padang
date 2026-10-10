@@ -87,13 +87,18 @@ Saran desain dari Pak Resko [R]:
 
 Ukuran "arah" yang dipakai adalah **jarak ke garis pantai** (`d_pantai`), bukan arah mata angin. Dengan ukuran ini, pantai yang melengkung (misal Teluk Bayur dan Bungus) tetap tertangani dengan benar.
 
-1. **Hitung `d_pantai` untuk setiap node** di graf, yaitu jarak ke garis pantai (OSM `natural=coastline`).
-2. **Filter tujuan (aturan keras).** Sebuah TES/TEA hanya boleh menjadi kandidat tujuan jika `d_pantai(tujuan) > d_pantai(posisi warga)`. TES yang lebih dekat ke laut daripada posisi warga dibuang dari daftar kandidat, sedekat apa pun jaraknya.
-3. **Bobot rute (penalti).** Edge yang membuat `d_pantai` berkurang diberi penalti besar, supaya rute tidak memutar mendekati laut atau berjalan sejajar pantai dalam waktu lama.
-   - Edge tidak dihapus. Jalan kota berbentuk grid dan sering berbelok, sehingga rute yang secara keseluruhan menjauhi pantai kadang perlu melewati ruas pendek yang sedikit mendekat. Jika edge seperti itu dihapus, banyak node bisa kehilangan rute sama sekali.
-   - Beri toleransi kecil (misal penurunan `d_pantai` ≤ 50 m per edge tanpa penalti). Nilai toleransi perlu dikalibrasi dan diperiksa secara visual di peta.
-4. **Kondisi tanpa kandidat.** Jika setelah filter tidak ada TES/TEA yang tersisa, arahkan ke node zona aman (`is_safe = 1`) terdekat yang memenuhi syarat `d_pantai` lebih besar.
-5. Waktu tempuh yang ditampilkan ke pengguna tetap dihitung dari panjang rute asli, bukan dari bobot penalti.
+1. **Hitung `d_pantai` untuk setiap node** di graf, yaitu jarak ke garis pantai (poligon batimetri BPBD).
+2. **Filter tujuan (aturan keras) untuk semua jenis tujuan.** TES, TEA, dan titik zona aman hanya boleh menjadi tujuan jika `d_pantai(tujuan) > d_pantai(posisi warga)`. TES yang lebih dekat ke laut daripada posisi warga dibuang dari daftar kandidat, sedekat apa pun jaraknya.
+   - Untuk TES dan TEA, filter dihitung per pasangan warga–fasilitas.
+   - Untuk zona aman, warga zona merah dikelompokkan per 100 m jarak pantai. Tiap kelompok punya pohon rute sendiri yang hanya menuju titik zona aman yang lebih jauh dari batas atas kelompoknya (`tb_safe_routes_v2` + `tb_safe_next_v2`). Hasilnya: semua 8.812 node zona merah punya rute zona aman, dan semuanya berakhir lebih jauh dari pantai.
+3. **Kantong aman kecil bukan tujuan.** Bagian zona aman yang dikelilingi zona merah dan luasnya < 50 ha (84 kantong, 123 ha) tidak dijadikan tujuan. Warga harus keluar dari zona merah, bukan berhenti di pulau kecil di tengahnya.
+4. **Bobot rute (penalti), dua lapis.** Supaya rute tidak memutar mendekati laut atau berjalan sejajar pantai:
+   - setiap meter rute bergerak ke arah pantai dihitung seperti berjalan 10 m tambahan. Lapis ini mencegah rute "merayap" ke pantai lewat banyak ruas pendek yang masing-masing hanya sedikit mendekat, sedangkan jalan yang benar-benar sejajar pantai hampir tidak terkena penalti;
+   - ruas yang sekaligus mendekati pantai lebih dari 50 m biayanya dikalikan 50.
+   - Edge tidak dihapus. Jalan kota berbentuk grid dan sering berbelok, sehingga rute yang secara keseluruhan menjauhi pantai kadang perlu melewati ruas yang sedikit mendekat. Uji larangan total: 7,9% node zona merah (terutama Koto Tangah) kehilangan jalan keluar sama sekali.
+   - Nilai penalti dipilih dari uji sensitivitas (lihat [build_db_v4.md](build_db_v4.md)).
+5. **Sisa yang tidak terhindarkan dilaporkan.** Rute yang tetap sempat mendekati pantai > 50 m dicatat per node (`tb_node_info.rute_tes_mendekat_pantai_m`, `rute_aman_mendekat_pantai_m`) dan per kelurahan (`tb_kelurahan_info.jiwa_rute_aman_mendekat_pantai`). Lokasi ini diusulkan ke BPBD sebagai prioritas TES vertikal atau jalur evakuasi baru.
+6. Waktu tempuh yang ditampilkan ke pengguna tetap dihitung dari panjang rute asli, bukan dari bobot penalti.
 
 Untuk pengguna yang **sudah berada di dalam TES** atau di zona aman, aturan ini tidak berlaku lagi. Perpindahan TES ke TEA mengikuti bagian 7.
 
@@ -318,7 +323,8 @@ Status per 10 Oktober 2026. Pembangun DB sekarang adalah [`build_db.py`](../buil
 |---|---|---|
 | Batas waktu 20 menit | `BATAS_WAKTU_MENIT = 20`; tujuan ≤ 20 menit dialokasikan lebih dulu | ✅ Sesuai |
 | Kecepatan acuan orang terlemah (FEMA, ±1 km / 20 menit) | `KECEPATAN_JALAN_MS = 0.894` (3,22 km/jam) untuk semua ETA | ✅ Sesuai |
-| Tujuan dan rute harus menjauhi pantai | Filter keras: TES/TEA hanya kandidat jika jaraknya ke pantai lebih besar daripada posisi warga. Penalti ×10 untuk ruas yang mendekati pantai lebih dari 50 m. Garis pantai dari batimetri BPBD. | ✅ Sesuai |
+| Tujuan harus menjauhi pantai | Filter keras untuk TES, TEA, dan zona aman (`tb_safe_routes_v2`): 100% tujuan lebih jauh dari pantai daripada posisi warga. Kantong aman < 50 ha bukan tujuan. Garis pantai dari batimetri BPBD. | ✅ Sesuai |
+| Rute tidak mendekati/sejajar pantai | Penalti 10 m per meter mendekat + ×50 untuk ruas yang mendekat > 50 m. Sisa rute yang terpaksa mendekat > 50 m: TES rank-1 13,8%, zona aman 11,2% node zona merah (> 200 m: 2,8% dan 1,7%), terutama di Koto Tangah, karena jalannya memang hanya ke arah itu. Dicatat per node & kelurahan. | ⚠️ Sesuai sejauh jaringan jalan memungkinkan |
 | Rute tidak melewati jembatan | Jembatan sungai (tag OSM `bridge` yang memotong poligon sungai BPBD) diberi penalti ×20, tidak dihapus. Ketergantungan jembatan dicatat di `tb_node_info`. | ✅ Sesuai kebijakan 5.2.1 (masih perlu konfirmasi BPBD) |
 | Zona merah = area landaan | `is_safe` dan poligon zona merah diambil dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 | ✅ Sesuai |
 | Peta evakuasi hanya merah/hijau | `tb_inundation_zones.tingkat_bahaya` diisi `Tinggi` untuk semua zona merah | ✅ Sesuai |

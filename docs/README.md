@@ -2,7 +2,7 @@
 
 Selamat datang di direktori dokumentasi `core-siaga-padang`. Proyek ini merupakan repositori utama (*core engine*) untuk pemrosesan spasial, perhitungan rute evakuasi tsunami, dan simulasi akademik untuk wilayah Kota Padang.
 
-**Mulai cepat:** ekstrak `Data BPBD/SHP kecamatan.rar` ke `Data BPBD/SHP kecamatan/`, lalu jalankan `env\Scripts\python.exe build_db.py` untuk membangun `ranah_siaga_v4.db`, dan `generate_dbml_file.py` untuk memperbarui ERD.
+**Mulai cepat:** ekstrak `Data BPBD/SHP kecamatan.rar` ke `Data BPBD/SHP kecamatan/`, lalu jalankan `env\Scripts\python.exe build_db.py` untuk membangun `hasil_build/ranah_siaga_v4.db` (beserta zip dan manifest), dan `generate_dbml_file.py` untuk memperbarui ERD.
 
 ## Daftar Isi Dokumentasi
 
@@ -22,7 +22,7 @@ Selamat datang di direktori dokumentasi `core-siaga-padang`. Proyek ini merupaka
 6. **[Spesifikasi ERD](erd_siaga_padang.md)** dan **[DBML](siaga_padang_erd.dbml)**
    Struktur tabel `ranah_siaga_v4.db`. DBML dibangkitkan otomatis dari DB.
 7. **[Simulasi Kanonis](simulasi_kanonis.md)**
-   Parameter resmi simulasi dan status `simulasi_resmi_padang.py` (belum diselaraskan dengan data v4).
+   Metodologi, parameter, dan hasil resmi simulasi Baseline vs Siaga Padang (`analisis/simulasi_resmi_padang.py`).
 
 ### Integrasi Android
 8. **[Handoff Android](handoff_android.md)**
@@ -32,6 +32,6 @@ Selamat datang di direktori dokumentasi `core-siaga-padang`. Proyek ini merupaka
 
 ### Lain-lain
 10. **[Draft Revisi Proposal](draft_revisi_proposal.md)**
-    Draf teks proposal. Angkanya masih dari simulasi data lama.
+    Draf teks proposal. Angkanya masih dari simulasi data lama; angka baru ada di Simulasi Kanonis.
 11. **[Transkrip Wawancara BPBD](wawancara%20bpbd/)**
     Sumber asli aturan evakuasi (hasil *speech-to-text*).

@@ -8,8 +8,10 @@ Database baru `ranah_siaga_v4.db` dibangun ulang dari data BPBD Kota Padang (KRB
 
 ## 1. Berkas yang perlu Anda gunakan
 
-1.  **`ranah_siaga_v4.db` (±29 MB)**: database SQLite terbaru. Belum dipaketkan ke `.zip` dan manifest belum diperbarui; tunggu konfirmasi tim data sebelum mengganti aset di aplikasi.
-2.  **`dataset_manifest.json`**: seperti sebelumnya, jangan menempelkan manifest pembuat basis data ke `assets/dataset_manifest.json`. Pakai checksum file `.db`.
+Semua berkas build ada di folder **`hasil_build/`**:
+
+1.  **`ranah_siaga_v4.db` (±30 MB)** atau paketnya **`ranah_siaga_v4.db.zip` (±6 MB)**, keduanya dibuat oleh `build_db.py`.
+2.  **`dataset_manifest.json`**: sudah menunjuk ke `ranah_siaga_v4.db.zip`, dengan `checksum_sha256` untuk zip dan `db_checksum_sha256` untuk file `.db`. Seperti sebelumnya, jangan menempelkan manifest pembuat basis data ke `assets/dataset_manifest.json`; pakai checksum yang sesuai dengan file yang benar-benar dibundel.
 3.  **[`docs/erd_siaga_padang.md`](erd_siaga_padang.md)** dan **[`docs/siaga_padang_erd.dbml`](siaga_padang_erd.dbml)**: struktur tabel lengkap.
 4.  **[`docs/aturan_evakuasi_bpbd.md`](aturan_evakuasi_bpbd.md)**: aturan evakuasi BPBD yang juga berlaku untuk teks dan UI aplikasi.
 
@@ -19,7 +21,7 @@ Database baru `ranah_siaga_v4.db` dibangun ulang dari data BPBD Kota Padang (KRB
 
 Semua tabel yang sudah dipakai aplikasi (`tb_nodes`, `tb_edges`, `tb_tes`, `tb_routes`, `tb_tea`, `tb_tea_routes`, `tb_tea_next`, `tb_safe_routes`, `tb_safe_next`, `tb_inundation_zones`, `tb_safe_zones`, `tb_route_shares`, dan view `v_fasilitas_evakuasi`) punya **skema identik dengan v3**. Entity Room tidak perlu diubah dan validasi skema Room tidak akan gagal.
 
-Tabel tambahan (`tb_fasilitas_info`, `tb_node_info`, `tb_kelurahan_info`, `tb_jembatan_sungai`, `tb_jalur_resmi`, `tb_metadata`) bersifat opsional. Jika ingin dibaca, gunakan kueri dengan `@SkipQueryVerification` dan kelas baris biasa, sama seperti tabel TEA. Jangan menambahkan *entity* baru.
+Tabel tambahan (`tb_safe_routes_v2`, `tb_safe_next_v2`, `tb_fasilitas_info`, `tb_node_info`, `tb_kelurahan_info`, `tb_jembatan_sungai`, `tb_jalur_resmi`, `tb_metadata`) tidak mengubah tabel lama. Dua tabel zona aman v2 **wajib** dipakai untuk navigasi zona aman (lihat 3.E dan 4); yang lainnya opsional. Jika ingin dibaca, gunakan kueri dengan `@SkipQueryVerification` dan kelas baris biasa, sama seperti tabel TEA. Jangan menambahkan *entity* baru.
 
 ---
 
@@ -28,7 +30,7 @@ Tabel tambahan (`tb_fasilitas_info`, `tb_node_info`, `tb_kelurahan_info`, `tb_je
 ### A. `tb_routes` hanya berisi node zona merah
 Baris hanya ada untuk node dengan `is_safe = 0` (8.812 node, sebelumnya 31.813). Jika kueri `tb_routes` untuk node pengguna kosong:
 *   Jika `tb_nodes.is_safe = 1`: tampilkan bahwa pengguna sudah berada di zona aman.
-*   Jika tidak: gunakan rute `tb_safe_routes` / `tb_tea_routes`.
+*   Jika tidak: gunakan rute `tb_safe_routes_v2` / `tb_tea_routes`.
 
 ### B. Aturan menjauhi pantai sudah ada di data
 TES di arah laut tidak pernah muncul sebagai rekomendasi untuk posisi itu. Jangan menambahkan logika "TES terdekat" sendiri di aplikasi, karena bisa melanggar aturan ini. Fitur cek tetangga untuk jalan terhalang juga harus mengikuti aturan yang sama (lihat [konsep_pengalihan_rute_lokal.md](konsep_pengalihan_rute_lokal.md)).
@@ -44,13 +46,21 @@ TES di arah laut tidak pernah muncul sebagai rekomendasi untuk posisi itu. Janga
 ### D. Jumlah fasilitas
 234 TES dan 25 TEA (sebelumnya 143 TES dan 12 TEA). 21 TEA dari data BPBD dikeluarkan karena berada di area landaan; daftarnya ada di `tb_fasilitas_info` (`dipakai = 0`).
 
+### E. Rute zona aman pindah ke tabel v2
+`tb_safe_routes` / `tb_safe_next` adalah satu pohon rute untuk seluruh kota, sehingga tidak bisa menyaring tujuan per warga. Akibatnya 1.175 node zona merah diarahkan ke titik zona aman yang **lebih dekat ke pantai** daripada posisinya, sehingga melanggar aturan BPBD. Dua tabel itu tetap diisi hanya supaya aplikasi versi lama tidak rusak.
+
+Aplikasi baru membaca `tb_safe_routes_v2` + `tb_safe_next_v2`:
+*   Baris hanya ada untuk node zona merah (8.812). Semua tujuannya lebih jauh dari pantai daripada titik asal.
+*   Kolom `kelompok` adalah kunci pohon rute. Rangkai dengan `SELECT node_id, next_node_id FROM tb_safe_next_v2 WHERE kelompok = ?` (kelompok milik **node asal**), lalu ikuti next-hop sampai node tanpa baris; node itu sama dengan `safe_node_id`.
+*   Jangan mengganti kelompok di tengah jalan. Saat pengguna bergerak, yang dipakai adalah node asal baru beserta `kelompok`-nya sendiri.
+
 ---
 
-## 4. Navigasi (tidak berubah)
+## 4. Navigasi
 
 *   **TES**: baca `rank_X_path` (ID node dipisah koma, dari asal ke TES).
 *   **TEA**: baca `tb_tea_routes` untuk memilih TEA, lalu `SELECT * FROM tb_tea_next WHERE tea_id = ?` sekali dan rangkai rute di memori. Jangan kueri bertahap per simpul.
-*   **Zona aman**: baca `tb_safe_routes`, lalu rangkai dari `tb_safe_next`.
+*   **Zona aman**: baca `tb_safe_routes_v2` untuk node pengguna, lalu `SELECT node_id, next_node_id FROM tb_safe_next_v2 WHERE kelompok = ?` sekali dan rangkai di memori (sama seperti TEA). Kueri DAO lama ke `tb_safe_routes`/`tb_safe_next` diganti ke tabel v2 dengan `@SkipQueryVerification`.
 
 ---
 

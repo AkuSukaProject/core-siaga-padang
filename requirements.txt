@@ -1,35 +1,30 @@
 # ==============================================================================
-# RANAH SIAGA / GEMASTIK - PYTHON DEPENDENCIES REQUIREMENTS
+# SIAGA PADANG - DEPENDENSI PYTHON
 # ==============================================================================
+# Dipakai skrip aktif: build_db.py, generate_dbml_file.py, download_peta_full.py,
+# dan analisis/*.py. Pasang dengan: env\Scripts\python.exe -m pip install -r requirements.txt
 
-# Core Data Analysis & Numerical Computation
+# Komputasi numerik & tabel
 numpy>=2.0.0
 pandas>=2.0.0
 scipy>=1.10.0
-scikit-learn>=1.3.0
+openpyxl>=3.1.0     # membaca tabel KRB & verifikasi shelter BPBD (.xlsx)
 
-# Geospatial & GIS Processing
+# Geospasial
 geopandas>=1.0.0
 shapely>=2.0.0
 pyproj>=3.6.0
-pyogrio>=0.7.0
-rasterio>=1.4.0   # membaca raster bahaya tsunami di File Geodatabase BPBD (GDAL >= 3.7)
+pyogrio>=0.7.0      # membaca File Geodatabase & shapefile BPBD
+rasterio>=1.4.0     # membaca raster bahaya tsunami/gempa di File Geodatabase BPBD (GDAL >= 3.7)
 
-# Network & Graph Routing Analysis
+# Graf jalan
 networkx>=3.0
-osmnx>=2.0.0
+osmnx>=2.0.0        # hanya untuk download_peta_full.py
 
-# Map Visualization & Rendering
+# Peta interaktif (analisis/)
 folium>=0.15.0
-matplotlib>=3.7.0
-branca>=0.7.0
-polyline>=2.0.0
-xyzservices>=2024.1.0
 
-# Data I/O, Web & File Format Support
-openpyxl>=3.1.0
-requests>=2.31.0
-Jinja2>=3.1.0
-joblib>=1.3.0
-fonttools>=4.40.0
-pillow>=10.0.0
+# ------------------------------------------------------------------------------
+# Skrip di legacy/ juga memakai: scikit-learn, matplotlib, polyline, joblib, requests.
+# Pasang manual bila perlu menjalankan salah satunya.
+# ------------------------------------------------------------------------------

@@ -25,8 +25,8 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4: 
 | `tb_tea` | `tea_id` (`TEA_001`…) | TEA di luar area landaan: nama, kelurahan, kecamatan (`sektor`), kapasitas (0 = tidak tersedia), lat, lon | `nearest_node_id` → `tb_nodes` |
 | `tb_tea_routes` | `origin_node_id` | TEA utama & alternatif per node | → `tb_nodes` (1:1); `nearest_tea_id`, `alt_tea_id` → `tb_tea` |
 | `tb_tea_next` | (`tea_id`, `node_id`) | Node berikutnya menuju tiap TEA | `tea_id` → `tb_tea`; `node_id`, `next_node_id` → `tb_nodes` |
-| `tb_safe_routes` | `origin_node_id` | Zona aman terdekat per node: `safe_node_id`, nama, `safe_eta` (menit) | → `tb_nodes` (1:1) |
-| `tb_safe_next` | (`node_id`, `next_node_id`) | Node berikutnya menuju zona aman terdekat | → `tb_nodes` |
+| `tb_safe_routes` | `origin_node_id` | **Lama, hanya kompatibilitas.** Zona aman terdekat per node dari satu pohon global: `safe_node_id`, nama, `safe_eta` (menit). Tidak menjamin aturan pantai; aplikasi baru memakai `tb_safe_routes_v2` | → `tb_nodes` (1:1) |
+| `tb_safe_next` | (`node_id`, `next_node_id`) | **Lama, hanya kompatibilitas.** Node berikutnya menuju zona aman terdekat | → `tb_nodes` |
 | `tb_inundation_zones` | `zone_id` | Poligon zona merah per kelurahan. `tingkat_bahaya` selalu `Tinggi` | Pemeriksaan spasial |
 | `tb_safe_zones` | `safe_zone_id` | Poligon zona hijau per kelurahan. `elevasi_m` NULL | Pemeriksaan spasial |
 | `tb_route_shares` | – | Porsi penugasan warga per node: `jenis` (TES/TEA/ZONA_AMAN), `nama_tujuan`, `porsi` | `origin_node_id` → `tb_nodes` |
@@ -36,9 +36,11 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4: 
 
 | Tabel | Primary key | Isi |
 |---|---|---|
+| `tb_safe_routes_v2` | `origin_node_id` | Zona aman per node **zona merah** yang patuh aturan pantai: `kelompok` (floor jarak pantai / 100 m), `safe_node_id`, nama, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m` |
+| `tb_safe_next_v2` | (`kelompok`, `node_id`) | Next-hop menuju zona aman per kelompok jarak pantai; dirangkai seperti `tb_tea_next` |
 | `tb_fasilitas_info` | `facility_id` | Semua TES/TEA sumber BPBD, termasuk yang tidak dipakai: `dipakai`, `alasan_tidak_dipakai`, `kapasitas_sumber`, `d_pantai_m`, `indeks_bahaya`, lantai & kapasitas 2019, luas jejak bangunan |
-| `tb_node_info` | `node_id` | Kelurahan, `d_pantai_m`, `indeks_bahaya`, `demand_jiwa`, flag rute TES/zona aman lewat jembatan sungai |
-| `tb_kelurahan_info` | – (`kelurahan` unik) | Profil tsunami 56 kelurahan dari tabel KRB: luas bahaya, jiwa terpapar, umur rentan, miskin, disabilitas, indeks kesiapsiagaan/kapasitas/risiko |
+| `tb_node_info` | `node_id` | Kelurahan, `d_pantai_m`, `indeks_bahaya`, `demand_jiwa`, flag rute TES/zona aman lewat jembatan sungai, `kantong_aman`, `rute_tes_mendekat_pantai_m`, `rute_aman_mendekat_pantai_m` |
+| `tb_kelurahan_info` | – (`kelurahan` unik) | Profil tsunami 56 kelurahan dari tabel KRB: luas bahaya, jiwa terpapar, umur rentan, miskin, disabilitas, indeks kesiapsiagaan/kapasitas/risiko, `jiwa_rute_aman_mendekat_pantai`, `jiwa_tanpa_rute_aman` |
 | `tb_jembatan_sungai` | (`u`, `v`) | Ruas jembatan sungai: panjang, indeks bahaya gempa |
 | `tb_jalur_resmi` | (`u`, `v`) | Ruas graf yang mengikuti jalur evakuasi resmi BPBD |
 | `tb_metadata` | `kunci` | Versi, sumber data, parameter build |
@@ -60,6 +62,9 @@ erDiagram
     tb_nodes ||..o{ tb_tea_next : "node_id, next_node_id"
     tb_nodes ||..o| tb_safe_routes : "origin_node_id"
     tb_nodes ||..o{ tb_safe_next : "node_id, next_node_id"
+    tb_nodes ||..o| tb_safe_routes_v2 : "origin_node_id"
+    tb_nodes ||..o{ tb_safe_next_v2 : "node_id, next_node_id"
+    tb_safe_routes_v2 }o..o{ tb_safe_next_v2 : "kelompok"
     tb_nodes ||..o{ tb_route_shares : "origin_node_id"
     tb_nodes ||..|| tb_node_info : "node_id"
     tb_nodes ||..o{ tb_fasilitas_info : "nearest_node_id"
@@ -126,6 +131,18 @@ erDiagram
         INTEGER node_id PK
         INTEGER next_node_id PK
     }
+    tb_safe_routes_v2 {
+        INTEGER origin_node_id PK
+        INTEGER kelompok
+        INTEGER safe_node_id
+        REAL safe_eta
+        REAL mendekat_pantai_maks_m
+    }
+    tb_safe_next_v2 {
+        INTEGER kelompok PK
+        INTEGER node_id PK
+        INTEGER next_node_id
+    }
     tb_route_shares {
         INTEGER origin_node_id
         TEXT jenis
@@ -137,6 +154,8 @@ erDiagram
         TEXT kelurahan
         REAL d_pantai_m
         REAL demand_jiwa
+        INTEGER kantong_aman
+        REAL rute_aman_mendekat_pantai_m
     }
     tb_fasilitas_info {
         TEXT facility_id PK
