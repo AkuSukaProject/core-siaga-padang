@@ -31,7 +31,7 @@ env\Scripts\python.exe analisis\contoh_rute_evakuasi.py --buka
 
 Repositori aplikasi (`AkuSukaProject/siagapadang`) terpisah dari engine ini. Setiap DB baru:
 
-1. Jalankan `build_db.py`, commit `hasil_build/`, lalu buat tag `db-<versi>` (misal `db-2026.10.10`).
+1. Jalankan `build_db.py`, commit `hasil_build/`, lalu buat tag `db-<versi>` (misal `db-2026.10.11`).
 2. Terbitkan GitHub Release dari tag itu dengan lampiran `ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip`, `dataset_manifest.json`, dan `dataset_manifest_android.json`.
 3. Di komputer yang memiliki repo aplikasi: `env\Scripts\python.exe salin_db_ke_android.py <repo-aplikasi> --tulis`, lalu commit di repo aplikasi.
 

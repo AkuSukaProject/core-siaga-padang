@@ -76,6 +76,9 @@ LUAS_MIN_ZONA_AMAN_HA = 50.0
 PENALTI_JEMBATAN_SUNGAI = 20.0
 # TES dengan jumlah lantai <= nilai ini (menurut verifikasi BPBD 2019) dikeluarkan (bagian 6.1).
 LANTAI_MAKS_TIDAK_LAYAK = 2
+# Titik TES/TEA bernama & berjenis sama yang berjarak <= nilai ini dianggap tempat yang sama dan
+# digabung (syarat nama unik H-1); yang lebih jauh dianggap tempat berbeda dan namanya dibedakan.
+GABUNG_JARAK_M = 100.0
 # Ambang kemiripan nama untuk mencocokkan TES 2025 dengan daftar verifikasi 2019.
 AMBANG_KEMIRIPAN_NAMA = 0.88
 # Jalur evakuasi resmi BPBD/Kelurahan Tangguh diutamakan ("ikuti rambu evakuasi", bagian 11):
@@ -136,6 +139,16 @@ def norm_nama(s):
 
 def norm_kel(s):
     return re.sub(r"\s+", " ", str(s).upper().replace("-", " ")).strip()
+
+
+_ROMAWI = re.compile(r"^(?=[IVX]+$)X{0,3}(?:IX|IV|V?I{0,3})$", re.I)
+
+
+def judul(teks):
+    """Huruf awal kapital seperti str.title(), tetapi angka Romawi tetap kapital ("Nan XX", bukan "Nan Xx")."""
+    if teks is None or (isinstance(teks, float) and np.isnan(teks)):
+        return ""
+    return " ".join(w.upper() if _ROMAWI.match(w) else w.capitalize() for w in str(teks).split())
 
 
 def menit(meter):
@@ -418,10 +431,13 @@ fas["d_pantai_m"] = shapely.distance(fas.geometry.values, laut)
 # Kelayakan untuk routing.
 fas["dipakai"] = 1
 fas["alasan_tidak_dipakai"] = ""
-# Hanya jumlah lantai yang dipakai sebagai syarat keluar; status "tidak potensial" 2019 punya alasan lain
-# (mis. masih dibangun, kapasitas staf saja) yang bisa sudah berubah, jadi hanya disimpan sebagai info.
+# TES keluar bila verifikasi BPBD 2019 menyatakan <= 2 lantai atau "tidak potensial". Pencocokan 2019
+# mensyaratkan nomor gedung sama persis, jadi status ini hanya menempel pada gedung yang benar.
 tes_tak_layak = (fas["Jns_fasili"] == "TES") & (pd.to_numeric(fas["lantai_2019"], errors="coerce") <= LANTAI_MAKS_TIDAK_LAYAK)
 fas.loc[tes_tak_layak, ["dipakai", "alasan_tidak_dipakai"]] = [0, f"Verifikasi BPBD 2019: <= {LANTAI_MAKS_TIDAK_LAYAK} lantai"]
+tes_tak_potensial = (fas["Jns_fasili"] == "TES") & (fas["status_2019"] == "tidak potensial") & ~tes_tak_layak
+fas.loc[tes_tak_potensial, ["dipakai", "alasan_tidak_dipakai"]] = [0, "Verifikasi BPBD 2019: tidak potensial"]
+tes_tak_layak = tes_tak_layak | tes_tak_potensial
 tea_di_landaan = (fas["Jns_fasili"] == "TEA") & fas["indeks_bahaya"].notna()
 fas.loc[tea_di_landaan, ["dipakai", "alasan_tidak_dipakai"]] = [0, "TEA berada di dalam area landaan tsunami"]
 
@@ -453,6 +469,49 @@ fas.loc[kosong_tea, "kapasitas_sumber"] = "tidak tersedia"
 # ID stabil.
 fas = fas.sort_values(["Jns_fasili", "KEC", "KEL", "Nama_Fasum"]).reset_index(drop=True)
 fas["facility_id"] = (fas["Jns_fasili"] + "_" + (fas.groupby("Jns_fasili").cumcount() + 1).astype(str).str.zfill(3))
+
+# Nama unik (syarat H-1). Dikerjakan setelah ID dibuat agar ID fasilitas lain tidak bergeser.
+fas["nama_bpbd"] = fas["Nama_Fasum"]
+# a) Nama & jenis sama dan berjarak <= GABUNG_JARAK_M: titik ganda untuk tempat yang sama, digabung.
+#    Wakilnya titik berkapasitas BPBD 2025 (ID terkecil); kapasitasnya diambil yang terbesar dari BPBD 2025.
+jumlah_digabung = 0
+for _, grup in fas[fas["dipakai"] == 1].groupby([fas["Jns_fasili"], fas["Nama_Fasum"].str.lower()]):
+    if len(grup) < 2:
+        continue
+    urut = grup.assign(_bpbd=grup["kapasitas_sumber"] != "BPBD 2025").sort_values(["_bpbd", "facility_id"])
+    sisa = list(urut.index)
+    while sisa:
+        wakil = sisa.pop(0)
+        dekat = [j for j in sisa if fas.geometry[wakil].distance(fas.geometry[j]) <= GABUNG_JARAK_M]
+        if not dekat:
+            continue
+        kap_bpbd = fas.loc[[wakil] + dekat].query("kapasitas_sumber == 'BPBD 2025'")["kapasitas"]
+        if len(kap_bpbd):
+            fas.loc[wakil, ["kapasitas", "kapasitas_sumber"]] = [kap_bpbd.max(), "BPBD 2025"]
+        for j in dekat:
+            jarak = fas.geometry[wakil].distance(fas.geometry[j])
+            fas.loc[j, ["dipakai", "alasan_tidak_dipakai"]] = [
+                0, f"Digabung ke {fas.at[wakil, 'facility_id']} (nama sama, berjarak {jarak:.0f} m)"]
+            sisa.remove(j)
+            jumlah_digabung += 1
+# b) TES & TEA bernama sama (gedung dan halamannya): nama TEA diberi keterangan.
+pakai = fas["dipakai"] == 1
+kunci_nama = fas["Nama_Fasum"].str.lower()
+nama_tes_aktif = set(kunci_nama[pakai & (fas["Jns_fasili"] == "TES")])
+ganda_tea = pakai & (fas["Jns_fasili"] == "TEA") & kunci_nama.isin(nama_tes_aktif)
+fas.loc[ganda_tea, "Nama_Fasum"] = fas.loc[ganda_tea, "Nama_Fasum"] + " (area evakuasi)"
+# c) Nama sama di lokasi berbeda: tambahkan kelurahan, lalu nomor urut bila masih sama.
+for tambahan in ("kelurahan", "nomor"):
+    kunci_nama = fas["Nama_Fasum"].str.lower()
+    ganda = pakai & kunci_nama.isin(kunci_nama[pakai][kunci_nama[pakai].duplicated()])
+    for _, grup in fas[ganda].groupby(kunci_nama[ganda]):
+        for urutan, (j, r) in enumerate(grup.sort_values("facility_id").iterrows(), start=1):
+            fas.at[j, "Nama_Fasum"] = (f"{r.Nama_Fasum} ({judul(r.KEL)})" if tambahan == "kelurahan"
+                                       else f"{r.Nama_Fasum} {urutan}")
+nama_aktif = fas.loc[fas["dipakai"] == 1, "Nama_Fasum"].str.lower()
+assert not nama_aktif.duplicated().any(), "Masih ada nama fasilitas ganda"
+print(f"      Nama unik: {jumlah_digabung} titik ganda digabung, {ganda_tea.sum()} nama TEA diberi keterangan, "
+      f"{(fas['Nama_Fasum'] != fas['nama_bpbd']).sum() - ganda_tea.sum()} nama dibedakan dengan kelurahan/nomor")
 
 # Snap ke node terdekat.
 tree = cKDTree(np.column_stack([x_node, y_node]))
@@ -588,7 +647,7 @@ eta_aman, jemb_aman = akumulasi_riil_baris(pred_aman)
 safe_route_rows, safe_next_rows = [], []
 for n in np.flatnonzero(np.isfinite(biaya_aman)):
     s = int(asal_aman[n])
-    nama = f"Zona Aman - {kel_node[s].title()}" if kel_node[s] else "Zona Aman"
+    nama = f"Zona Aman - {judul(kel_node[s])}" if kel_node[s] else "Zona Aman"
     safe_route_rows.append((int(node_ids[n]), int(node_ids[s]), nama, round(float(eta_aman[n]), 2)))
     if pred_aman[n] >= 0:
         safe_next_rows.append((int(node_ids[n]), int(node_ids[pred_aman[n]])))
@@ -622,7 +681,7 @@ for g in np.unique(kelompok_node[merah_idx]):
         safe2_next_rows.append((int(g), int(node_ids[n]), int(node_ids[p_g[n]])))
     for n in asal:
         s = int(s_g[n])
-        nama = f"Zona Aman - {kel_node[s].title()}" if kel_node[s] else "Zona Aman"
+        nama = f"Zona Aman - {judul(kel_node[s])}" if kel_node[s] else "Zona Aman"
         eta_aman2[n], jemb_aman2[n] = eta_g[n], jemb_g[n]
         mendekat_aman2[n] = mendekat_pantai_m(jalur(n, p_g))
         safe2_route_rows.append((int(node_ids[n]), int(g), int(node_ids[s]), nama, round(float(eta_g[n]), 2),
@@ -728,9 +787,9 @@ for kel, geom in zip(gdf_kel["KEL"], gdf_kel.geometry):
     merah = geom.intersection(landaan)
     hijau = geom.difference(landaan).simplify(10)
     if not merah.is_empty and merah.area > 100:
-        inundation_rows.append((kel.title(), "Tinggi", bulatkan_wkt(gpd.GeoSeries([merah], crs=CRS_METER).to_crs("EPSG:4326").iloc[0])))
+        inundation_rows.append((judul(kel), "Tinggi", bulatkan_wkt(gpd.GeoSeries([merah], crs=CRS_METER).to_crs("EPSG:4326").iloc[0])))
     if not hijau.is_empty and hijau.area > 100:
-        safe_zone_rows.append((kel.title(), None, bulatkan_wkt(gpd.GeoSeries([hijau], crs=CRS_METER).to_crs("EPSG:4326").iloc[0])))
+        safe_zone_rows.append((judul(kel), None, bulatkan_wkt(gpd.GeoSeries([hijau], crs=CRS_METER).to_crs("EPSG:4326").iloc[0])))
 print(f"      Zona merah: {len(inundation_rows)} poligon kelurahan | zona aman: {len(safe_zone_rows)}")
 
 # ==============================================================================
@@ -751,7 +810,7 @@ cur.execute("CREATE INDEX idx_tb_nodes_lat_lon ON tb_nodes(lat, lon)")
 
 cur.execute("CREATE TABLE tb_tes (tes_id TEXT PRIMARY KEY, nama_tes TEXT, zona TEXT, kapasitas REAL, lat REAL, lon REAL)")
 cur.executemany("INSERT INTO tb_tes VALUES (?, ?, ?, ?, ?, ?)",
-                [(r.facility_id, r.Nama_Fasum, str(r.KEL).title(), float(r.kapasitas), float(r.lat), float(r.lon))
+                [(r.facility_id, r.Nama_Fasum, judul(r.KEL), float(r.kapasitas), float(r.lat), float(r.lon))
                  for r in tes.itertuples()])
 
 cur.execute("CREATE TABLE tb_routes (origin_node_id INTEGER PRIMARY KEY, rank_1_tes TEXT, rank_1_path TEXT, rank_1_eta REAL, "
@@ -781,8 +840,8 @@ cur.execute("""CREATE TABLE tb_tea (
     rute_evakuasi TEXT
 )""")
 cur.executemany("INSERT INTO tb_tea VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [(r.facility_id, r.facility_id.replace("_", " "), str(r.KEC).title(), r.Nama_Fasum, str(r.KEL).title(),
-                  str(r.KEC).title(), "TEA", float(r.kapasitas), float(r.lat), float(r.lon),
+                [(r.facility_id, r.facility_id.replace("_", " "), judul(r.KEC), r.Nama_Fasum, judul(r.KEL),
+                  judul(r.KEC), "TEA", float(r.kapasitas), float(r.lat), float(r.lon),
                   int(node_ids[r.node_idx]), None) for r in tea.itertuples()])
 cur.execute("CREATE INDEX idx_tea_sektor ON tb_tea(sektor)")
 
@@ -804,7 +863,7 @@ id_zona_aman = {nama: i + 1 for i, (nama, _, _) in enumerate(safe_zone_rows)}
 
 
 def id_zona_node(node_id):
-    return id_zona_aman.get(kel_node[idx_of[str(node_id)]].title())
+    return id_zona_aman.get(judul(kel_node[idx_of[str(node_id)]]))
 
 
 cur.execute("CREATE TABLE tb_safe_routes (origin_node_id INTEGER PRIMARY KEY, safe_node_id INTEGER, safe_zone_nama TEXT, "
@@ -845,15 +904,15 @@ cur.execute("""CREATE TABLE tb_fasilitas_info (
     dipakai INTEGER, alasan_tidak_dipakai TEXT, kapasitas REAL, kapasitas_sumber TEXT,
     d_pantai_m REAL, indeks_bahaya REAL, jumlah_lantai_2019 INTEGER, status_bpbd_2019 TEXT, nama_bpbd_2019 TEXT,
     kapasitas_2019 REAL, luas_jejak_bangunan_m2 REAL,
-    nearest_node_id INTEGER, snap_dist_m REAL, lat REAL, lon REAL)""")
-cur.executemany("INSERT INTO tb_fasilitas_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [(r.facility_id, r.Jns_fasili, r.Nama_Fasum, str(r.KEL).title(), str(r.KEC).title(), int(r.dipakai),
+    nearest_node_id INTEGER, snap_dist_m REAL, lat REAL, lon REAL, nama_bpbd TEXT)""")
+cur.executemany("INSERT INTO tb_fasilitas_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [(r.facility_id, r.Jns_fasili, r.Nama_Fasum, judul(r.KEL), judul(r.KEC), int(r.dipakai),
                   r.alasan_tidak_dipakai or None, float(r.kapasitas), r.kapasitas_sumber, round(float(r.d_pantai_m), 1),
                   None if np.isnan(r.indeks_bahaya) else round(float(r.indeks_bahaya), 4),
                   None if pd.isna(r.lantai_2019) else int(r.lantai_2019), r.status_2019, r.nama_2019,
                   None if pd.isna(r.kapasitas_2019) else float(r.kapasitas_2019),
                   None if pd.isna(r.luas_jejak_m2) else round(float(r.luas_jejak_m2), 1),
-                  int(node_ids[r.node_idx]), round(float(r.snap_dist_m), 1), float(r.lat), float(r.lon))
+                  int(node_ids[r.node_idx]), round(float(r.snap_dist_m), 1), float(r.lat), float(r.lon), r.nama_bpbd)
                  for r in fas.itertuples()])
 
 cur.execute("""CREATE TABLE tb_node_info (
@@ -862,7 +921,7 @@ cur.execute("""CREATE TABLE tb_node_info (
     kantong_aman INTEGER, rute_tes_mendekat_pantai_m REAL, rute_aman_mendekat_pantai_m REAL)""")
 jemb_aman_node = np.where(is_safe == 0, jemb_aman2, jemb_aman.astype(bool))
 cur.executemany("INSERT INTO tb_node_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [(int(node_ids[i]), kel_node[i].title() or None, round(float(d_pantai[i]), 1),
+                [(int(node_ids[i]), judul(kel_node[i]) or None, round(float(d_pantai[i]), 1),
                   None if np.isnan(indeks_bahaya_node[i]) else round(float(indeks_bahaya_node[i]), 4),
                   round(float(demand[i]), 3), int(rank1_jembatan[i]), int(jemb_aman_node[i]), int(kantong_aman_i),
                   round(float(rank1_mendekat[i]), 1) if rank1_tes[i] >= 0 else None,
@@ -886,7 +945,7 @@ kolom_krb = {3: "luas_bahaya_rendah_ha", 4: "luas_bahaya_sedang_ha", 5: "luas_ba
              22: "indeks_kesiapsiagaan", 23: "kelas_kesiapsiagaan", 24: "indeks_kapasitas", 25: "kelas_kapasitas",
              30: "indeks_risiko", 31: "kelas_risiko"}
 tb_kel = krb[[1, 2] + list(kolom_krb)].rename(columns={1: "kecamatan", 2: "kelurahan", **kolom_krb})
-tb_kel["kecamatan"] = tb_kel["kecamatan"].astype(str).str.title()
+tb_kel["kecamatan"] = tb_kel["kecamatan"].astype(str).map(judul)
 tb_kel["node_zona_merah"] = [int(((kel_node == k) & (is_safe == 0)).sum()) for k in krb["KEL"]]
 # Sisa pelanggaran yang tak terhindarkan: jiwa yang rute zona aman v2-nya sempat mendekati pantai
 # lebih dari toleransi (jalan memang hanya ke arah itu) -> usulan lokasi TES/jalur baru ke BPBD.
@@ -914,6 +973,7 @@ metadata = {
     "penalti_mendekat_pantai": str(PENALTI_MENDEKAT_PANTAI),
     "bobot_per_meter_mendekat_pantai": str(BOBOT_PER_METER_MENDEKAT_PANTAI),
     "penalti_jembatan_sungai": str(PENALTI_JEMBATAN_SUNGAI),
+    "gabung_jarak_m": str(GABUNG_JARAK_M),
     "lebar_kelompok_pantai_m": str(LEBAR_KELOMPOK_PANTAI_M),
     "luas_min_zona_aman_ha": str(LUAS_MIN_ZONA_AMAN_HA),
     "catatan_rute_aman": "Pakai tb_safe_routes_v2 + tb_safe_next_v2 (kelompok node asal): tujuan selalu lebih jauh dari pantai. "
@@ -978,7 +1038,7 @@ for ambang in (TOLERANSI_MENDEKAT_PANTAI_M, 200.0):
           f"{demand[v2_ada & (np.nan_to_num(mendekat_aman2) > ambang)].sum():,.0f} jiwa")
 top = tb_kel.sort_values("jiwa_rute_aman_mendekat_pantai", ascending=False).head(5)
 print("Kelurahan dengan jiwa terbanyak yang rute zona amannya terpaksa mendekati pantai: "
-      + ", ".join(f"{k.title()} ({j:,.0f})" for k, j in zip(top["kelurahan"], top["jiwa_rute_aman_mendekat_pantai"]) if j > 0))
+      + ", ".join(f"{judul(k)} ({j:,.0f})" for k, j in zip(top["kelurahan"], top["jiwa_rute_aman_mendekat_pantai"]) if j > 0))
 tes_rank1 = [r[2] for r in route_rows]
 pasangan_resmi = {(int(node_ids[a]), int(node_ids[b])) for a, b in kunci_arr[jalur_resmi]}
 ruas_rute = [(min(int(p), int(q)), max(int(p), int(q))) for path in tes_rank1 for p, q in zip(path.split(",")[:-1], path.split(",")[1:])]
@@ -996,7 +1056,7 @@ tidak = fas[fas["dipakai"] == 0]
 if len(tidak):
     print("Fasilitas dikeluarkan dari routing:")
     for r in tidak.itertuples():
-        print(f"  - {r.facility_id} {r.Nama_Fasum} ({str(r.KEL).title()}): {r.alasan_tidak_dipakai}"
+        print(f"  - {r.facility_id} {r.Nama_Fasum} ({judul(r.KEL)}): {r.alasan_tidak_dipakai}"
                 + (f" [cocok 2019: {r.nama_2019}, {r.lantai_2019} lantai]" if pd.notna(r.nama_2019) else "")
               + (f" [indeks bahaya {r.indeks_bahaya:.2f}]" if r.Jns_fasili == "TEA" else ""))
 cocok = fas[fas["nama_2019"].notna()]

@@ -55,7 +55,9 @@ Butuh `rasterio` (sudah ditambahkan ke `requirements.txt`) untuk membaca raster 
 | Kapasitas TES | BPBD 2025 → verifikasi 2019 → jejak bangunan × (lantai − 2) / 1 m² per orang → median TES BPBD | `M2_PER_ORANG`, `LANTAI_ASUMSI` |
 | Sebaran penduduk | Jiwa terpapar KRB per kelurahan dibagi menurut luas jejak bangunan di zona merah, ditempel ke node zona merah terdekat | – |
 | TEA harus di luar landaan | TEA di dalam raster bahaya dikeluarkan dari routing | – |
-| TES ≤ 2 lantai tidak layak | Dicocokkan ke verifikasi 2019 (nomor gedung harus sama persis) | `LANTAI_MAKS_TIDAK_LAYAK` |
+| TES ≤ 2 lantai atau "tidak potensial" tidak layak | Dicocokkan ke verifikasi 2019 (nomor gedung harus sama persis) | `LANTAI_MAKS_TIDAK_LAYAK` |
+| Nama fasilitas unik (syarat H-1) | Nama & jenis sama dan berjarak ≤ 100 m digabung jadi satu titik (kapasitas BPBD 2025 terbesar); TEA yang bernama sama dengan TES diberi "(area evakuasi)"; nama sama di lokasi berbeda diberi nama kelurahan (dan nomor bila masih sama). ID tidak bergeser; nama asli di `tb_fasilitas_info.nama_bpbd` | `GABUNG_JARAK_M` |
+| Penulisan nama wilayah | Huruf awal kapital, angka Romawi tetap kapital ("Gates Nan XX") | – |
 | TES berkapasitas, TEA/zona aman tidak | Greedy dua tahap berbasis ETA | – |
 
 Penalti hanya memengaruhi **pemilihan** rute. ETA yang disimpan selalu dihitung dari panjang jalan asli.
@@ -96,29 +98,31 @@ Tabel baru di v4 (opsional, dibaca dengan `@SkipQueryVerification`):
 
 Semua keluaran ada di folder `hasil_build/`. Selain `ranah_siaga_v4.db`, setiap build juga menulis `ranah_siaga_v4.db.zip` (zip deterministik, ±6 MB, tidak di-commit) `dataset_manifest.json` berisi versi, ukuran, dan SHA-256 zip maupun `.db`, serta `dataset_manifest_android.json` dalam format aset aplikasi (`version`, `checksum`, `size_bytes` milik file `.db`).
 
-## Hasil build 10 Oktober 2026
+## Hasil build 11 Oktober 2026 (versi 2026.10.11)
 
 | Metrik | Nilai |
 |---|---|
 | Fasilitas sumber → setelah buang duplikat persis | 366 → 280 (234 TES, 46 TEA) |
-| Dipakai untuk routing | 234 TES, 25 TEA |
+| Dipakai untuk routing | 230 TES, 25 TEA |
+| TES dikeluarkan | 4: Universitas Taman Siswa (verifikasi 2019 "tidak potensial"); Incasi Raya, Youth Center, FK Unand (titik ganda, digabung ke titik bernama sama ≤ 100 m) |
 | TEA dikeluarkan karena berada di landaan | 21 |
-| Sumber kapasitas TES | BPBD 2025: 157 · BPBD 2019: 2 · jejak bangunan: 66 · median: 9 |
+| Sumber kapasitas TES | BPBD 2025: 155 · BPBD 2019: 2 · jejak bangunan: 64 · median: 9 |
 | Node zona merah / zona aman | 8.812 / 23.001 |
 | Penduduk terpapar (KRB) | 242.750 jiwa di 56 kelurahan, disebar ke 7.678 node lewat 64.247 bangunan di zona merah |
 | Jiwa dengan tujuan ≤ 20 menit (berjalan 0,894 m/s) | 173.433 (71,4%) |
-| Alokasi tujuan akhir | TES 60.549 · TEA 4.443 · zona aman 177.759 jiwa |
+| Alokasi tujuan akhir | TES 60.151 · TEA 4.443 · zona aman 178.156 jiwa |
 | Rute zona aman yang berakhir lebih jauh dari pantai | 8.812 dari 8.812 node zona merah (40 kelompok, 22.853 baris next-hop) |
 | Kantong aman yang tidak dijadikan tujuan | 84 kantong, 123 ha |
 | Rute yang sempat mendekati pantai > 50 m / > 200 m | TES rank-1: 13,8% / 2,8% node · zona aman: 11,2% / 1,7% node |
 | Jiwa yang rute TES rank-1-nya lewat jembatan sungai | 76.040, terutama Koto Tangah (Padang Sarai, Lubuk Buaya, Batang Kabung) |
 | Jembatan sungai | 263 ruas, rata-rata indeks bahaya gempa 0,79 |
 | Ruas rute TES rank-1 di jalur evakuasi resmi | 27,8% |
-| Ukuran DB / waktu build | 29,5 MB / ±22 detik |
+| Ukuran DB / waktu build | 29,6 MB / ±25 detik |
 
 ## Hal yang perlu dikonfirmasi ke BPBD
 
 - **21 TEA berada di dalam area landaan** menurut raster KRB BPBD sendiri, misalnya Bundaran Siti Nurbaya, R.M Jaso Mande, Lapangan SSAG, dan LANTAMAL. Perlu dipastikan apakah titiknya salah plot atau memang tidak layak.
 - **24 titik berlabel TES bernama bukit/gunung** (misal Bukit Lampu, Gunung Padang). Secara konsep ini evakuasi horizontal (TEA) dan tidak seharusnya dibatasi kapasitas.
-- **75 TES tanpa angka kapasitas dari BPBD.** 66 diestimasi dari jejak bangunan RTRW (bisa meleset jika titik TES dekat bangunan lain yang lebih kecil), 9 memakai median.
+- **75 TES tanpa angka kapasitas dari BPBD** (73 setelah penggabungan). Kapasitas 64 TES aktif diestimasi dari jejak bangunan RTRW (bisa meleset jika titik TES dekat bangunan lain yang lebih kecil), 9 memakai median.
+- **Titik ganda di data TES/TEA 2025**: Incasi Raya, Youth Center, dan FK Unand masing-masing tercatat dua kali di lokasi hampir sama; Bukit Lampu, Bukit Karan, Bukit Simpang Rawang, dan Dealer Honda dipakai untuk dua tempat berbeda.
 - Kebijakan jembatan (bagian 5.2.1) dan definisi "jembatan" (sungai saja atau termasuk gorong-gorong).

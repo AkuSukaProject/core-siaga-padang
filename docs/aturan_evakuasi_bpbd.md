@@ -329,7 +329,7 @@ Status per 10 Oktober 2026. Pembangun DB sekarang adalah [`build_db.py`](../buil
 | Zona merah = area landaan | `is_safe` dan poligon zona merah diambil dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 | ✅ Sesuai |
 | Peta evakuasi hanya merah/hijau | `tb_inundation_zones.tingkat_bahaya` diisi `Tinggi` untuk semua zona merah | ✅ Sesuai |
 | TEA tidak terkena bencana | TEA yang titiknya berada di area landaan dikeluarkan dari routing (21 titik, lihat laporan build) | ✅ Sesuai, daftar perlu dikonfirmasi BPBD |
-| Data TES bangunan ≤ 2 lantai dikeluarkan | Dicocokkan dengan verifikasi BPBD 2019. Hanya sebagian TES yang punya data lantai. | ⚠️ Sebagian (data lantai 2025 belum ada) |
+| Data TES bangunan ≤ 2 lantai atau "tidak potensial" dikeluarkan | Dicocokkan dengan verifikasi BPBD 2019 (Universitas Taman Siswa keluar karena "tidak potensial"). Hanya sebagian TES yang punya data lantai. | ⚠️ Sebagian (data lantai 2025 belum ada) |
 | TEA tanpa batas kapasitas, TES *capacity-aware* | Penugasan greedy di `tb_route_shares` | ✅ Sesuai |
 | Daya tampung per orang | Urutan sumber: BPBD 2025 → verifikasi 2019 → jejak bangunan RTRW × (lantai − 2) / 1 m² per orang → median. Estimasi ditandai di `kapasitas_sumber`. | ⚠️ Kapasitas 75 TES masih estimasi |
 | Ikuti jalur/rambu evakuasi | Ruas di jalur evakuasi resmi BPBD diberi faktor biaya 0,8 | ✅ Sesuai |

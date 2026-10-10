@@ -4,6 +4,12 @@ Halo Tim Android (Mikail)!
 
 Database baru `ranah_siaga_v4.db` dibangun ulang dari data BPBD Kota Padang (KRB 2023–2027 dan data TES/TEA 2025) serta aturan evakuasi hasil wawancara BPBD. Dokumen ini merangkum yang perlu Anda sesuaikan di aplikasi (Kotlin/Room).
 
+> **Versi resmi: 2026.10.11.** `.db` berukuran 31.068.160 byte, SHA-256 `8545cfd217990509cec61c0d88f0f7355428dc1c090d2a0126746504778b0584`. Paket berlabel 2026.10.10 (baik di Release maupun ZIP kiriman sebelumnya) sudah **tidak dipakai**.
+>
+> Perubahan dari 2026.10.10: (1) kolom `safe_zone_id` di `tb_safe_routes` dan `tb_safe_routes_v2`; (2) nama fasilitas unik: 3 titik ganda digabung (TES_061 Incasi Raya → TES_060, TES_126 Youth Center → TES_127, TES_164 FK Unand → TES_163), 3 TEA yang bernama sama dengan TES diberi "(area evakuasi)", dan 8 TES bernama sama di lokasi berbeda diberi nama kelurahan; (3) TES_208 Universitas Taman Siswa dikeluarkan (verifikasi BPBD 2019 "tidak potensial"); (4) nama wilayah "Nan XX" (sebelumnya "Nan Xx"). ID fasilitas lain tidak berubah.
+>
+> Build aplikasi yang memakai `tb_safe_routes_v2` direncanakan **0.2.0 (versionCode 3)**; backend memakai versi itu sebagai `minimum_app_version` dataset ini.
+
 ---
 
 ## 1. Berkas yang perlu Anda gunakan
@@ -53,7 +59,7 @@ TES di arah laut tidak pernah muncul sebagai rekomendasi untuk posisi itu. Janga
 *   ETA dihitung dengan kecepatan orang terlemah 0,894 m/s, jadi angkanya lebih besar daripada versi lama (1,2 m/s).
 
 ### D. Jumlah fasilitas
-234 TES dan 25 TEA (sebelumnya 143 TES dan 12 TEA). 21 TEA dari data BPBD dikeluarkan karena berada di area landaan; daftarnya ada di `tb_fasilitas_info` (`dipakai = 0`).
+230 TES dan 25 TEA (sebelumnya 143 TES dan 12 TEA). Semua nama fasilitas unik, jadi `findTesByName` dengan nama dari `rank_X_tes` selalu menemukan tepat satu TES. 21 TEA dari data BPBD dikeluarkan karena berada di area landaan; daftarnya ada di `tb_fasilitas_info` (`dipakai = 0`).
 
 ### E. Rute zona aman pindah ke tabel v2
 `tb_safe_routes` / `tb_safe_next` adalah satu pohon rute untuk seluruh kota, sehingga tidak bisa menyaring tujuan per warga. Akibatnya 1.175 node zona merah diarahkan ke titik zona aman yang **lebih dekat ke pantai** daripada posisinya, sehingga melanggar aturan BPBD. Dua tabel itu tetap diisi hanya supaya aplikasi versi lama tidak rusak.
