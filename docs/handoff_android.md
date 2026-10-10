@@ -60,6 +60,8 @@ Aplikasi baru membaca `tb_safe_routes_v2` + `tb_safe_next_v2`. Perubahan di `Eva
 *   `findSafeRoute`: ganti `FROM tb_safe_routes` menjadi `FROM tb_safe_routes_v2` (kolom `safe_zone_id`, `safe_node_id`, `safe_eta` tetap ada), dan ikut ambil kolom `kelompok`.
 *   `findSafePathSteps`: ganti `tb_safe_next` menjadi `tb_safe_next_v2` di kedua tempat, dan tambahkan `kelompok = :kelompok` di kedua `WHERE`/`JOIN`.
 
+Dua kueri lain di `ZoneDao.kt` **tetap** memakai `tb_safe_routes`: `findSafeRouteEta` dan `findSafeZoneTargetGeometries`. Tabel lama berisi semua simpang (31.813), dan `safe_eta = 0` tepat pada simpang tujuan kawasan aman (zona hijau, bukan kantong aman kecil), sehingga cocok untuk menentukan "sudah tiba di kawasan aman". `tb_safe_routes_v2` hanya berisi simpang zona merah, jadi tidak bisa dipakai untuk dua kueri ini.
+
 Rinciannya:
 *   Baris hanya ada untuk node zona merah (8.812). Semua tujuannya lebih jauh dari pantai daripada titik asal.
 *   Kolom `kelompok` adalah kunci pohon rute. Rangkai dengan `SELECT node_id, next_node_id FROM tb_safe_next_v2 WHERE kelompok = ?` (kelompok milik **node asal**), lalu ikuti next-hop sampai node tanpa baris; node itu sama dengan `safe_node_id`.
