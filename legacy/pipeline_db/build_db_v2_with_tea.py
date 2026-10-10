@@ -1,3 +1,7 @@
+# ==============================================================================
+# SKRIP LAMA (DIARSIPKAN) - TIDAK DIPAKAI LAGI. Database dibangun oleh build_db.py (docs/build_db_v4.md).
+# Skrip ini memakai data 2013-2019 dan kecepatan 1,2 m/s; disimpan sebagai rujukan historis.
+# ==============================================================================
 import sqlite3
 import pandas as pd
 import numpy as np

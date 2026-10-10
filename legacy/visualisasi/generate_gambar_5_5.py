@@ -59,7 +59,7 @@ if gdf_kota is not None and gdf_kota.crs != "EPSG:4326":
 
 # 3. Memuat Lokasi Gedung TES (Evakuasi Tsunami)
 print("[3/5] Membaca Data Lokasi TES...")
-file_shelter = "shelter_padang_barat_berkoordinat_rapi.csv" if os.path.exists("shelter_padang_barat_berkoordinat_rapi.csv") else "Koordinat Evakuasi TES - Sheet1.csv"
+file_shelter = "data_tes_padang_lengkap_berkoordinat.csv" if os.path.exists("data_tes_padang_lengkap_berkoordinat.csv") else "Koordinat Evakuasi TES - Sheet1.csv"
 df_shelter = pd.read_csv(file_shelter)
 
 def parse_coord(val):

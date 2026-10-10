@@ -23,6 +23,8 @@ start_total = time.time()
 # 1. KONFIGURASI RESMI & DOKUMENTASI LENGKAP
 # ---------------------------------------------------------
 RANDOM_SEED = 42
+# Data lama (belum diselaraskan dengan data BPBD v4, lihat docs/simulasi_kanonis.md)
+DIR_DATA_LAMA = os.path.join("legacy", "data")
 TOTAL_AGEN = 20000
 TSUNAMI_DEADLINE_MIN = 20.0
 TES_TOLERANCE_FACTOR = 1.1  # 10% tolerance for overcapacity
@@ -64,14 +66,14 @@ for u, v, data in G.edges(data=True):
 print("[2/5] Memuat Data Resmi 143 Gedung TES & 12 TEA Kota Padang...")
 
 # Load TES
-df_tes = pd.read_csv("data_tes_padang_lengkap_berkoordinat.csv")
+df_tes = pd.read_csv(os.path.join(DIR_DATA_LAMA, "data_tes_padang_lengkap_berkoordinat.csv"))
 if 'Sektor' in df_tes.columns:
     df_tes = df_tes[df_tes['Sektor'].astype(str).str.upper() != 'JUMLAH']
 df_tes['Tipe_Fasilitas'] = 'TES'
 df_tes['Nama_Fasilitas'] = df_tes.apply(lambda r: str(r['Nama_Bersih']) if not pd.isna(r['Nama_Bersih']) else str(r['Lokasi_TES']), axis=1)
 
 # Load TEA
-df_tea = pd.read_csv("data_tea_padang_lengkap_berkoordinat.csv")
+df_tea = pd.read_csv(os.path.join(DIR_DATA_LAMA, "data_tea_padang_lengkap_berkoordinat.csv"))
 df_tea['Tipe_Fasilitas'] = 'TEA'
 df_tea['Nama_Fasilitas'] = df_tea['nama'].astype(str).apply(lambda x: x.replace("(Rekomendasi)", "").strip())
 df_tea['Latitude'] = df_tea['lat']
@@ -136,7 +138,7 @@ print(f"      Total Fasilitas: {len(df_shelter)} Titik ({total_tes} TES & {total
 # 3. DISTRIBUSI AGEN DEPT DEMOGRAFI & RESCALING KAPASITAS
 # ---------------------------------------------------------
 print("[3/5] Pembangkitan Agen Berbasis Data Demografi BPS/BPBD...")
-df_pend = pd.read_csv("penduduk_kota_padang.csv")
+df_pend = pd.read_csv(os.path.join(DIR_DATA_LAMA, "penduduk_kota_padang.csv"))
 total_pop = df_pend['JUMLAH JIWA TERPAPAR (JIWA)'].sum()
 
 # Skala kapasitas TES disesuaikan secara proporsional terhadap rasio sampel agen (20.000 / 524.728)
@@ -149,7 +151,7 @@ def get_scaled_cap(row):
 df_shelter['Scaled_Cap'] = df_shelter.apply(get_scaled_cap, axis=1)
 
 # Snap node per kelurahan
-file_geojson = "batas_kelurahan_kota_padang.geojson"
+file_geojson = os.path.join(DIR_DATA_LAMA, "batas_kelurahan_kota_padang.geojson")
 nodes_per_kel = {}
 if os.path.exists(file_geojson):
     gdf_kel = gpd.read_file(file_geojson)
@@ -519,7 +521,7 @@ html_content = f"""<!DOCTYPE html>
 </html>
 """
 
-output_filename = "peta_simulasi_berdampingan.html"
+output_filename = os.path.join("legacy", "output", "peta_simulasi_berdampingan.html")
 with open(output_filename, "w", encoding="utf-8") as f:
     f.write(html_content)
 

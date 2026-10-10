@@ -1,5 +1,9 @@
 # Spatial Pipeline - Siaga Padang Final
 
+> **⚠️ PIPELINE LAMA, TIDAK DIPAKAI LAGI.** Diganti oleh `build_db.py` (lihat `docs/build_db_v4.md` dan `legacy/README.md`).
+> Pipeline ini bergantung pada `ranah_siaga_v2.db` dan data 2013–2019 yang sudah tidak relevan. Disimpan sebagai rujukan historis.
+
+
 ## Penjelasan Metodologi
 
 ### 1. Kapasitas Riil TES

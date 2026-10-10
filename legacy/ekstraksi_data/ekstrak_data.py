@@ -243,9 +243,6 @@ file_output_excel = "data_tes_padang_lengkap_berkoordinat.xlsx"
 df_tes.to_csv(file_output_csv, index=False, encoding='utf-8-sig')
 df_tes.to_excel(file_output_excel, index=False)
 
-# File cadangan untuk kompatibilitas
-df_tes.to_csv("shelter_padang_barat_berkoordinat_rapi.csv", index=False, encoding='utf-8-sig')
-df_tes.to_excel("shelter_padang_barat_berkoordinat_rapi.xlsx", index=False)
 
 print("\n" + "=" * 70)
 print("LAPORAN AKHIR OPIMASI EKSTRAKSI & GEOCODING DATA TES")
