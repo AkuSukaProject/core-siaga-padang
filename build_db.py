@@ -13,7 +13,8 @@ Sumber data (folder "Data BPBD/", rincian & daftar data yang sengaja tidak dipak
   - Daftar Shelter OK.xlsx                   : verifikasi BPBD 2019 (jumlah lantai & kapasitas)
 Graf jalan: padang_full.graphml (OSM).
 
-Keluaran (folder hasil_build/): ranah_siaga_v4.db, ranah_siaga_v4.db.zip, dataset_manifest.json. Skema tabel lama dipertahankan persis (Android memakai Room);
+Keluaran (folder hasil_build/): ranah_siaga_v4.db, ranah_siaga_v4.db.zip, dataset_manifest.json,
+dataset_manifest_android.json (format aset aplikasi). Skema tabel lama dipertahankan persis (Android memakai Room);
 informasi baru ditaruh di tabel tambahan (tb_fasilitas_info, tb_node_info, tb_kelurahan_info,
 tb_jembatan_sungai, tb_jalur_resmi, tb_safe_routes_v2, tb_safe_next_v2, tb_metadata).
 """
@@ -103,6 +104,9 @@ DB_PATH = os.path.join(DIR_HASIL, "ranah_siaga_v4.db")
 # Paket distribusi untuk aplikasi (zip deterministik) dan manifestnya.
 ZIP_PATH = DB_PATH + ".zip"
 MANIFEST_PATH = os.path.join(DIR_HASIL, "dataset_manifest.json")
+# Format yang dibaca aplikasi dari assets/dataset_manifest.json (DatasetStorage.kt):
+# checksum & size_bytes milik file .db tanpa zip.
+MANIFEST_ANDROID_PATH = os.path.join(DIR_HASIL, "dataset_manifest_android.json")
 
 INF = np.inf
 start_total = time.time()
@@ -934,6 +938,9 @@ with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
         "description": "Siaga Padang V4 Database (data BPBD KRB 2023-2027, TES/TEA 2025, aturan evakuasi BPBD)",
     }, f, indent=2)
     f.write("\n")
+with open(MANIFEST_ANDROID_PATH, "w", encoding="utf-8") as f:
+    json.dump({"version": versi, "checksum": sha, "size_bytes": ukuran}, f, indent=2)
+    f.write("\n")
 
 # ==============================================================================
 # LAPORAN
@@ -987,7 +994,7 @@ for r in cocok.itertuples():
     print(f"  - {r.Nama_Fasum}  <->  {r.nama_2019} ({r.status_2019}, {r.lantai_2019} lantai)")
 print(f"\nDatabase  : {DB_PATH} ({ukuran / 1024 / 1024:.2f} MB)")
 print(f"SHA-256   : {sha}")
-print(f"Paket     : {ZIP_PATH} ({os.path.getsize(ZIP_PATH) / 1024 / 1024:.2f} MB), manifest: {MANIFEST_PATH}")
+print(f"Paket     : {ZIP_PATH} ({os.path.getsize(ZIP_PATH) / 1024 / 1024:.2f} MB), manifest: {MANIFEST_PATH}, {MANIFEST_ANDROID_PATH}")
 print(f"Versi     : {versi}")
 print(f"Waktu     : {time.time() - start_total:.1f} detik")
 print("=" * 80)

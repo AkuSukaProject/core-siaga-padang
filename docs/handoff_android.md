@@ -8,7 +8,14 @@ Database baru `ranah_siaga_v4.db` dibangun ulang dari data BPBD Kota Padang (KRB
 
 ## 1. Berkas yang perlu Anda gunakan
 
-Semua berkas build ada di folder **`hasil_build/`** dan juga dilampirkan di GitHub Release repo engine dengan tag `db-<versi>`. Untuk mengganti aset bawaan aplikasi, jalankan `salin_db_ke_android.py <repo-aplikasi> --tulis` dari repo engine. Skrip ini menyalin `.db` (tanpa zip) sebagai `assets/ranah_siaga.db` dan menulis `assets/dataset_manifest.json` dalam format aplikasi (`version`, `checksum` = SHA-256 file `.db`, `size_bytes`).
+Semua berkas build ada di folder **`hasil_build/`** dan juga dilampirkan di GitHub Release repo engine dengan tag `db-<versi>`. Untuk mengganti aset bawaan aplikasi, jalankan `salin_db_ke_android.py <repo-aplikasi> --tulis` dari repo engine. Skrip ini menyalin `.db` (tanpa zip) sebagai `assets/ranah_siaga.db` dan `hasil_build/dataset_manifest_android.json` sebagai `assets/dataset_manifest.json` (format aplikasi: `version`, `checksum` = SHA-256 file `.db`, `size_bytes`).
+
+| Penerima | Berkas dari `hasil_build/` |
+|---|---|
+| Aplikasi (aset bawaan) | `ranah_siaga_v4.db` → `assets/ranah_siaga.db`; `dataset_manifest_android.json` → `assets/dataset_manifest.json` |
+| Backend (pembaruan lewat jaringan) | `ranah_siaga_v4.db`; versi, checksum, dan ukuran diambil dari `dataset_manifest_android.json` (semuanya milik file `.db`) |
+
+`dataset_manifest.json` milik engine (checksum zip dan `.db`), jangan dipakai sebagai aset aplikasi.
 
 1.  **`ranah_siaga_v4.db` (±30 MB)** atau paketnya **`ranah_siaga_v4.db.zip` (±6 MB)**, keduanya dibuat oleh `build_db.py`.
 2.  **`dataset_manifest.json`**: sudah menunjuk ke `ranah_siaga_v4.db.zip`, dengan `checksum_sha256` untuk zip dan `db_checksum_sha256` untuk file `.db`. Seperti sebelumnya, jangan menempelkan manifest pembuat basis data ke `assets/dataset_manifest.json`; pakai checksum yang sesuai dengan file yang benar-benar dibundel.

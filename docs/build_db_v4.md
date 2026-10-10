@@ -94,7 +94,7 @@ Tabel baru di v4 (opsional, dibaca dengan `@SkipQueryVerification`):
 | `tb_kelurahan_info` | Profil tsunami 56 kelurahan dari tabel KRB: luas bahaya, jiwa terpapar, umur rentan, miskin, disabilitas, indeks kesiapsiagaan/kapasitas/risiko; ditambah jiwa yang rute zona amannya terpaksa mendekati pantai |
 | `tb_metadata` | Versi, sumber data, dan parameter build |
 
-Semua keluaran ada di folder `hasil_build/`. Selain `ranah_siaga_v4.db`, setiap build juga menulis `ranah_siaga_v4.db.zip` (zip deterministik, ±6 MB, tidak di-commit) dan `dataset_manifest.json` berisi versi, ukuran, dan SHA-256 zip maupun `.db`.
+Semua keluaran ada di folder `hasil_build/`. Selain `ranah_siaga_v4.db`, setiap build juga menulis `ranah_siaga_v4.db.zip` (zip deterministik, ±6 MB, tidak di-commit) `dataset_manifest.json` berisi versi, ukuran, dan SHA-256 zip maupun `.db`, serta `dataset_manifest_android.json` dalam format aset aplikasi (`version`, `checksum`, `size_bytes` milik file `.db`).
 
 ## Hasil build 10 Oktober 2026
 

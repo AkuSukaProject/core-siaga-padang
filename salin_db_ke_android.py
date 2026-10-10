@@ -3,7 +3,8 @@ Salin hasil_build/ranah_siaga_v4.db ke aset aplikasi Android Siaga Padang.
 
 Aplikasi membundel DB tanpa zip sebagai app/src/main/assets/ranah_siaga.db dan membaca
 assets/dataset_manifest.json dengan format {version, checksum, size_bytes}, di mana checksum adalah
-SHA-256 file .db (lihat DatasetStorage.kt). Skrip ini menulis keduanya dari hasil_build/.
+SHA-256 file .db (lihat DatasetStorage.kt). build_db.py sudah menulis manifest berformat itu di
+hasil_build/dataset_manifest_android.json; skrip ini memeriksa checksum lalu menyalin keduanya.
 
 Pemakaian:
   env\\Scripts\\python.exe salin_db_ke_android.py C:\\siagapadang            # hanya tampilkan rencana
@@ -20,7 +21,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 DB_SUMBER = os.path.join("hasil_build", "ranah_siaga_v4.db")
-MANIFEST_SUMBER = os.path.join("hasil_build", "dataset_manifest.json")
+MANIFEST_SUMBER = os.path.join("hasil_build", "dataset_manifest_android.json")
 DIR_ASET = os.path.join("android", "app", "src", "main", "assets")
 NAMA_DB_ASET = "ranah_siaga.db"
 NAMA_MANIFEST_ASET = "dataset_manifest.json"
@@ -44,11 +45,10 @@ def main():
     if not os.path.isdir(dir_aset):
         sys.exit(f"[ERROR] Folder aset tidak ditemukan: {dir_aset}")
 
-    sumber = json.load(open(MANIFEST_SUMBER, encoding="utf-8"))
+    manifest_baru = json.load(open(MANIFEST_SUMBER, encoding="utf-8"))
     checksum = sha256(DB_SUMBER)
-    if checksum.upper() != sumber["db_checksum_sha256"].upper():
-        sys.exit("[ERROR] Checksum hasil_build/ranah_siaga_v4.db tidak cocok dengan manifest. Jalankan ulang build_db.py.")
-    manifest_baru = {"version": sumber["version"], "checksum": checksum, "size_bytes": os.path.getsize(DB_SUMBER)}
+    if checksum != manifest_baru["checksum"].lower() or os.path.getsize(DB_SUMBER) != manifest_baru["size_bytes"]:
+        sys.exit("[ERROR] hasil_build/ranah_siaga_v4.db tidak cocok dengan manifest Android. Jalankan ulang build_db.py.")
 
     path_manifest = os.path.join(dir_aset, NAMA_MANIFEST_ASET)
     lama = json.load(open(path_manifest, encoding="utf-8")) if os.path.exists(path_manifest) else {}
@@ -64,9 +64,7 @@ def main():
         return
 
     shutil.copyfile(DB_SUMBER, os.path.join(dir_aset, NAMA_DB_ASET))
-    with open(path_manifest, "w", encoding="utf-8") as f:
-        json.dump(manifest_baru, f, indent=2)
-        f.write("\n")
+    shutil.copyfile(MANIFEST_SUMBER, path_manifest)
     print(f"\nDisalin: {NAMA_DB_ASET} dan {NAMA_MANIFEST_ASET}. Commit di repositori aplikasi.")
 
 

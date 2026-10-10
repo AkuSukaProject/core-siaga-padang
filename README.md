@@ -10,7 +10,7 @@ Pembangun database rute evakuasi tsunami Kota Padang untuk aplikasi Android Siag
 | `generate_dbml_file.py` | Membangkitkan ERD `docs/siaga_padang_erd.dbml` dari DB |
 | `salin_db_ke_android.py` | Menyalin DB hasil build ke `android/app/src/main/assets/` repo aplikasi, beserta manifest berformat aplikasi |
 | `download_peta_full.py` | Mengunduh graf jalan pejalan kaki Kota Padang dari OSM (`padang_full.graphml`) |
-| `hasil_build/` | Keluaran build: `ranah_siaga_v4.db` (database terbaru), `ranah_siaga_v4.db.zip` (paket untuk aplikasi, tidak di-commit), `dataset_manifest.json` (versi & checksum) |
+| `hasil_build/` | Keluaran build: `ranah_siaga_v4.db` (database terbaru), `ranah_siaga_v4.db.zip` (paket untuk aplikasi, tidak di-commit), `dataset_manifest.json` (versi & checksum zip dan .db), `dataset_manifest_android.json` (manifest berformat aset aplikasi) |
 | `analisis/` | Simulasi kanonis dan peta contoh rute (keluaran di `analisis/output/`) |
 | `docs/` | Aturan evakuasi BPBD, arsitektur, ERD, hasil simulasi, panduan Android |
 | `referensi/` | Dokumen rujukan (PDF KRB, peta jalur evakuasi, proposal) |
@@ -32,7 +32,7 @@ env\Scripts\python.exe analisis\contoh_rute_evakuasi.py --buka
 Repositori aplikasi (`AkuSukaProject/siagapadang`) terpisah dari engine ini. Setiap DB baru:
 
 1. Jalankan `build_db.py`, commit `hasil_build/`, lalu buat tag `db-<versi>` (misal `db-2026.10.10`).
-2. Terbitkan GitHub Release dari tag itu dengan lampiran `ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip`, dan `dataset_manifest.json`.
+2. Terbitkan GitHub Release dari tag itu dengan lampiran `ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip`, `dataset_manifest.json`, dan `dataset_manifest_android.json`.
 3. Di komputer yang memiliki repo aplikasi: `env\Scripts\python.exe salin_db_ke_android.py <repo-aplikasi> --tulis`, lalu commit di repo aplikasi.
 
 Sebelum build pertama, ekstrak `Data BPBD/SHP kecamatan.rar` ke `Data BPBD/SHP kecamatan/`.
