@@ -66,11 +66,11 @@ WHERE origin_node_id IN (456, 789);
 Dua perubahan di `ranah_siaga_v4.db` memengaruhi logika cek tetangga:
 
 1. **Tetangga di zona aman tidak punya baris `tb_routes`.** Jika kueri langkah 2 tidak mengembalikan baris untuk sebuah tetangga, periksa `tb_nodes.is_safe` tetangga itu. Jika `1`, tetangga tersebut sudah di zona aman: arahkan pengguna ke sana (jarak X → tetangga saja), karena itu pilihan terbaik.
-2. **Aturan menjauhi pantai berlaku juga untuk pengalihan.** Jangan memilih tetangga yang lebih dekat ke pantai daripada posisi pengguna, kecuali selisihnya kecil (≤ 50 m, sama dengan toleransi engine). Jarak ke pantai tersedia di `tb_node_info.d_pantai_m`:
+2. **Aturan menjauhi pantai berlaku juga untuk pengalihan.** Jangan memilih tetangga yang lebih dekat ke pantai daripada posisi pengguna, kecuali selisihnya kecil (≤ 50 m, sama dengan toleransi engine). Jarak ke pantai tersedia di `tb_nodes.jarak_pantai_m`. Tujuan akhir rute tetangga sudah lolos syarat arah (menjauh > 15°) karena dihitung di prakomputasi.
 
 ```sql
 -- Jarak ke pantai untuk posisi user dan tetangganya
-SELECT node_id, d_pantai_m FROM tb_node_info WHERE node_id IN (123, 456, 789);
+SELECT node_id, jarak_pantai_m FROM tb_nodes WHERE node_id IN (123, 456, 789);
 ```
 
 Jika semua tetangga tersaring, aplikasi langsung beralih ke TES Rank 2/3 atau ke rute zona aman (`tb_safe_routes_v2`).

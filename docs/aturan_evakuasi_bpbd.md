@@ -85,20 +85,20 @@ Saran desain dari Pak Resko [R]:
 
 #### 5.1.1 Implementasi di engine
 
-Ukuran "arah" yang dipakai adalah **jarak ke garis pantai** (`d_pantai`), bukan arah mata angin. Dengan ukuran ini, pantai yang melengkung (misal Teluk Bayur dan Bungus) tetap tertangani dengan benar.
+Ukuran "arah" yang dipakai adalah **jarak ke garis pantai**, bukan arah mata angin, sehingga pantai yang melengkung (misal Teluk Bayur dan Bungus) tetap tertangani. Batas angka mengikuti asumsi kerja tim (K-B1, `siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §1) sampai BPBD menjawab.
 
-1. **Hitung `d_pantai` untuk setiap node** di graf, yaitu jarak ke garis pantai (poligon batimetri BPBD).
-2. **Filter tujuan (aturan keras) untuk semua jenis tujuan.** TES, TEA, dan titik zona aman hanya boleh menjadi tujuan jika `d_pantai(tujuan) > d_pantai(posisi warga)`. TES yang lebih dekat ke laut daripada posisi warga dibuang dari daftar kandidat, sedekat apa pun jaraknya.
-   - Untuk TES dan TEA, filter dihitung per pasangan warga–fasilitas.
-   - Untuk zona aman, warga zona merah dikelompokkan per 100 m jarak pantai. Tiap kelompok punya pohon rute sendiri yang hanya menuju titik zona aman yang lebih jauh dari batas atas kelompoknya (`tb_safe_routes_v2` + `tb_safe_next_v2`). Hasilnya: semua 8.812 node zona merah punya rute zona aman, dan semuanya berakhir lebih jauh dari pantai.
-3. **Kantong aman kecil bukan tujuan.** Bagian zona aman yang dikelilingi zona merah dan luasnya < 50 ha (84 kantong, 123 ha) tidak dijadikan tujuan. Warga harus keluar dari zona merah, bukan berhenti di pulau kecil di tengahnya.
-4. **Bobot rute (penalti), dua lapis.** Supaya rute tidak memutar mendekati laut atau berjalan sejajar pantai:
-   - setiap meter rute bergerak ke arah pantai dihitung seperti berjalan 10 m tambahan. Lapis ini mencegah rute "merayap" ke pantai lewat banyak ruas pendek yang masing-masing hanya sedikit mendekat, sedangkan jalan yang benar-benar sejajar pantai hampir tidak terkena penalti;
-   - ruas yang sekaligus mendekati pantai lebih dari 50 m biayanya dikalikan 50.
-   - Edge tidak dihapus. Jalan kota berbentuk grid dan sering berbelok, sehingga rute yang secara keseluruhan menjauhi pantai kadang perlu melewati ruas yang sedikit mendekat. Uji larangan total: 7,9% node zona merah (terutama Koto Tangah) kehilangan jalan keluar sama sekali.
-   - Nilai penalti dipilih dari uji sensitivitas (lihat [build_db_v4.md](build_db_v4.md)).
-5. **Sisa yang tidak terhindarkan dilaporkan.** Rute yang tetap sempat mendekati pantai > 50 m dicatat per node (`tb_node_info.rute_tes_mendekat_pantai_m`, `rute_aman_mendekat_pantai_m`) dan per kelurahan (`tb_kelurahan_info.jiwa_rute_aman_mendekat_pantai`). Lokasi ini diusulkan ke BPBD sebagai prioritas TES vertikal atau jalur evakuasi baru.
-6. Waktu tempuh yang ditampilkan ke pengguna tetap dihitung dari panjang rute asli, bukan dari bobot penalti.
+1. **Jarak ke pantai** setiap node dan fasilitas dihitung dari garis pantai OpenStreetMap (`natural=coastline`), disimpan sebagai `jarak_pantai_m`.
+2. **Syarat arah (aturan keras) untuk semua jenis tujuan.** TES, TEA, dan titik zona aman hanya boleh menjadi tujuan bila **menjauh**: (jarak pantai tujuan − jarak pantai warga) ÷ jarak lurus warga–tujuan > sin 15° (engine memakai rasio > 0,27: ambang 0,26 milik skrip audit tim + margin pembulatan). Tujuan yang sejajar pantai (dalam ±15°) atau mendekat dibuang. Tujuan dalam 100 m dari warga tidak dinilai arahnya. Arah tidak pernah dilonggarkan.
+   - TES dan TEA dinilai per pasangan warga–fasilitas.
+   - Zona aman: kandidatnya "gerbang", yaitu titik zona aman yang bertetangga dengan jalan di luar zona aman. Untuk tiap warga dipilih gerbang termurah yang lolos syarat (`tb_safe_routes_v2` + `tb_safe_next_v2`).
+   - Hasil: skrip audit tim (`siagapadang/docs/audit/analisis_masukan_bpbd.py`) mencatat 0% tujuan utama mendekat dan 0% sejajar; verifikasi engine juga 0% untuk TES rank 1–3, TEA, dan zona aman.
+3. **Kantong aman kecil bukan tujuan.** Bagian zona aman yang dikelilingi zona merah dan < 50 ha (84 kantong, 123 ha) tidak dijadikan tujuan.
+4. **Bobot jalur (penalti), dua lapis**, supaya jalur menuju tujuan yang sudah lolos syarat tidak memutar mendekati laut:
+   - setiap meter jalur bergerak ke arah pantai dihitung seperti berjalan 10 m tambahan;
+   - ruas yang sekaligus mendekati pantai lebih dari 50 m dikalikan 50.
+   - Ruas tidak dihapus: larangan total membuat 7,9% node zona merah (terutama Koto Tangah) kehilangan jalan keluar. Nilai penalti dari uji sensitivitas di [build_db_v4.md](build_db_v4.md).
+5. **Sisa yang tidak terhindarkan dilaporkan.** Jalur yang tetap sempat mendekati pantai > 50 m dicatat per node (`tb_node_info`) dan per kelurahan (`tb_kelurahan_info`). Node yang tidak sempat ke tujuan mana pun dalam 20/30 menit direkap di `hasil_build/peta_celah_kelurahan.csv` sebagai usulan lokasi TES baru ke BPBD.
+6. Waktu tempuh dihitung dari panjang jalan asli. Kolom ETA untuk aplikasi disimpan pada 1,2 m/s sesuai kontrak; aplikasi mengonversinya ke 0,89 m/s.
 
 Untuk pengguna yang **sudah berada di dalam TES** atau di zona aman, aturan ini tidak berlaku lagi. Perpindahan TES ke TEA mengikuti bagian 7.
 
@@ -116,11 +116,12 @@ Urutan keputusan:
 2. **Jika tidak ada, lewat jembatan sebagai pilihan terakhir.** Tetap tinggal di zona merah tanpa tempat aman hampir pasti berbahaya, sedangkan jembatan runtuh baru sebatas kemungkinan. Sebaiknya menyeberang sedini mungkin, karena tsunami merambat lebih cepat lewat alur sungai. (Pertimbangan ini diambil dari kejadian tsunami di tempat lain, bukan dari wawancara.)
 3. **Jika jembatan dilaporkan putus** (fitur lapor jalan oleh pengguna), arahkan ke bangunan tertinggi terdekat di sisi tersebut.
 
-Implementasi:
-- **Jembatan diberi penalti bobot yang sangat besar, bukan dihapus dari graf.** Dengan penalti besar, Dijkstra otomatis menghindari jembatan selama ada alternatif dan hanya memakainya jika tidak ada jalan lain. Jika edge dihapus, node di seberang tidak punya rute sama sekali dan aplikasi tidak bisa memberi arahan apa pun.
-- Waktu tempuh yang ditampilkan ke pengguna dihitung dari panjang asli, bukan dari bobot penalti.
-- Penalti hanya berlaku untuk **jembatan sungai**. Gorong-gorong atau jembatan kecil di atas saluran drainase diperlakukan sebagai jalan biasa (lihat 5.2.2).
-- Di simulasi, agen yang hanya bisa selamat lewat jembatan dilaporkan sebagai kategori tersendiri, **"bergantung pada jembatan"**. Lokasi asal mereka dipetakan sebagai **kantong terisolasi**, yaitu kandidat lokasi TES vertikal baru untuk direkomendasikan ke BPBD.
+Implementasi (asumsi kerja K-B2):
+- **Yang dihindari adalah jembatan ≥ 20 m** (`tb_bridge_edges`). Jembatan kecil di atas saluran diperlakukan sebagai jalan biasa (lihat 5.2.2).
+- **Rute dicari dulu pada graf tanpa jembatan ≥ 20 m.** Hanya bila sebuah tujuan tidak terjangkau tanpa jembatan, rute lewat jembatan dipakai sebagai cadangan (berpenalti, agar jembatan sesedikit mungkin), dan selalu kalah dari tujuan mana pun yang tanpa jembatan. Aplikasi memberi keterangan "lewat jembatan".
+- Edge jembatan tidak dihapus total: tanpa cadangan, node di seberang tidak punya rute sama sekali.
+- Panjang badan jembatan diambil dari data jembatan OSM (`data_osm/jembatan_osm.json`): 176 ruas. Bila berkas itu tidak ada, diperkirakan dari lebar sungai BPBD yang dipotong ruas.
+- Node yang hanya bisa mencapai TES lewat jembatan dicatat (`tb_node_info.rute_tes_lewat_jembatan`) sebagai **kantong terisolasi**, kandidat lokasi TES vertikal baru.
 
 #### 5.2.2 Menilai risiko jembatan
 
@@ -317,21 +318,21 @@ Prinsip penulisan: **singkat**, karena orang hanya bisa mengingat ±3 hal. Pakai
 
 ## 16. Kesesuaian dengan Engine Saat Ini
 
-Status per 10 Oktober 2026. Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `ranah_siaga_v4.db`), menggantikan rantai lama `core.py` → `build_db_v2_with_tea.py` → `spatial/1..4` (diarsipkan di `legacy/pipeline_db/`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
+Status per 11 Oktober 2026 (DB versi 2026.10.12). Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `hasil_build/ranah_siaga_v4.db`), mengikuti aturan di dokumen ini dan kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
 
 | Aturan BPBD | Kondisi engine (`build_db.py`) | Status |
 |---|---|---|
-| Batas waktu 20 menit | `BATAS_WAKTU_MENIT = 20`; tujuan ≤ 20 menit dialokasikan lebih dulu | ✅ Sesuai |
-| Kecepatan acuan orang terlemah (FEMA, ±1 km / 20 menit) | `KECEPATAN_JALAN_MS = 0.894` (3,22 km/jam) untuk semua ETA | ✅ Sesuai |
-| Tujuan harus menjauhi pantai | Filter keras untuk TES, TEA, dan zona aman (`tb_safe_routes_v2`): 100% tujuan lebih jauh dari pantai daripada posisi warga. Kantong aman < 50 ha bukan tujuan. Garis pantai dari batimetri BPBD. | ✅ Sesuai |
-| Rute tidak mendekati/sejajar pantai | Penalti 10 m per meter mendekat + ×50 untuk ruas yang mendekat > 50 m. Sisa rute yang terpaksa mendekat > 50 m: TES rank-1 13,8%, zona aman 11,2% node zona merah (> 200 m: 2,8% dan 1,7%), terutama di Koto Tangah, karena jalannya memang hanya ke arah itu. Dicatat per node & kelurahan. | ⚠️ Sesuai sejauh jaringan jalan memungkinkan |
-| Rute tidak melewati jembatan | Jembatan sungai (tag OSM `bridge` yang memotong poligon sungai BPBD) diberi penalti ×20, tidak dihapus. Ketergantungan jembatan dicatat di `tb_node_info`. | ✅ Sesuai kebijakan 5.2.1 (masih perlu konfirmasi BPBD) |
+| Batas waktu 20 menit | `BATAS_WAKTU_MENIT = 20`; di antara tujuan ≤ 20 menit, keluar zona (TEA/zona aman) didahulukan sebelum TES (K-B6) | ✅ Sesuai |
+| Kecepatan acuan orang terlemah (FEMA, ±1 km / 20 menit) | `KECEPATAN_JALAN_MS = 0.894` (3,22 km/jam) untuk semua keputusan engine; kolom ETA untuk aplikasi disimpan pada 1,2 m/s sesuai kontrak dan dikonversi di aplikasi | ✅ Sesuai |
+| Tujuan harus menjauhi pantai, tidak sejajar | Syarat arah ±15° (K-B1) untuk TES, TEA, dan zona aman: 0% mendekat, 0% sejajar (metrik skrip audit tim). Tujuan ≤ 100 m tidak dinilai. Kantong aman < 50 ha bukan tujuan. Garis pantai OSM. | ✅ Sesuai (batas 15° dan 100 m menunggu konfirmasi BPBD) |
+| Jalur tidak memutar ke pantai | Penalti 10 m per meter mendekat + ×50 untuk ruas yang mendekat > 50 m. Sisa jalur yang sempat mendekat > 50 m: TES rank-1 14,0%, zona aman 12,8% node zona merah (> 200 m: 3,0% dan 2,9%), terutama di Koto Tangah, karena jalannya memang hanya ke arah itu. Tujuannya tetap lolos syarat arah. | ⚠️ Sesuai sejauh jaringan jalan memungkinkan |
+| Rute tidak melewati jembatan | Jembatan ≥ 20 m dihindari: rute dicari dulu tanpa jembatan, rute lewat jembatan hanya cadangan bila tujuan tidak terjangkau tanpa jembatan (K-B2). Ruas di `tb_bridge_edges`. | ✅ Sesuai kebijakan 5.2.1 (masih perlu konfirmasi BPBD) |
 | Zona merah = area landaan | `is_safe` dan poligon zona merah diambil dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 | ✅ Sesuai |
 | Peta evakuasi hanya merah/hijau | `tb_inundation_zones.tingkat_bahaya` diisi `Tinggi` untuk semua zona merah | ✅ Sesuai |
 | TEA tidak terkena bencana | TEA yang titiknya berada di area landaan dikeluarkan dari routing (21 titik, lihat laporan build) | ✅ Sesuai, daftar perlu dikonfirmasi BPBD |
 | Data TES bangunan ≤ 2 lantai atau "tidak potensial" dikeluarkan | Dicocokkan dengan verifikasi BPBD 2019 (Universitas Taman Siswa keluar karena "tidak potensial"). Hanya sebagian TES yang punya data lantai. | ⚠️ Sebagian (data lantai 2025 belum ada) |
-| TEA tanpa batas kapasitas, TES *capacity-aware* | Penugasan greedy di `tb_route_shares` | ✅ Sesuai |
-| Daya tampung per orang | Urutan sumber: BPBD 2025 → verifikasi 2019 → jejak bangunan RTRW × (lantai − 2) / 1 m² per orang → median. Estimasi ditandai di `kapasitas_sumber`. | ⚠️ Kapasitas 75 TES masih estimasi |
+| TEA tanpa batas kapasitas, TES *capacity-aware*; data BPBD vs warga | Penugasan greedy di `tb_route_shares`. Kolom `sumber`: BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025) | ✅ Sesuai |
+| Daya tampung per orang | `tb_tes.kapasitas` hanya dari data BPBD (2025 → daftar resmi 2019 → verifikasi 2019), kosong bila tidak ada (73 TES). Untuk penugasan internal: jejak bangunan RTRW × (lantai − 2) / 1 m² per orang → median. | ⚠️ 73 TES tanpa data daya tampung BPBD |
 | Ikuti jalur/rambu evakuasi | Ruas di jalur evakuasi resmi BPBD diberi faktor biaya 0,8 | ✅ Sesuai |
 | Ketinggian safe zone ≥ 11 m (TES) / ≥ 18 m (TEA) | Tidak ada data elevasi; `tb_safe_zones.elevasi_m` dikosongkan | ⚠️ Butuh DEM |
 | Istilah "berjalan cepat" | Sudah ditetapkan di kebijakan UI | ✅ Sesuai |

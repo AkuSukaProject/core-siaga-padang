@@ -4,7 +4,7 @@ CONTOH RUTE EVAKUASI DARI DATABASE V4 (PETA FOLIUM)
 Menggambar rute evakuasi yang akan ditampilkan aplikasi untuk satu posisi warga:
   - TES rekomendasi rank 1-3 (tb_routes)
   - TEA terdekat (tb_tea_routes + tb_tea_next) dan zona aman terdekat (tb_safe_routes_v2 + tb_safe_next_v2)
-  - zona merah, radius 1 km (jangkauan 20 menit orang terlemah, saran BPBD), dan ruas jembatan sungai di rute
+  - zona merah, radius 1 km (jangkauan 20 menit orang terlemah, saran BPBD), dan ruas jembatan >= 20 m di rute
 
 Mode pemilihan:
   python analisis/contoh_rute_evakuasi.py                 -> TES acak, lalu warga acak yang rute utamanya ke TES itu
@@ -56,7 +56,12 @@ class Db:
             kunci = (min(u, v), max(u, v))
             if kunci not in self.ruas or panjang < self.ruas[kunci][0]:
                 self.ruas[kunci] = (panjang, geom)
-        self.jembatan = {(min(u, v), max(u, v)) for u, v, _, _ in self.c.execute("SELECT * FROM tb_jembatan_sungai")}
+        self.jembatan = {(min(u, v), max(u, v)) for u, v in self.c.execute(
+            "SELECT u, v FROM tb_edges WHERE edge_id IN (SELECT edge_id FROM tb_bridge_edges)")}
+        meta = dict(self.c.execute("SELECT kunci, nilai FROM tb_metadata"))
+        self.kecepatan = float(meta["kecepatan_jalan_ms"])
+        # Kolom ETA disimpan pada 1,2 m/s (kontrak DB aplikasi); dikonversi ke waktu riil orang terlemah.
+        self.konversi_eta = float(meta.get("kecepatan_kolom_eta_ms", self.kecepatan)) / self.kecepatan
         self.fas = {r[0]: r for r in self.c.execute(
             "SELECT facility_id, jenis, nama, kelurahan, kapasitas, kapasitas_sumber, nearest_node_id, lat, lon "
             "FROM tb_fasilitas_info WHERE dipakai = 1")}
@@ -151,6 +156,9 @@ def buat_peta(db, node):
     dipakai = set()
     for r in range(3):
         nama, path_str, eta = rute[1 + 3 * r], rute[2 + 3 * r], rute[3 + 3 * r]
+        if nama is None:  # rank 2/3 boleh kosong
+            continue
+        eta *= db.konversi_eta
         path = [int(x) for x in path_str.split(",")]
         if (nama, path[-1]) in dipakai:
             continue
@@ -163,7 +171,7 @@ def buat_peta(db, node):
                         tooltip=f"Rank {r + 1}: {nama} — {eta:.1f} menit, {db.panjang(path):,.0f} m").add_to(lapis)
         for a, b in jembatan:
             folium.PolyLine([db.koord[a], db.koord[b]], color="#7c3aed", weight=10, opacity=0.6,
-                            tooltip="Jembatan sungai (diberi penalti routing)").add_to(lapis)
+                            tooltip="Jembatan >= 20 m (hanya dipakai bila tidak ada rute tanpa jembatan)").add_to(lapis)
         folium.Marker((tes[7], tes[8]), icon=folium.Icon(color=["green", "orange", "blue"][r], icon="building", prefix="fa"),
                       popup=folium.Popup(f"<b>{nama}</b> (TES rank {r + 1})<br>Kelurahan {tes[3]}<br>"
                                          f"Kapasitas: {tes[4]:,.0f} jiwa ({tes[5]})<br>ETA: {eta:.1f} menit", max_width=260)
@@ -183,7 +191,7 @@ def buat_peta(db, node):
             folium.Marker((tea[7], tea[8]), icon=folium.Icon(color="darkgreen", icon="tree", prefix="fa"),
                           popup=f"<b>{tea[2]}</b> (TEA)<br>Kelurahan {tea[3]}").add_to(lapis)
             lapis.add_to(peta)
-            ringkas.append(("TEA terdekat", tea[2], db.panjang(path) / 0.894 / 60, db.panjang(path), len(db.lewat_jembatan(path))))
+            ringkas.append(("TEA terdekat", tea[2], db.panjang(path) / db.kecepatan / 60, db.panjang(path), len(db.lewat_jembatan(path))))
 
     # Zona aman terdekat.
     aman = db.c.execute("SELECT safe_node_id, safe_zone_nama, safe_eta, kelompok FROM tb_safe_routes_v2 "
@@ -192,11 +200,11 @@ def buat_peta(db, node):
         path = db.rantai("tb_safe_next_v2", "kelompok", aman[3], awal=node)
         lapis = folium.FeatureGroup(name=f"Zona aman terdekat: {aman[1]}", show=False)
         folium.PolyLine(db.garis(path), color="#0f766e", weight=4, opacity=0.8, dash_array="1 6",
-                        tooltip=f"{aman[1]} — {aman[2]:.1f} menit").add_to(lapis)
+                        tooltip=f"{aman[1]} — {aman[2] * db.konversi_eta:.1f} menit").add_to(lapis)
         folium.Marker(db.koord[path[-1]], icon=folium.Icon(color="cadetblue", icon="flag", prefix="fa"),
                       popup=f"<b>{aman[1]}</b><br>Batas zona aman").add_to(lapis)
         lapis.add_to(peta)
-        ringkas.append(("Zona aman", aman[1], aman[2], db.panjang(path), len(db.lewat_jembatan(path))))
+        ringkas.append(("Zona aman", aman[1], aman[2] * db.konversi_eta, db.panjang(path), len(db.lewat_jembatan(path))))
 
     # Panel ringkasan.
     baris = "".join(f"<tr><td>{j}</td><td>{n}</td><td style='text-align:right'>{e:.1f}</td>"
@@ -230,7 +238,7 @@ def main():
         path_html, ringkas = buat_peta(db, node)
         print(f"\nNode {node} -> TES utama: {nama}")
         for j, n, e, p, b in ringkas:
-            print(f"  {j:<14} {n[:42]:<42} {e:6.1f} menit {p:8,.0f} m" + ("  [lewat jembatan sungai]" if b else ""))
+            print(f"  {j:<14} {n[:42]:<42} {e:6.1f} menit {p:8,.0f} m" + ("  [lewat jembatan]" if b else ""))
         print(f"  Peta: {os.path.relpath(path_html, ROOT)}")
         if args.buka:
             webbrowser.open("file://" + os.path.abspath(path_html))
