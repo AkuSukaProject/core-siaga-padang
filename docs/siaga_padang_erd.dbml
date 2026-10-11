@@ -1,5 +1,5 @@
 // DBML Schema Definition for dbdiagram.io
-// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.11). Jangan diedit manual.
+// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.12). Jangan diedit manual.
 
 Project SiagaPadangERD {
   database_type: 'SQLite'
@@ -14,8 +14,9 @@ Table tb_nodes {
   lat REAL
   lon REAL
   is_safe INTEGER [default: 0, note: "0 = zona merah (area landaan), 1 = zona aman"]
+  jarak_pantai_m INTEGER
 
-  Note: "Simpul persimpangan jalan (OSM). is_safe dari raster bahaya tsunami KRB 2023-2027."
+  Note: "Simpul persimpangan jalan (OSM). is_safe dari raster bahaya tsunami KRB 2023-2027; jarak_pantai_m dari garis pantai OSM."
 }
 
 Table tb_edges {
@@ -37,18 +38,21 @@ Table tb_tes {
   tes_id TEXT [pk]
   nama_tes TEXT [note: "Target relasi logis rank_X_tes"]
   zona TEXT [note: "Kelurahan"]
-  kapasitas REAL [note: "Jiwa; sumber lihat tb_fasilitas_info.kapasitas_sumber"]
+  kapasitas REAL [note: "Jiwa, dari data BPBD; NULL bila tidak ada (estimasi hanya di tb_fasilitas_info)"]
   lat REAL
   lon REAL
+  sumber TEXT [note: "BPBD atau WARGA"]
+  jarak_pantai_m INTEGER
+  lantai INTEGER
 
-  Note: "TES yang dipakai routing (BPBD 2025). Skema sama dengan v3."
+  Note: "TES yang dipakai routing; sumber BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025). Nama unik."
 }
 
 Table tb_routes {
   origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
   rank_1_tes TEXT [ref: > tb_tes.nama_tes]
   rank_1_path TEXT [note: "ID node dipisah koma, dari asal ke TES"]
-  rank_1_eta REAL [note: "Menit, berjalan 0,894 m/s (tanpa penalti)"]
+  rank_1_eta REAL [note: "Menit pada 1,2 m/s (laju tabel kontrak); waktu riil = x 1,2 / 0,894"]
   rank_2_tes TEXT [ref: > tb_tes.nama_tes]
   rank_2_path TEXT
   rank_2_eta REAL
@@ -56,7 +60,7 @@ Table tb_routes {
   rank_3_path TEXT
   rank_3_eta REAL
 
-  Note: "3 TES terbaik per node ZONA MERAH (aturan menjauhi pantai, penalti jembatan, jalur resmi). Node zona aman tidak punya baris."
+  Note: "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. rank 2/3 boleh kosong. ETA pada 1,2 m/s."
 }
 
 TableGroup Rute_TES_Vertikal {
@@ -77,6 +81,8 @@ Table tb_tea {
   lon REAL [not null]
   nearest_node_id INTEGER [ref: > tb_nodes.node_id]
   rute_evakuasi TEXT
+  jarak_pantai_m INTEGER
+  sumber TEXT
 
   Note: "TEA yang dipakai routing (di luar area landaan)."
 }
@@ -109,7 +115,7 @@ TableGroup Rute_TEA_Horizontal {
 
 Table tb_safe_routes_v2 {
   origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
-  kelompok INTEGER [not null, note: "floor(d_pantai_m asal / 100 m); kunci penelusuran tb_safe_next_v2"]
+  kelompok INTEGER [not null, note: "Nomor gerbang tujuan; kunci penelusuran tb_safe_next_v2"]
   safe_node_id INTEGER [not null, ref: > tb_nodes.node_id]
   safe_zone_nama TEXT
   safe_eta REAL
@@ -129,7 +135,7 @@ Table tb_safe_next_v2 {
     (kelompok, node_id) [pk]
   }
 
-  Note: "Next-hop menuju zona aman per kelompok jarak pantai (kelompok milik node asal)."
+  Note: "Next-hop menuju zona aman per gerbang tujuan (kelompok milik node asal)."
 }
 
 Table tb_safe_routes {
@@ -196,6 +202,12 @@ TableGroup Penugasan {
   tb_route_shares
 }
 
+Table tb_bridge_edges {
+  edge_id INTEGER [pk, ref: > tb_edges.edge_id]
+
+  Note: "edge_id tb_edges yang memuat jembatan >= 20 m (kontrak H-4)."
+}
+
 Table tb_fasilitas_info {
   facility_id TEXT [pk]
   jenis TEXT
@@ -218,6 +230,10 @@ Table tb_fasilitas_info {
   lat REAL
   lon REAL
   nama_bpbd TEXT
+  sumber TEXT
+  nama_daftar_resmi_bpbd TEXT
+  lantai INTEGER
+  koordinat_sumber TEXT
 
   Note: "Semua TES/TEA sumber BPBD termasuk yang tidak dipakai, beserta alasan & sumber kapasitas."
 }
@@ -265,19 +281,6 @@ Table tb_kelurahan_info {
   Note: "Profil tsunami per kelurahan dari tabel KRB 2023-2027."
 }
 
-Table tb_jembatan_sungai {
-  u INTEGER [ref: > tb_nodes.node_id]
-  v INTEGER [ref: > tb_nodes.node_id]
-  panjang_ruas_m REAL
-  indeks_bahaya_gempa REAL [note: "Raster Peta_Bahaya_Gempabumi KRB"]
-
-  indexes {
-    (u, v) [pk]
-  }
-
-  Note: "Ruas jembatan sungai yang diberi penalti routing."
-}
-
 Table tb_jalur_resmi {
   u INTEGER [ref: > tb_nodes.node_id]
   v INTEGER [ref: > tb_nodes.node_id]
@@ -297,10 +300,10 @@ Table tb_metadata {
 }
 
 TableGroup Info_V4_Tambahan {
+  tb_bridge_edges
   tb_fasilitas_info
   tb_node_info
   tb_kelurahan_info
-  tb_jembatan_sungai
   tb_jalur_resmi
   tb_metadata
 }

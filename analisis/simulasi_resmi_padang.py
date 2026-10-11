@@ -65,6 +65,8 @@ langkah("[1/6] Memuat data dari ranah_siaga_v4.db...")
 conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
 meta = dict(conn.execute("SELECT kunci, nilai FROM tb_metadata"))
 KECEPATAN_MS = float(meta["kecepatan_jalan_ms"])
+# Kolom rank_k_eta dan safe_eta disimpan pada laju tabel 1,2 m/s (kontrak DB aplikasi); dikonversi ke waktu riil.
+KONVERSI_ETA = float(meta.get("kecepatan_kolom_eta_ms", KECEPATAN_MS)) / KECEPATAN_MS
 
 
 def menit(meter):
@@ -169,9 +171,11 @@ for r in pd.read_sql("SELECT * FROM tb_routes", conn).itertuples(index=False):
     daftar = []
     for nama, path, eta in [(r.rank_1_tes, r.rank_1_path, r.rank_1_eta), (r.rank_2_tes, r.rank_2_path, r.rank_2_eta),
                             (r.rank_3_tes, r.rank_3_path, r.rank_3_eta)]:
+        if pd.isna(nama):  # rank 2/3 boleh kosong
+            continue
         k = tes_by_nama_node[(nama, int(path.rsplit(",", 1)[-1]))]
         if all(k != d[0] for d in daftar):
-            daftar.append((k, float(eta)))
+            daftar.append((k, float(eta) * KONVERSI_ETA))
     kandidat[n] = daftar
 for r in pd.read_sql("SELECT * FROM tb_tea_routes", conn).itertuples(index=False):
     n = idx_of[r.origin_node_id]
@@ -181,12 +185,21 @@ for r in pd.read_sql("SELECT * FROM tb_tea_routes", conn).itertuples(index=False
 eta_aman = np.full(N, np.inf)
 # Rute zona aman v2: tujuan selalu lebih jauh dari pantai daripada titik asal (aturan BPBD).
 safe = pd.read_sql("SELECT origin_node_id, safe_eta FROM tb_safe_routes_v2", conn)
-eta_aman[idx_of[safe["origin_node_id"]].to_numpy()] = safe["safe_eta"].to_numpy()
+eta_aman[idx_of[safe["origin_node_id"]].to_numpy()] = safe["safe_eta"].to_numpy() * KONVERSI_ETA
 ZONA_AMAN = -1
+
+
+def urutan(c):
+    """Asumsi kerja K-B6: bila sempat dalam batas waktu, keluar zona (TEA / zona aman) didahulukan; lalu ETA."""
+    k, eta = c
+    keluar_zona = k == ZONA_AMAN or not is_tes[k]
+    return (0 if keluar_zona and eta <= BATAS_WAKTU_MENIT else 1, eta)
+
+
 for n in np.unique(asal_agen):
     if np.isfinite(eta_aman[n]):
         kandidat.setdefault(n, []).append((ZONA_AMAN, float(eta_aman[n])))
-    kandidat[n] = sorted(kandidat.get(n, []), key=lambda c: c[1])
+    kandidat[n] = sorted(kandidat.get(n, []), key=urutan)
 
 # 4c. Agen diproses berurutan menurut ETA kandidat pertama; TES penuh dilewati.
 pertama = np.array([kandidat[n][0][1] if kandidat[n] else np.inf for n in asal_agen])

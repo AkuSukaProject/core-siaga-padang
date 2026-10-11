@@ -26,12 +26,14 @@ Selamat datang di direktori dokumentasi `core-siaga-padang`. Proyek ini merupaka
 
 ### Integrasi Android
 8. **[Handoff Android](handoff_android.md)** dan **[Handoff Backend](handoff_backend.md)**
-   Berkas yang dipakai dan perubahan yang perlu ditangani aplikasi (Mikail) dan backend (Sheva).
+   Berkas, isi DB terhadap kontrak, perubahan kode yang wajib, langkah rilis, dan daftar uji untuk aplikasi (Mikail) dan backend (Sheva).
 9. **[Konsep Pengalihan Rute Lokal](konsep_pengalihan_rute_lokal.md)**
    Pencarian jalan memutar secara offline dengan cek simpang tetangga.
 
 ### Lain-lain
 10. **[Draft Revisi Proposal](draft_revisi_proposal.md)**
     Draf teks proposal. Angkanya masih dari simulasi data lama; angka baru ada di Simulasi Kanonis.
-11. **[Transkrip Wawancara BPBD](wawancara%20bpbd/)**
+11. **[Pertanyaan Lanjutan untuk BPBD](pertanyaan_bpbd.md)**
+    Hal yang perlu dipastikan ke BPBD setelah data diolah (arah, jembatan, lantai, titik bangunan, TEA), siap kirim beserta lampirannya.
+12. **[Transkrip Wawancara BPBD](wawancara%20bpbd/)**
     Sumber asli aturan evakuasi (hasil *speech-to-text*).

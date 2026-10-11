@@ -6,7 +6,7 @@ Untuk memastikan lingkungan pengembangan yang terstandar, dapat direproduksi (*r
 
 *   **Engine Kanonis**: Database untuk aplikasi hanya boleh dibangun oleh [`build_db.py`](../build_db.py). Skrip lama (`core.py`, `build_db_v2_with_tea.py`, `spatial/`) sudah dipindah ke `legacy/pipeline_db/` dan hanya rujukan historis.
 *   **Arsip Skrip Lama**: Skrip yang tidak dipakai lagi dipindah ke `legacy/` (dengan `git mv` agar riwayat terjaga), bukan dihapus atau dibiarkan di root. Root hanya berisi skrip aktif. Lihat [`legacy/README.md`](../legacy/README.md).
-*   **Struktur Root**: Root hanya berisi `README.md`, skrip inti (`build_db.py`, `generate_dbml_file.py`, `salin_db_ke_android.py`, `download_peta_full.py`), `requirements.txt`, dan `padang_full.graphml`. Semua keluaran build (`ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip` yang tidak di-commit, `dataset_manifest.json`, `dataset_manifest_android.json`) ada di `hasil_build/`. Skrip simulasi, analisis, dan visualisasi ada di `analisis/` (keluaran di `analisis/output/`). Dokumen ada di `docs/`, dokumen rujukan (PDF) di `referensi/`, data mentah BPBD di `Data BPBD/`, dan semua skrip lama di `legacy/`. Folder `cache/` (cache HTTP OSMnx, dibuat ulang otomatis) dan `env/` tidak di-commit.
+*   **Struktur Root**: Root hanya berisi `README.md`, skrip inti (`build_db.py`, `generate_dbml_file.py`, `salin_db_ke_android.py`, `download_peta_full.py`), `requirements.txt`, `padang_full.graphml`, dan folder `data_osm/` (garis pantai/jembatan OSM yang dipakai build). Semua keluaran build (`ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip` yang tidak di-commit, `dataset_manifest.json`, `dataset_manifest_android.json`) ada di `hasil_build/`. Skrip simulasi, analisis, dan visualisasi ada di `analisis/` (keluaran di `analisis/output/`). Dokumen ada di `docs/`, dokumen rujukan (PDF) di `referensi/`, data mentah BPBD di `Data BPBD/`, dan semua skrip lama di `legacy/`. Folder `cache/` (cache HTTP OSMnx, dibuat ulang otomatis) dan `env/` tidak di-commit.
 *   **Prefix Eksperimen**: Semua skrip eksperimen atau uji coba sementara yang tidak terkait dengan keluaran produksi (build `.db` atau simulasi kanonis) harus ditempatkan di direktori `scratch/` di root (diabaikan git). Jika ternyata berguna, pindahkan ke `analisis/` dan buat membaca `ranah_siaga_v4.db`.
 *   **Kejelasan Eksekusi**: File generator (seperti pembuatan peta atau ekstraksi data) harus menggunakan awalan deskriptif (contoh: `buat_peta_...`, `generate_...`, `ekstrak_...`).
 *   **Encoding Teks**: Setiap pengolahan *String* atau akses standar *output/print* direkomendasikan mengonfigurasi encoding UTF-8 di awal skrip (`sys.stdout.reconfigure(encoding='utf-8')`) mengingat data lapangan di Indonesia banyak menggunakan karakter spasial khusus atau tanda baca lokal.
@@ -28,6 +28,9 @@ Untuk memastikan lingkungan pengembangan yang terstandar, dapat direproduksi (*r
 *   **Pencocokan Nama**: Saat mencocokkan nama gedung antar dataset, nomor di nama (SMPN 3 vs SMPN 36) harus sama persis. Kemiripan teks saja tidak cukup.
 
 ## 4. Aturan Evakuasi
+
+Isi DB wajib mengikuti **kontrak DB aplikasi** di repo `siagapadang` (`docs/PEMBAGIAN_TUGAS_BPBD.md` §1 asumsi kerja dan §2.1 isi DB). Bila kontrak berubah, sesuaikan engine dan terbitkan versi DB baru; jangan memakai satu label versi untuk dua isi DB.
+
 
 Semua logika routing dan simulasi wajib mengikuti [aturan_evakuasi_bpbd.md](aturan_evakuasi_bpbd.md), terutama: batas waktu 20 menit, kecepatan orang terlemah 0,894 m/s, menjauhi pantai (mutlak), penalti jembatan sungai, dan istilah "berjalan cepat" (bukan "berlari"). Bila aturan berubah, perbarui dokumen itu lebih dulu, lalu engine.
 
