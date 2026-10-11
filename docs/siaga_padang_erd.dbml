@@ -233,6 +233,7 @@ Table tb_fasilitas_info {
   sumber TEXT
   nama_daftar_resmi_bpbd TEXT
   lantai INTEGER
+  koordinat_sumber TEXT
 
   Note: "Semua TES/TEA sumber BPBD termasuk yang tidak dipakai, beserta alasan & sumber kapasitas."
 }

@@ -166,7 +166,7 @@ Karena data struktur belum tersedia, simulasi dijalankan dalam **tiga skenario**
 - **TES/safe zone: minimal ±11 m dpl.** Menurut kajian ahli, ketinggian rendaman berada di kisaran **11–18 m**. Titik 11 m dipetakan dengan alat, dengan berjalan dari pantai ke darat. [D]
 - **TEA: di atas ±18 m dpl** atau lebih tinggi. [D]
 - Pakar geologi memperkirakan tinggi gelombang di garis pantai sekitar **14–15 m**. Semakin dekat ke pantai, bangunan harus semakin tinggi. Dengan tinggi ±4 m per lantai, bangunan dekat pantai **minimal 3 lantai** dan bisa lebih. Perkiraan batas zona aman disebut sekitar SPBU Ampang **(perlu verifikasi)**. [K]
-- Di beberapa lokasi landaan diperkirakan 8–10 m, sehingga **bangunan 2 lantai tidak layak** menjadi TES. [R]
+- Di beberapa lokasi landaan diperkirakan 8–10 m, sehingga **bangunan 2 lantai tidak layak** menjadi TES. [R] Data verifikasi BPBD 2019 konsisten: 6 dari 7 bangunan ≤ 2 lantai dinilai "tidak potensial"; pengecualiannya Masjid Raya Sumbar. Engine mengikuti penilaian BPBD itu, bukan angka lantai.
 
 ### 6.2 Struktur bangunan
 - Bangunan tinggi yang **belum diuji kekuatan strukturnya tidak dapat dinyatakan aman** oleh BPBD, termasuk sekolah yang mengklaim dirinya shelter. [D]
@@ -330,9 +330,9 @@ Status per 11 Oktober 2026 (DB versi 2026.10.12). Pembangun DB sekarang adalah [
 | Zona merah = area landaan | `is_safe` dan poligon zona merah diambil dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 | ✅ Sesuai |
 | Peta evakuasi hanya merah/hijau | `tb_inundation_zones.tingkat_bahaya` diisi `Tinggi` untuk semua zona merah | ✅ Sesuai |
 | TEA tidak terkena bencana | TEA yang titiknya berada di area landaan dikeluarkan dari routing (21 titik, lihat laporan build) | ✅ Sesuai, daftar perlu dikonfirmasi BPBD |
-| Data TES bangunan ≤ 2 lantai atau "tidak potensial" dikeluarkan | Dicocokkan dengan verifikasi BPBD 2019 (Universitas Taman Siswa keluar karena "tidak potensial"). Hanya sebagian TES yang punya data lantai. | ⚠️ Sebagian (data lantai 2025 belum ada) |
+| Data TES bangunan ≤ 2 lantai tidak layak | Engine mengikuti penilaian BPBD 2019: yang "tidak potensial" dikeluarkan (Universitas Taman Siswa). Jumlah lantai bukan syarat tersendiri, karena di data BPBD 6 dari 7 bangunan ≤ 2 lantai sudah "tidak potensial"; satu-satunya pengecualian, Masjid Raya Sumbar (2 lantai, potensial, 15.000 orang), tetap dipakai dan ditanyakan ke BPBD. | ⚠️ Data lantai TES warga 2025 belum ada |
 | TEA tanpa batas kapasitas, TES *capacity-aware*; data BPBD vs warga | Penugasan greedy di `tb_route_shares`. Kolom `sumber`: BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025) | ✅ Sesuai |
-| Daya tampung per orang | `tb_tes.kapasitas` hanya dari data BPBD (2025 → daftar resmi 2019 → verifikasi 2019), kosong bila tidak ada (73 TES). Untuk penugasan internal: jejak bangunan RTRW × (lantai − 2) / 1 m² per orang → median. | ⚠️ 73 TES tanpa data daya tampung BPBD |
+| Daya tampung per orang | `tb_tes.kapasitas` hanya dari data BPBD (2025 → daftar resmi 2019 → verifikasi 2019), kosong bila tidak ada (77 TES). Untuk penugasan internal: jejak bangunan RTRW × (lantai − 2) / 1 m² per orang → median. | ⚠️ 73 TES tanpa data daya tampung BPBD |
 | Ikuti jalur/rambu evakuasi | Ruas di jalur evakuasi resmi BPBD diberi faktor biaya 0,8 | ✅ Sesuai |
 | Ketinggian safe zone ≥ 11 m (TES) / ≥ 18 m (TEA) | Tidak ada data elevasi; `tb_safe_zones.elevasi_m` dikosongkan | ⚠️ Butuh DEM |
 | Istilah "berjalan cepat" | Sudah ditetapkan di kebijakan UI | ✅ Sesuai |

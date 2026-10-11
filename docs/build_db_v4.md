@@ -19,7 +19,7 @@ Tanpa `--versi`, label versi diambil dari tanggal build. Satu label versi hanya 
 | Data | Berkas | Dipakai untuk |
 |---|---|---|
 | Titik TES & TEA 2025 | `Data BPBD/SHP kecamatan/2_TES_TEA_Padang.shp` (dari `SHP kecamatan.rar`) | Fasilitas evakuasi dan kapasitas utama. Hasil digitasi staf GIS BPBD atas kesepakatan Kelurahan Tangguh/latihan 2025, jadi `sumber = WARGA` kecuali cocok dengan daftar resmi |
-| Daftar resmi BPBD 2019 | `Daftar Shelter OK.xlsx`, sheet `TES OK` (3 shelter + 59 bangunan potensial, 5 parameter Bidang RR) | Penentu `sumber = BPBD`, lantai, dan kapasitas. Tidak berkoordinat; 42 bangunan yang tidak cocok dengan titik mana pun dicatat di `hasil_build/bpbd_2019_tanpa_titik.csv` |
+| Daftar resmi BPBD 2019 | `Daftar Shelter OK.xlsx`, sheet `TES OK` (3 shelter + 59 bangunan potensial, 5 parameter Bidang RR) dan koordinat hasil geokode `data_osm/geokode_daftar_resmi_bpbd.csv` | Penentu `sumber = BPBD`, lantai, dan kapasitas. Tidak berkoordinat: 45 bangunan tertaut ke titik (nama, lokasi sama, atau geokode OSM); 17 sisanya dicatat di `hasil_build/bpbd_2019_tanpa_titik.csv` |
 | Verifikasi gedung BPBD 2019 | `Daftar Shelter OK.xlsx`, sheet `TES (verifikasi)` | Jumlah lantai, kapasitas, status "tidak potensial" |
 | Jalur evakuasi resmi per RT/RW | `Data BPBD/SHP kecamatan/Jalur_evakuasi_Padang.shp` | Ruas di jalur resmi diutamakan (faktor biaya 0,8) |
 | Raster bahaya tsunami | `KRB .../03_TEMATIK/Bahaya.gdb` → `Peta_Bahaya_Tsunami` | Zona merah (`is_safe`), poligon zona merah/hijau, kantong aman, kelayakan TEA |
@@ -58,7 +58,7 @@ Tanpa `--versi`, label versi diambil dari tanggal build. Satu label versi hanya 
 | Ikuti jalur evakuasi resmi | Ruas yang ≥ 80% berada ≤ 15 m dari jalur BPBD diberi faktor biaya 0,8 | `JALUR_RESMI_JARAK_M`, `JALUR_RESMI_FAKTOR` |
 | Sumber (K-B5) | `BPBD` bila cocok dengan daftar resmi 2019 (nomor gedung harus sama persis), selain itu `WARGA`; keduanya dipakai routing | – |
 | Kapasitas TES | Data BPBD: 2025 → daftar resmi 2019 → verifikasi 2019; selain itu `tb_tes.kapasitas` **kosong**. Untuk penugasan internal, kekosongan diisi estimasi jejak bangunan × (lantai − 2) ÷ 1 m² atau median (tercatat di `tb_fasilitas_info`) | `M2_PER_ORANG`, `LANTAI_ASUMSI` |
-| TES tidak layak | ≤ 2 lantai atau "tidak potensial" di verifikasi 2019 | `LANTAI_MAKS_TIDAK_LAYAK` |
+| TES tidak layak | Dinilai "tidak potensial" di verifikasi BPBD 2019. Jumlah lantai tidak dipakai sebagai syarat sendiri: di data BPBD, 6 dari 7 bangunan ≤ 2 lantai memang "tidak potensial", kecuali Masjid Raya Sumbar yang dinilai potensial; tim aplikasi juga tidak menetapkan minimal lantai | – |
 | TEA harus di luar landaan | TEA di dalam raster bahaya dikeluarkan | – |
 | Semua titik di Kota Padang (H-1) | Titik di luar batas kelurahan BPBD dikeluarkan (tidak ada pada data ini) | – |
 | Nama fasilitas unik (H-1) | Nama & jenis sama ≤ 100 m digabung; TEA bernama sama dengan TES diberi "(area evakuasi)"; nama sama di lokasi berbeda diberi kelurahan (dan nomor). ID tidak bergeser | `GABUNG_JARAK_M` |
@@ -85,9 +85,10 @@ Uji ini dibuat sebelum kontrak diterapkan, dengan syarat tujuan "lebih jauh dari
 | Metrik | Nilai |
 |---|---|
 | Fasilitas sumber → setelah buang duplikat persis | 366 → 280 (234 TES, 46 TEA) |
-| Dipakai untuk routing | 230 TES (20 BPBD, 210 WARGA), 25 TEA |
+| Dipakai untuk routing | 244 TES (45 BPBD, 199 WARGA), 25 TEA |
 | Dikeluarkan | TES: Taman Siswa ("tidak potensial"); Incasi Raya, Youth Center, FK Unand (titik ganda). TEA: 21 di dalam landaan |
-| Kapasitas TES dari data BPBD | 157 (BPBD 2025 155, daftar resmi 2019 1, verifikasi 2019 1); 73 kosong |
+| Kapasitas TES dari data BPBD | 167 (BPBD 2025 155, daftar resmi 2019 11, verifikasi 2019 1); 77 kosong |
+| Daftar resmi BPBD 2019 (62 bangunan) | 45 tertaut: 20 lewat nama, 11 titik sama dengan nama lain, 14 titik baru dari geokode OSM (TES_235–TES_248). 17 belum punya titik |
 | Node zona merah / zona aman | 8.812 / 23.001 |
 | Penduduk terpapar (KRB) | 242.750 jiwa di 56 kelurahan, disebar ke 7.678 node lewat 64.247 bangunan |
 | Arah tujuan | Skrip audit tim `docs/audit/analisis_masukan_bpbd.py`, dijalankan apa adanya: tujuan utama **0% mendekat, 0% sejajar** (DB 2026.09.28: 35,2% dan 18,5%). Verifikasi engine: TES rank 1–3, TEA, zona aman v2 juga 0% |
@@ -97,15 +98,17 @@ Uji ini dibuat sebelum kontrak diterapkan, dengan syarat tujuan "lebih jauh dari
 | Tidak sempat ke tujuan mana pun (0,894 m/s) | 20 menit: 24,5% node, 53.907 jiwa (22,2%) · 30 menit: 14,4% node, 31.152 jiwa (12,8%). Per kelurahan: `hasil_build/peta_celah_kelurahan.csv` |
 | Penugasan berkapasitas (opsi A, K-B6) | 172.866 jiwa (71,2%) punya tujuan ≤ 20 menit; TES 37.343 · TEA 4.264 · zona aman 201.144 jiwa |
 | Ruas rute TES rank-1 di jalur evakuasi resmi | 29,2% |
-| Ukuran DB / waktu build | 30,01 MB / ±25 detik |
+| Ukuran DB / waktu build | 29,97 MB / ±25 detik |
 
 Keluaran di `hasil_build/`: `ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip` (deterministik, tidak di-commit), `dataset_manifest.json` (checksum zip dan `.db`), `dataset_manifest_android.json` (format aset aplikasi), `daftar_tes_tea.csv` (H-1: nama unik, koordinat, sumber, daya tampung, lantai), `bpbd_2019_tanpa_titik.csv`, dan `peta_celah_kelurahan.csv` (H-7).
 
 ## Hal yang perlu dikonfirmasi ke BPBD
 
-- **42 bangunan daftar resmi BPBD 2019 tanpa titik koordinat** (`bpbd_2019_tanpa_titik.csv`). Bila BPBD memberi koordinatnya, bangunan itu bisa ditambahkan sebagai TES bersumber BPBD.
+- **17 bangunan daftar resmi BPBD 2019 tanpa titik koordinat** (`bpbd_2019_tanpa_titik.csv`): 11 tidak ada di OpenStreetMap, 6 hasil OSM-nya meragukan (bangunan lain/cabang lain).
+- **14 TES baru berkoordinat OSM** (TES_235–TES_248) perlu verifikasi lokasi.
+- **Masjid Raya Sumbar** (TES_205) tercatat 2 lantai tetapi dinilai potensial dengan daya tampung 15.000; tetap dipakai sesuai penilaian BPBD.
 - **21 TEA berada di dalam area landaan** menurut raster KRB BPBD sendiri (misalnya Bundaran Siti Nurbaya, R.M Jaso Mande, Lapangan SSAG, LANTAMAL).
 - **24 titik berlabel TES bernama bukit/gunung** (misalnya Bukit Lampu, Gunung Padang). Secara konsep ini TEA.
-- **73 TES tanpa daya tampung dari BPBD.**
+- **77 TES tanpa daya tampung dari BPBD.**
 - **Titik ganda di data 2025**: Incasi Raya, Youth Center, dan FK Unand tercatat dua kali di lokasi hampir sama; Bukit Lampu, Bukit Karan, Bukit Simpang Rawang, dan Dealer Honda dipakai untuk dua tempat berbeda.
 - Asumsi kerja yang masih menunggu jawaban (kontrak §7): batas "sejajar" 15° dan pengecualian 100 m, jembatan mana yang dihindari, bukit di tepi pantai.

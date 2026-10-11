@@ -4,7 +4,7 @@ Halo Tim Android (Mikail)!
 
 Database `ranah_siaga_v4.db` dibangun dari data BPBD Kota Padang (KRB 2023–2027, TES/TEA 2025, daftar resmi BPBD 2019) dan **mengikuti kontrak DB** di `siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §1 (asumsi kerja) dan §2.1 (isi DB). Dokumen ini merangkum yang perlu disesuaikan di aplikasi (Kotlin/Room). Sisi backend: [handoff_backend.md](handoff_backend.md) (Sheva).
 
-> **Versi: 2026.10.12.** `.db` berukuran 30.007.296 byte, SHA-256 `b88d746f3229587d2cbc855aa0cd663584bc6ef80c81d21b3cea2b279f7302ee`. Versi ini menggantikan 2026.10.10 dan 2026.10.11.
+> **Versi: 2026.10.12.** `.db` berukuran 29.974.528 byte, SHA-256 `077edbc573e175606643decb1a9ed87a8c0bb93711caf27b99a956cb23789680`. Versi ini menggantikan 2026.10.10 dan 2026.10.11.
 >
 > Build aplikasi yang memakai DB ini direncanakan **0.2.0 (versionCode 3)**. Backend memakai versi itu sebagai `minimum_app_version`.
 
@@ -29,13 +29,13 @@ Aset yang terbundel sekarang (`ranah_siaga.db` 13 September, 130 MB) adalah DB l
 
 | Butir kontrak | Isi DB 2026.10.12 |
 |---|---|
-| `rank_k_tes` berisi nama TES yang unik | Ya. 255 nama fasilitas (TES + TEA) tanpa duplikat |
+| `rank_k_tes` berisi nama TES yang unik | Ya. 269 nama fasilitas (TES + TEA) tanpa duplikat |
 | `rank_k_eta` dan `safe_eta` dihitung pada **1,2 m/s** | Ya. Aplikasi mengalikan 1,2 ÷ 0,89 (M-3). Batas 20 menit pada laju FEMA setara `eta` ≤ 14,9 di tabel |
 | `tb_edges` ruas lurus tanpa geometri, urutan lon lat | Ya |
 | `tb_safe_routes.safe_eta = 0` menandai tujuan zona hijau | Ya (tidak pernah 0 di zona merah) |
 | Pola `tb_tea_*`, `tb_safe_*` | Sama |
 | Poligon WKT `MULTIPOLYGON` 2D, 7 desimal | Ya |
-| Ukuran ≤ 75 MB | 30,01 MB |
+| Ukuran ≤ 75 MB | 29,97 MB |
 | `tb_tes`: `sumber`, `jarak_pantai_m`, `kapasitas` kosong bila tidak ada data, `lantai` | Ya (lihat 3.B) |
 | `tb_tea.jarak_pantai_m` | Ya (ditambah `sumber`) |
 | `tb_nodes.jarak_pantai_m`, `is_safe` dari zona rendaman baru | Ya (lihat 3.A) |
@@ -56,7 +56,7 @@ Ke-21 kueri `@Query` aplikasi (branch `feat/final-keselamatan-navigasi`) sudah d
 `tb_nodes` sekarang `(node_id INTEGER PRIMARY KEY, lat REAL, lon REAL, is_safe INTEGER DEFAULT 0, jarak_pantai_m INTEGER)`. Room memvalidasi tabel ini saat menyalin DB dari aset, jadi tambahkan field `@ColumnInfo(name = "jarak_pantai_m") val jarakPantaiM: Int?` di `NodeEntity`. Tanpa itu aplikasi berhenti saat membuka DB. Indeks `idx_tb_nodes_lat_lon` tetap ada.
 
 ### B. `tb_tes.kapasitas` bisa kosong
-Kontrak meminta kapasitas kosong bila tidak ada data daya tampung BPBD (nilai bawaan tidak dipakai lagi). 73 dari 230 TES kosong. `TesRow.kapasitas` sekarang `Double` non-null; ubah menjadi `Double?`. `FacilityRow.kapasitas` sudah nullable.
+Kontrak meminta kapasitas kosong bila tidak ada data daya tampung BPBD (nilai bawaan tidak dipakai lagi). 77 dari 244 TES kosong. `TesRow.kapasitas` sekarang `Double` non-null; ubah menjadi `Double?`. `FacilityRow.kapasitas` sudah nullable.
 
 Kolom baru `tb_tes`: `sumber` (`BPBD` atau `WARGA`), `jarak_pantai_m`, `lantai` (boleh kosong).
 
@@ -83,7 +83,7 @@ Dua kueri di `ZoneDao.kt` **tetap** memakai `tb_safe_routes`: `findSafeRouteEta`
 *   `tb_inundation_zones.tingkat_bahaya` selalu `Tinggi`: peta hanya merah dan hijau (K-B4).
 *   `tb_tea.kapasitas = 0` berarti tidak ada data, bukan nol orang. TEA tidak dibatasi kapasitas.
 *   ID fasilitas `TES_001…`, `TEA_001…`. Dibanding 2026.10.10, TES_061, TES_126, TES_164 (titik ganda) dan TES_208 (Universitas Taman Siswa, "tidak potensial") tidak ada lagi; ID lain tidak berubah. Beberapa nama diberi kelurahan agar unik, misalnya "Bukit Lampu (Bungus Barat)".
-*   230 TES (20 bersumber BPBD, 210 WARGA) dan 25 TEA.
+*   244 TES (45 bersumber BPBD, 199 WARGA) dan 25 TEA. 14 bangunan daftar resmi BPBD 2019 yang tidak punya titik di data 2025 ditambahkan sebagai TES_235–TES_248 (koordinat dari OpenStreetMap, nama dan jalannya cocok dengan alamat BPBD; ditandai di `tb_fasilitas_info.koordinat_sumber`, perlu verifikasi lapangan). 11 TES lama ternyata bangunan daftar resmi dengan nama lain, sehingga kini bersumber BPBD.
 
 ### F. Lapis "Kesepakatan warga" (K-B5)
 `sumber = 'BPBD'` hanya untuk TES yang cocok dengan daftar resmi BPBD 2019 (3 shelter + 59 bangunan potensial, Bidang RR). Selebihnya hasil digitasi Kelurahan Tangguh/latihan 2025 (`WARGA`). Keduanya dipakai routing. Label sumber ditampilkan di aplikasi sesuai keputusan K-B5.
@@ -105,4 +105,4 @@ Dua kueri di `ZoneDao.kt` **tetap** memakai `tb_safe_routes`: `findSafeRouteEta`
 *   `tb_kelurahan_info`: profil tsunami per kelurahan (jiwa terpapar, kelompok rentan, kelas risiko).
 *   `tb_fasilitas_info`: semua TES/TEA termasuk yang tidak dipakai beserta alasannya, sumber kapasitas, dan estimasi kapasitas untuk TES tanpa data BPBD.
 *   `tb_route_shares`: porsi tujuan per simpul (opsi A).
-*   Di `hasil_build/`: `daftar_tes_tea.csv` (H-1), `peta_celah_kelurahan.csv` (H-7), `bpbd_2019_tanpa_titik.csv` (42 bangunan daftar resmi BPBD yang belum punya titik koordinat).
+*   Di `hasil_build/`: `daftar_tes_tea.csv` (H-1), `peta_celah_kelurahan.csv` (H-7), `bpbd_2019_tanpa_titik.csv` (17 bangunan daftar resmi BPBD yang belum punya titik koordinat).

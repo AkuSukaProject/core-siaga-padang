@@ -96,8 +96,11 @@ PENALTI_JEMBATAN = 20.0
 # Bila data jembatan OSM (data_osm/jembatan_osm.json) belum ada, panjang badan jembatan diperkirakan
 # dari lebar sungai BPBD yang dipotong ruas (+ kepala jembatan); lebar >= nilai ini dianggap >= 20 m.
 JEMBATAN_LEBAR_SUNGAI_MIN_M = 10.0
-# TES dengan jumlah lantai <= nilai ini (menurut verifikasi BPBD 2019) dikeluarkan (bagian 6.1).
-LANTAI_MAKS_TIDAK_LAYAK = 2
+# Lantai yang dianggap terendam landaan 8-10 m (bagian 6.1). Hanya dipakai untuk estimasi kapasitas
+# (lantai di atasnya yang dihitung). Kelayakan TES mengikuti penilaian BPBD ("tidak potensial"), bukan
+# angka lantai: di data BPBD 2019 bangunan 2 lantai hampir selalu "tidak potensial", kecuali Masjid Raya
+# Sumbar yang dinilai potensial; tim aplikasi juga tidak menetapkan minimal lantai sendiri.
+LANTAI_TERENDAM = 2
 # Titik TES/TEA bernama & berjenis sama yang berjarak <= nilai ini dianggap tempat yang sama dan
 # digabung (syarat nama unik H-1); yang lebih jauh dianggap tempat berbeda dan namanya dibedakan.
 GABUNG_JARAK_M = 100.0
@@ -127,6 +130,11 @@ FILE_GRAF = "padang_full.graphml"
 # jarak_pantai_m (kontrak H-3) dan, bila ada, ruas jembatan dengan panjang badannya (H-4).
 FILE_PANTAI_OSM = os.path.join("data_osm", "pantai_osm.json")
 FILE_JEMBATAN_OSM = os.path.join("data_osm", "jembatan_osm.json")
+# Koordinat bangunan daftar resmi BPBD 2019 yang tidak punya titik di data 2025, dicari lewat OSM Nominatim
+# dan diperiksa nama + jalannya (hasil: sudah_ada_di_data_2025 / baru_cocok / ragu / tidak_ditemukan).
+FILE_GEOKODE_BPBD = os.path.join("data_osm", "geokode_daftar_resmi_bpbd.csv")
+# Jarak maksimum titik geokode ke titik TES 2025 yang dianggap bangunan yang sama.
+JARAK_MAKS_GEOKODE_M = 100.0
 DIR_HASIL = "hasil_build"
 DB_PATH = os.path.join(DIR_HASIL, "ranah_siaga_v4.db")
 # Paket distribusi untuk aplikasi (zip deterministik) dan manifestnya.
@@ -479,11 +487,26 @@ fas["wkt"] = fas.geometry.to_wkt()
 fas = fas.drop_duplicates(subset=["Nama_Fasum", "Jns_fasili", "wkt"]).copy()
 fas["Nama_Fasum"] = fas["Nama_Fasum"].astype(str).str.strip()
 fas["kapasitas_bpbd"] = pd.to_numeric(fas["Kapasitas"], errors="coerce")
+fas["koordinat_sumber"] = "BPBD 2025 (2_TES_TEA_Padang.shp)"
+fas["nama_geokode"] = None
+# Bangunan daftar resmi BPBD yang tidak ada di data 2025 tetapi lokasinya ditemukan di OSM (nama & jalan cocok)
+# ditambahkan sebagai TES. ID-nya diberi setelah ID titik 2025 agar ID lama tidak bergeser.
+geokode = pd.read_csv(FILE_GEOKODE_BPBD, dtype=str).fillna("") if os.path.exists(FILE_GEOKODE_BPBD) else pd.DataFrame()
+if len(geokode):
+    baru_geo = geokode[geokode["hasil"] == "baru_cocok"]
+    if len(baru_geo):
+        tambah = gpd.GeoDataFrame({"Nama_Fasum": baru_geo["nama_bpbd"].str.strip(), "Jns_fasili": "TES",
+                                   "kapasitas_bpbd": np.nan, "kelurahan": "", "Kecamatan": "",
+                                   "koordinat_sumber": "OSM " + baru_geo["osm"] + " (geokode daftar resmi BPBD, perlu verifikasi)",
+                                   "nama_geokode": baru_geo["nama_bpbd"].str.strip()},
+                                  geometry=gpd.points_from_xy(baru_geo["lon"].astype(float), baru_geo["lat"].astype(float)),
+                                  crs="EPSG:4326").to_crs(CRS_METER)
+        fas = pd.concat([fas, tambah], ignore_index=True)
 fas = gpd.sjoin(fas, gdf_kel, how="left", predicate="within").drop(columns="index_right")
 fas["di_kota"] = fas["KEL"].notna()
 fas["KEL"] = fas["KEL"].fillna(fas["kelurahan"].map(norm_kel))
 fas["KEC"] = fas["KEC"].fillna(fas["Kecamatan"].map(norm_kel))
-print(f"      Titik sumber: {jumlah_awal} | setelah buang duplikat persis: {len(fas)} "
+print(f"      Titik sumber: {jumlah_awal} | setelah buang duplikat persis + geokode daftar resmi BPBD: {len(fas)} "
       f"(TES {(fas['Jns_fasili'] == 'TES').sum()}, TEA {(fas['Jns_fasili'] == 'TEA').sum()})")
 
 # Daftar verifikasi 2019: jumlah lantai & status potensial.
@@ -541,10 +564,26 @@ fas["status_2019"] = [r["status19"] if r is not None else None for r in info19]
 fas["nama_2019"] = [r["nama19"] if r is not None else None for r in info19]
 fas["kapasitas_2019"] = [r["kapasitas19"] if r is not None else np.nan for r in info19]
 info_ok = [cocokkan_2019(n, df_ok) if t == "TES" else None for n, t in zip(fas["Nama_Fasum"], fas["Jns_fasili"])]
+ok_by_nama = {r.nama_ok: r for r in df_ok.itertuples()}
+# Titik hasil geokode langsung terhubung ke baris daftar resmi asalnya.
+info_ok = [ok_by_nama[g]._asdict() if g else r for g, r in zip(fas["nama_geokode"], info_ok)]
+# TES 2025 yang ternyata bangunan daftar resmi BPBD dengan nama lain (titik geokode <= 100 m).
+jumlah_tertaut = 0
+if len(geokode):
+    for g in geokode[geokode["hasil"] == "sudah_ada_di_data_2025"].itertuples():
+        x, y = Transformer.from_crs("EPSG:4326", CRS_METER, always_xy=True).transform(float(g.lon), float(g.lat))
+        jarak = fas.geometry.distance(shapely.Point(x, y)).where(fas["Jns_fasili"] == "TES")
+        j = jarak.idxmin()
+        if jarak[j] <= JARAK_MAKS_GEOKODE_M and info_ok[j] is None:
+            info_ok[j] = ok_by_nama[g.nama_bpbd]._asdict()
+            jumlah_tertaut += 1
 fas["nama_bpbd_ok"] = [r["nama_ok"] if r is not None else None for r in info_ok]
 fas["lantai_ok"] = [r["lantai_ok"] if r is not None else None for r in info_ok]
 fas["kapasitas_ok"] = [r["kapasitas_ok"] if r is not None else np.nan for r in info_ok]
 fas["sumber"] = np.where(fas["nama_bpbd_ok"].notna(), "BPBD", "WARGA")
+print(f"      Daftar resmi BPBD 2019: {fas['nama_bpbd_ok'].notna().sum()} TES tertaut (nama: "
+      f"{fas['nama_bpbd_ok'].notna().sum() - jumlah_tertaut - fas['nama_geokode'].notna().sum()}, titik sama dengan nama lain: "
+      f"{jumlah_tertaut}, titik baru dari geokode OSM: {fas['nama_geokode'].notna().sum()})")
 # Jumlah lantai terbaik yang diketahui (daftar resmi, lalu verifikasi 2019).
 fas["lantai"] = pd.to_numeric(fas["lantai_ok"], errors="coerce").fillna(pd.to_numeric(fas["lantai_2019"], errors="coerce"))
 
@@ -561,13 +600,10 @@ fas["x_m"], fas["y_m"] = x_fas, y_fas
 # Kelayakan untuk routing.
 fas["dipakai"] = 1
 fas["alasan_tidak_dipakai"] = ""
-# TES keluar bila verifikasi BPBD 2019 menyatakan <= 2 lantai atau "tidak potensial". Pencocokan 2019
-# mensyaratkan nomor gedung sama persis, jadi status ini hanya menempel pada gedung yang benar.
-tes_tak_layak = (fas["Jns_fasili"] == "TES") & (pd.to_numeric(fas["lantai_2019"], errors="coerce") <= LANTAI_MAKS_TIDAK_LAYAK)
-fas.loc[tes_tak_layak, ["dipakai", "alasan_tidak_dipakai"]] = [0, f"Verifikasi BPBD 2019: <= {LANTAI_MAKS_TIDAK_LAYAK} lantai"]
-tes_tak_potensial = (fas["Jns_fasili"] == "TES") & (fas["status_2019"] == "tidak potensial") & ~tes_tak_layak
-fas.loc[tes_tak_potensial, ["dipakai", "alasan_tidak_dipakai"]] = [0, "Verifikasi BPBD 2019: tidak potensial"]
-tes_tak_layak = tes_tak_layak | tes_tak_potensial
+# TES keluar bila verifikasi BPBD 2019 menilainya "tidak potensial" (penilaian BPBD, yang sudah mencakup
+# bangunan 2 lantai). Pencocokan 2019 mensyaratkan nomor gedung sama persis.
+tes_tak_layak = (fas["Jns_fasili"] == "TES") & (fas["status_2019"] == "tidak potensial")
+fas.loc[tes_tak_layak, ["dipakai", "alasan_tidak_dipakai"]] = [0, "Verifikasi BPBD 2019: tidak potensial"]
 tea_di_landaan = (fas["Jns_fasili"] == "TEA") & fas["indeks_bahaya"].notna()
 fas.loc[tea_di_landaan, ["dipakai", "alasan_tidak_dipakai"]] = [0, "TEA berada di dalam area landaan tsunami"]
 # Syarat H-1: semua titik berada di Kota Padang (batas kelurahan BPBD).
@@ -594,7 +630,7 @@ fas.loc[isi_2019, "kapasitas_sumber"] = "BPBD 2019 (verifikasi)"
 bukit = fas["Nama_Fasum"].str.contains(r"^(?:Bukit|Gunung)", case=False)
 isi_jejak = is_tes & fas["kapasitas"].isna() & fas["luas_jejak_m2"].notna() & ~bukit
 lantai = fas["lantai"].fillna(LANTAI_ASUMSI)
-lantai_aman = (lantai - LANTAI_MAKS_TIDAK_LAYAK).clip(lower=1)
+lantai_aman = (lantai - LANTAI_TERENDAM).clip(lower=1)
 fas.loc[isi_jejak, "kapasitas"] = (fas["luas_jejak_m2"] * lantai_aman / M2_PER_ORANG).round()[isi_jejak]
 fas.loc[isi_jejak, "kapasitas_sumber"] = "estimasi (jejak bangunan RTRW)"
 
@@ -606,9 +642,11 @@ fas.loc[kosong_tea, "kapasitas"] = 0.0
 fas.loc[kosong_tea, "kapasitas_sumber"] = "tidak tersedia"
 fas["kapasitas_data"] = np.where(fas["kapasitas_sumber"].str.startswith("BPBD"), fas["kapasitas"], np.nan)
 
-# ID stabil.
-fas = fas.sort_values(["Jns_fasili", "KEC", "KEL", "Nama_Fasum"]).reset_index(drop=True)
+# ID stabil: titik data 2025 diurutkan seperti sebelumnya; titik geokode menyusul dengan nomor berikutnya.
+fas["_geo"] = fas["nama_geokode"].notna()
+fas = fas.sort_values(["_geo", "Jns_fasili", "KEC", "KEL", "Nama_Fasum"]).reset_index(drop=True)
 fas["facility_id"] = (fas["Jns_fasili"] + "_" + (fas.groupby("Jns_fasili").cumcount() + 1).astype(str).str.zfill(3))
+fas = fas.sort_values(["Jns_fasili", "facility_id"]).reset_index(drop=True)
 
 # Nama unik (syarat H-1). Dikerjakan setelah ID dibuat agar ID fasilitas lain tidak bergeser.
 fas["nama_bpbd"] = fas["Nama_Fasum"]
@@ -1091,8 +1129,8 @@ cur.execute("""CREATE TABLE tb_fasilitas_info (
     d_pantai_m REAL, indeks_bahaya REAL, jumlah_lantai_2019 INTEGER, status_bpbd_2019 TEXT, nama_bpbd_2019 TEXT,
     kapasitas_2019 REAL, luas_jejak_bangunan_m2 REAL,
     nearest_node_id INTEGER, snap_dist_m REAL, lat REAL, lon REAL, nama_bpbd TEXT,
-    sumber TEXT, nama_daftar_resmi_bpbd TEXT, lantai INTEGER)""")
-cur.executemany("INSERT INTO tb_fasilitas_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    sumber TEXT, nama_daftar_resmi_bpbd TEXT, lantai INTEGER, koordinat_sumber TEXT)""")
+cur.executemany("INSERT INTO tb_fasilitas_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [(r.facility_id, r.Jns_fasili, r.Nama_Fasum, judul(r.KEL), judul(r.KEC), int(r.dipakai),
                   r.alasan_tidak_dipakai or None, float(r.kapasitas), r.kapasitas_sumber, round(float(r.d_pantai_m), 1),
                   None if np.isnan(r.indeks_bahaya) else round(float(r.indeks_bahaya), 4),
@@ -1100,7 +1138,7 @@ cur.executemany("INSERT INTO tb_fasilitas_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?
                   None if pd.isna(r.kapasitas_2019) else float(r.kapasitas_2019),
                   None if pd.isna(r.luas_jejak_m2) else round(float(r.luas_jejak_m2), 1),
                   int(node_ids[r.node_idx]), round(float(r.snap_dist_m), 1), float(r.lat), float(r.lon), r.nama_bpbd,
-                  r.sumber, r.nama_bpbd_ok, None if pd.isna(r.lantai) else int(r.lantai))
+                  r.sumber, r.nama_bpbd_ok, None if pd.isna(r.lantai) else int(r.lantai), r.koordinat_sumber)
                  for r in fas.itertuples()])
 
 cur.execute("""CREATE TABLE tb_node_info (
@@ -1213,7 +1251,7 @@ total_jiwa = demand.sum()
 merah = is_safe == 0
 # Daftar TES/TEA bersih: nama unik, koordinat, sumber, daya tampung, lantai.
 kol_csv = ["facility_id", "Jns_fasili", "Nama_Fasum", "nama_bpbd", "sumber", "dipakai", "alasan_tidak_dipakai", "KEL", "KEC",
-           "lat", "lon", "kapasitas_data", "kapasitas_sumber", "lantai", "d_pantai_m", "nama_bpbd_ok"]
+           "lat", "lon", "kapasitas_data", "kapasitas_sumber", "lantai", "d_pantai_m", "nama_bpbd_ok", "koordinat_sumber"]
 daftar = fas[kol_csv].rename(columns={"Jns_fasili": "jenis", "Nama_Fasum": "nama", "nama_bpbd": "nama_asli",
                                       "KEL": "kelurahan", "KEC": "kecamatan", "kapasitas_data": "kapasitas",
                                       "d_pantai_m": "jarak_pantai_m", "nama_bpbd_ok": "nama_daftar_resmi_bpbd"})

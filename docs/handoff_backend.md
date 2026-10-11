@@ -20,8 +20,8 @@ Ambil dari folder `hasil_build/` repo engine (atau lampiran GitHub Release tag `
 
 | | `.db` | `.zip` |
 |---|---|---|
-| Ukuran (byte) | 30.007.296 | 6.285.815 |
-| SHA-256 | `b88d746f3229587d2cbc855aa0cd663584bc6ef80c81d21b3cea2b279f7302ee` | `9d32021404580d2c3bd0601358da2778c4796e8bf281e2d336c714d517492d43` |
+| Ukuran (byte) | 29.974.528 | 6.287.484 |
+| SHA-256 | `077edbc573e175606643decb1a9ed87a8c0bb93711caf27b99a956cb23789680` | `c848d90081359c0f76bc5aba080c680be6b042a744c0b4953ff7842f399f1d83` |
 
 `hasil_build/dataset_manifest.json` (tanpa `_android`) adalah catatan engine; jangan dipakai sebagai manifest backend.
 
@@ -31,7 +31,7 @@ Ambil dari folder `hasil_build/` repo engine (atau lampiran GitHub Release tag `
 
 1. Stage paket: `python scripts/stage_dataset_package.py data/ranah_siaga_v4.db --manifest data/dataset_manifest_android.json`.
 2. Setelah build Android 0.2.0 siap: `python scripts/bootstrap_from_android_db.py data/ranah_siaga_v4.db --manifest data/dataset_manifest_android.json --minimum-app-version 0.2.0 --download-url '/api/v1/sync/network?version=2026.10.12'`.
-3. Periksa `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.12`, checksum di atas, ukuran 30.007.296; dropdown operator berisi 255 TES/TEA aktif.
+3. Periksa `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.12`, checksum di atas, ukuran 29.974.528; dropdown operator berisi 269 TES/TEA aktif.
 
 Kecocokan dengan kode backend (branch `feat/final-keselamatan-navigasi`) sudah dicek dari kode sumber:
 *   `validate_v4_schema`: `tb_safe_routes` dan `tb_safe_routes_v2` punya `safe_zone_id`, `kelompok`, `safe_node_id`, `safe_eta`, tidak kosong.
@@ -42,9 +42,9 @@ Kecocokan dengan kode backend (branch `feat/final-keselamatan-navigasi`) sudah d
 
 ## 3. Perubahan isi yang perlu diketahui
 
-*   **`tb_tes.kapasitas` bisa kosong** (73 dari 230 TES): kontrak meminta kapasitas kosong bila tidak ada data BPBD. Bootstrap sudah menyimpannya sebagai `NULL`.
+*   **`tb_tes.kapasitas` bisa kosong** (77 dari 244 TES): kontrak meminta kapasitas kosong bila tidak ada data BPBD. Bootstrap sudah menyimpannya sebagai `NULL`.
 *   **TEA**: 7 bernilai 0 (tidak ada data, disimpan `NULL` oleh bootstrap) dan 18 dengan angka BPBD 2025.
-*   **`sumber`**: `BPBD` untuk 20 TES yang cocok dengan daftar resmi BPBD 2019 (3 shelter + 59 bangunan potensial); `WARGA` untuk TES/TEA hasil digitasi Kelurahan Tangguh/latihan 2025.
+*   **`sumber`**: `BPBD` untuk 45 TES dari daftar resmi BPBD 2019 (3 shelter + 59 bangunan potensial), termasuk 14 TES baru (TES_235–TES_248) yang koordinatnya dari OpenStreetMap; `WARGA` untuk TES/TEA hasil digitasi Kelurahan Tangguh/latihan 2025.
 *   **ID tidak berubah** dibanding 2026.10.10, kecuali TES_061, TES_126, TES_164 (titik ganda, digabung) dan TES_208 (Universitas Taman Siswa, "tidak potensial") yang tidak ada lagi.
 *   **Satuan ETA** `rank_k_eta` dan `safe_eta` kini 1,2 m/s sesuai kontrak; tidak memengaruhi backend.
 *   **`tb_nodes.jarak_pantai_m`** kolom baru; aplikasi lama (0.1.0) tidak bisa membuka DB ini, jadi `minimum_app_version` harus **0.2.0**.
@@ -56,7 +56,7 @@ Kecocokan dengan kode backend (branch `feat/final-keselamatan-navigasi`) sudah d
 
 | Data | Nilai |
 |---|---|
-| TES / TEA dipakai | 230 / 25 |
+| TES / TEA dipakai | 244 / 25 |
 | Simpang jalan / ruas / ruas jembatan ≥ 20 m | 31.813 (8.812 di zona merah) / 39.216 / 176 |
 | Zona merah / zona hijau | 56 / 98 poligon (per kelurahan) |
 | Penduduk terpapar | 242.750 jiwa di 56 kelurahan |
