@@ -104,6 +104,9 @@ Keluaran di `hasil_build/`: `ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip` (determ
 
 ## Hal yang perlu dikonfirmasi ke BPBD
 
+Daftar pertanyaan lengkap yang siap dikirim: [pertanyaan_bpbd.md](pertanyaan_bpbd.md). Ringkasnya:
+
+
 - **17 bangunan daftar resmi BPBD 2019 tanpa titik koordinat** (`bpbd_2019_tanpa_titik.csv`): 11 tidak ada di OpenStreetMap, 6 hasil OSM-nya meragukan (bangunan lain/cabang lain).
 - **14 TES baru berkoordinat OSM** (TES_235–TES_248) perlu verifikasi lokasi.
 - **Masjid Raya Sumbar** (TES_205) tercatat 2 lantai tetapi dinilai potensial dengan daya tampung 15.000; tetap dipakai sesuai penilaian BPBD.
