@@ -1,5 +1,5 @@
 // DBML Schema Definition for dbdiagram.io
-// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.12). Jangan diedit manual.
+// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.13). Jangan diedit manual.
 
 Project SiagaPadangERD {
   database_type: 'SQLite'
@@ -60,7 +60,7 @@ Table tb_routes {
   rank_3_path TEXT
   rank_3_eta REAL
 
-  Note: "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. rank 2/3 boleh kosong. ETA pada 1,2 m/s."
+  Note: "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. Yang sempat <= 20 menit urut jarak pantai (terjauh = rank 1), lalu tercepat. rank 2/3 boleh kosong. ETA pada 1,2 m/s."
 }
 
 TableGroup Rute_TES_Vertikal {
@@ -92,7 +92,7 @@ Table tb_tea_routes {
   nearest_tea_id TEXT [ref: > tb_tea.tea_id]
   alt_tea_id TEXT [ref: > tb_tea.tea_id]
 
-  Note: "TEA utama & alternatif per node."
+  Note: "TEA utama & alternatif per node (urutan sama dengan TES: terjauh dari pantai yang sempat <= 20 menit)."
 }
 
 Table tb_tea_next {
@@ -115,7 +115,7 @@ TableGroup Rute_TEA_Horizontal {
 
 Table tb_safe_routes_v2 {
   origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
-  kelompok INTEGER [not null, note: "Nomor gerbang tujuan; kunci penelusuran tb_safe_next_v2"]
+  kelompok INTEGER [not null, note: "Nomor titik tujuan; kunci penelusuran tb_safe_next_v2"]
   safe_node_id INTEGER [not null, ref: > tb_nodes.node_id]
   safe_zone_nama TEXT
   safe_eta REAL
@@ -123,7 +123,7 @@ Table tb_safe_routes_v2 {
   mendekat_pantai_maks_m REAL [note: "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal"]
   safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
-  Note: "OPSIONAL, di luar kontrak: zona aman per node ZONA MERAH dengan syarat arah per pasangan warga-tujuan (cakupan lebih luas dari tabel kontrak)."
+  Note: "Navigasi zona aman (usulan kontrak: wajib): per node ZONA MERAH, titik zona hijau terjauh dari pantai yang sempat <= 20 menit dan lolos syarat arah."
 }
 
 Table tb_safe_next_v2 {
@@ -135,7 +135,7 @@ Table tb_safe_next_v2 {
     (kelompok, node_id) [pk]
   }
 
-  Note: "Next-hop menuju zona aman per gerbang tujuan (kelompok milik node asal)."
+  Note: "Next-hop menuju zona aman per titik tujuan (kelompok milik node asal)."
 }
 
 Table tb_safe_routes {
@@ -145,7 +145,7 @@ Table tb_safe_routes {
   safe_eta REAL
   safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
-  Note: "Kontrak: zona aman per node dari satu pohon global; simpul merah hanya bila tujuan lolos syarat arah. safe_eta = 0 = tujuan zona hijau."
+  Note: "Kontrak lama: batas zona hijau terdekat per node dari satu pohon global; simpul merah hanya bila tujuan lolos syarat arah. safe_eta = 0 = tujuan zona hijau (status tiba)."
 }
 
 Table tb_safe_next {

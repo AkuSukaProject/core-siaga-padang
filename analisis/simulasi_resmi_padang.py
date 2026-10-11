@@ -4,8 +4,9 @@ SIMULASI KANONIS EVAKUASI TSUNAMI KOTA PADANG (BASELINE vs SIAGA PADANG) - DATA 
 Membandingkan dua skenario dengan agen yang sama:
   A. Baseline     : warga tanpa aplikasi berjalan ke TES/TEA terdekat (jarak murni), tanpa aturan
                     pantai/jembatan dan tanpa memperhatikan kapasitas.
-  B. Siaga Padang : warga mengikuti rekomendasi database (TES rank 1-3 berkapasitas, lalu TEA atau
-                    zona aman terdekat), dengan aturan evakuasi BPBD yang sudah tertanam di rute.
+  B. Siaga Padang : warga mengikuti rekomendasi database (TES rank 1-3 berkapasitas, TEA, zona aman):
+                    di antara tujuan yang sempat <= 20 menit dipilih yang paling jauh dari pantai,
+                    dengan aturan evakuasi BPBD yang sudah tertanam di rute.
 
 Seluruh masukan dibaca dari ranah_siaga_v4.db (hasil build_db.py), sehingga simulasi dan aplikasi
 memakai fasilitas, demand penduduk, dan rute yang sama. Parameter: docs/simulasi_kanonis.md.
@@ -45,13 +46,14 @@ DB_PATH = os.path.join(ROOT, "hasil_build", "ranah_siaga_v4.db")
 DIR_OUTPUT = os.path.join(ROOT, "analisis", "output")
 
 # Sumber rute zona aman skenario Siaga Padang:
-#   kontrak (bawaan): tb_safe_routes, tabel yang dibaca aplikasi sesuai kontrak DB §2.1;
-#   v2: tb_safe_routes_v2 (opsional, di luar kontrak, cakupan lebih luas). Keluaran v2 diberi akhiran _v2.
+#   v2 (bawaan): tb_safe_routes_v2, navigasi zona aman per warga ke titik zona hijau terjauh dari pantai yang
+#       sempat <= 20 menit (usulan perubahan kontrak: tabel wajib dibaca aplikasi);
+#   kontrak: tb_safe_routes (kontrak §2.1 lama, pohon global ke batas zona hijau terdekat). Akhiran _kontrak.
 _arg = argparse.ArgumentParser(description="Simulasi kanonis Baseline vs Siaga Padang")
-_arg.add_argument("--rute-aman", choices=["kontrak", "v2"], default="kontrak")
+_arg.add_argument("--rute-aman", choices=["v2", "kontrak"], default="v2")
 RUTE_AMAN = _arg.parse_args().rute_aman
-TABEL_AMAN = "tb_safe_routes" if RUTE_AMAN == "kontrak" else "tb_safe_routes_v2"
-AKHIRAN = "" if RUTE_AMAN == "kontrak" else "_v2"
+TABEL_AMAN = "tb_safe_routes_v2" if RUTE_AMAN == "v2" else "tb_safe_routes"
+AKHIRAN = "" if RUTE_AMAN == "v2" else "_kontrak"
 
 start_total = time.time()
 
@@ -88,7 +90,7 @@ nodes = pd.read_sql("SELECT n.node_id, n.is_safe, i.kelurahan, i.demand_jiwa FRO
 N = len(nodes)
 idx_of = pd.Series(np.arange(N), index=nodes["node_id"].to_numpy())
 
-fas = pd.read_sql("SELECT facility_id, jenis, nama, kelurahan, kapasitas, nearest_node_id, snap_dist_m, lat, lon "
+fas = pd.read_sql("SELECT facility_id, jenis, nama, kelurahan, kapasitas, d_pantai_m, nearest_node_id, snap_dist_m, lat, lon "
                   "FROM tb_fasilitas_info WHERE dipakai = 1 ORDER BY facility_id", conn)
 fas["node_idx"] = idx_of[fas["nearest_node_id"]].to_numpy()
 fas["akses_menit"] = menit(fas["snap_dist_m"])
@@ -173,7 +175,8 @@ for tea_id, grup in pd.read_sql("SELECT tea_id, node_id, next_node_id FROM tb_te
     k = k_of[tea_id]
     eta_tea[k] = menit(jarak) + fas.at[k, "akses_menit"]
 
-# 4b. Kandidat per node asal: TES rank 1-3, TEA utama & alternatif, zona aman terdekat (urut ETA).
+# 4b. Kandidat per node asal: TES rank 1-3, TEA utama & alternatif, zona aman (kandidat = (k, eta riil, jarak pantai)).
+d_fas = fas["d_pantai_m"].to_numpy()
 tes_by_nama_node = {(r.nama, r.nearest_node_id): k for k, r in fas[is_tes].iterrows()}
 kandidat = {}
 for r in pd.read_sql("SELECT * FROM tb_routes", conn).itertuples(index=False):
@@ -185,30 +188,33 @@ for r in pd.read_sql("SELECT * FROM tb_routes", conn).itertuples(index=False):
             continue
         k = tes_by_nama_node[(nama, int(path.rsplit(",", 1)[-1]))]
         if all(k != d[0] for d in daftar):
-            daftar.append((k, float(eta) * KONVERSI_ETA))
+            daftar.append((k, float(eta) * KONVERSI_ETA, d_fas[k]))
     kandidat[n] = daftar
 for r in pd.read_sql("SELECT * FROM tb_tea_routes", conn).itertuples(index=False):
     n = idx_of[r.origin_node_id]
     for tea_id in dict.fromkeys([r.nearest_tea_id, r.alt_tea_id]):
         k = k_of[tea_id]
-        kandidat.setdefault(n, []).append((k, float(eta_tea[k][n])))
+        kandidat.setdefault(n, []).append((k, float(eta_tea[k][n]), d_fas[k]))
 eta_aman = np.full(N, np.inf)
-# Rute zona aman (tabel kontrak atau v2); keduanya hanya berisi tujuan yang lolos syarat arah BPBD.
-safe = pd.read_sql(f"SELECT origin_node_id, safe_eta FROM {TABEL_AMAN}", conn)
+d_aman = np.zeros(N)
+# Rute zona aman (v2 atau tabel kontrak lama); keduanya hanya berisi tujuan yang lolos syarat arah BPBD.
+safe = pd.read_sql(f"SELECT r.origin_node_id, r.safe_eta, t.jarak_pantai_m FROM {TABEL_AMAN} r "
+                   "JOIN tb_nodes t ON t.node_id = r.safe_node_id", conn)
 eta_aman[idx_of[safe["origin_node_id"]].to_numpy()] = safe["safe_eta"].to_numpy() * KONVERSI_ETA
+d_aman[idx_of[safe["origin_node_id"]].to_numpy()] = safe["jarak_pantai_m"].to_numpy()
 ZONA_AMAN = -1
 
 
 def urutan(c):
-    """Asumsi kerja K-B6: bila sempat dalam batas waktu, keluar zona (TEA / zona aman) didahulukan; lalu ETA."""
-    k, eta = c
-    keluar_zona = k == ZONA_AMAN or not is_tes[k]
-    return (0 if keluar_zona and eta <= BATAS_WAKTU_MENIT else 1, eta)
+    """Aturan tujuan: di antara kandidat yang sempat dalam batas waktu, yang paling jauh dari pantai lebih dulu;
+    kandidat yang tidak sempat menyusul, urut ETA (tercepat yang menjauh, K-B6)."""
+    k, eta, d = c
+    return (0, -d) if eta <= BATAS_WAKTU_MENIT else (1, eta)
 
 
 for n in np.unique(asal_agen):
     if np.isfinite(eta_aman[n]):
-        kandidat.setdefault(n, []).append((ZONA_AMAN, float(eta_aman[n])))
+        kandidat.setdefault(n, []).append((ZONA_AMAN, float(eta_aman[n]), float(d_aman[n])))
     kandidat[n] = sorted(kandidat.get(n, []), key=urutan)
 
 # 4c. Agen diproses berurutan menurut ETA kandidat pertama; TES penuh dilewati.
@@ -218,7 +224,7 @@ beban_b = np.zeros(K)
 tujuan_b = np.full(TOTAL_AGEN, -2)
 eta_b = np.full(TOTAL_AGEN, np.inf)
 for i in urut_b:
-    for k, eta in kandidat[asal_agen[i]]:
+    for k, eta, _ in kandidat[asal_agen[i]]:
         if k == ZONA_AMAN or beban_b[k] < kap_agen[k]:
             tujuan_b[i], eta_b[i] = k, eta
             if k != ZONA_AMAN:

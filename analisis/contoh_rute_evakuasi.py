@@ -3,7 +3,8 @@ CONTOH RUTE EVAKUASI DARI DATABASE V4 (PETA FOLIUM)
 
 Menggambar rute evakuasi yang akan ditampilkan aplikasi untuk satu posisi warga:
   - TES rekomendasi rank 1-3 (tb_routes)
-  - TEA terdekat (tb_tea_routes + tb_tea_next) dan zona aman terdekat (tb_safe_routes_v2 + tb_safe_next_v2)
+  - TEA utama (tb_tea_routes + tb_tea_next) dan zona aman (tb_safe_routes_v2 + tb_safe_next_v2); tujuan utama =
+    terjauh dari pantai yang sempat <= 20 menit
   - zona merah, radius 1 km (jangkauan 20 menit orang terlemah, saran BPBD), dan ruas jembatan >= 20 m di rute
 
 Mode pemilihan:
@@ -179,26 +180,26 @@ def buat_peta(db, node):
         lapis.add_to(peta)
         ringkas.append((f"TES rank {r + 1}", nama, eta, db.panjang(path), len(jembatan)))
 
-    # TEA terdekat.
+    # TEA utama.
     tea_id = db.c.execute("SELECT nearest_tea_id FROM tb_tea_routes WHERE origin_node_id = ?", (node,)).fetchone()
     if tea_id:
         tea = db.fas[tea_id[0]]
         path = db.rantai("tb_tea_next", "tea_id", tea_id[0], node)
         if path[-1] == tea[6]:
-            lapis = folium.FeatureGroup(name=f"TEA terdekat: {tea[2]}", show=False)
+            lapis = folium.FeatureGroup(name=f"TEA utama: {tea[2]}", show=False)
             folium.PolyLine(db.garis(path) + [(tea[7], tea[8])], color="#059669", weight=4, opacity=0.8, dash_array="2 8",
                             tooltip=f"TEA: {tea[2]} — {db.panjang(path):,.0f} m").add_to(lapis)
             folium.Marker((tea[7], tea[8]), icon=folium.Icon(color="darkgreen", icon="tree", prefix="fa"),
                           popup=f"<b>{tea[2]}</b> (TEA)<br>Kelurahan {tea[3]}").add_to(lapis)
             lapis.add_to(peta)
-            ringkas.append(("TEA terdekat", tea[2], db.panjang(path) / db.kecepatan / 60, db.panjang(path), len(db.lewat_jembatan(path))))
+            ringkas.append(("TEA utama", tea[2], db.panjang(path) / db.kecepatan / 60, db.panjang(path), len(db.lewat_jembatan(path))))
 
-    # Zona aman terdekat.
+    # Zona aman (titik terjauh dari pantai yang sempat).
     aman = db.c.execute("SELECT safe_node_id, safe_zone_nama, safe_eta, kelompok FROM tb_safe_routes_v2 "
                         "WHERE origin_node_id = ?", (node,)).fetchone()
     if aman:
         path = db.rantai("tb_safe_next_v2", "kelompok", aman[3], awal=node)
-        lapis = folium.FeatureGroup(name=f"Zona aman terdekat: {aman[1]}", show=False)
+        lapis = folium.FeatureGroup(name=f"Zona aman: {aman[1]}", show=False)
         folium.PolyLine(db.garis(path), color="#0f766e", weight=4, opacity=0.8, dash_array="1 6",
                         tooltip=f"{aman[1]} — {aman[2] * db.konversi_eta:.1f} menit").add_to(lapis)
         folium.Marker(db.koord[path[-1]], icon=folium.Icon(color="cadetblue", icon="flag", prefix="fa"),

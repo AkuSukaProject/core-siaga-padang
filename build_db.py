@@ -729,15 +729,27 @@ def hitung_kandidat(sub):
     return biaya_k, eta_k, pred_u, inv, jemb_u
 
 
+def urutan_kandidat(biaya_k, eta_k, d_k):
+    """Urutan kandidat per node (indeks baris K x N, kolom per node) menurut aturan "terjauh dari pantai":
+    di antara tujuan yang terjangkau <= BATAS_WAKTU_MENIT (riil) dipilih yang paling jauh dari pantai;
+    tujuan yang tidak sempat menyusul, urut biaya (tercepat). Rute tanpa jembatan >= 20 m tetap selalu
+    didahulukan dari rute cadangan lewat jembatan. Kandidat tak lolos syarat arah (biaya INF) di akhir."""
+    sempat = eta_k <= BATAS_WAKTU_MENIT
+    tingkat = np.where(np.isfinite(biaya_k), 2 * (biaya_k >= BIAYA_CADANGAN_JEMBATAN) + ~sempat, 9)
+    sekunder = np.where(sempat, -np.broadcast_to(d_k, biaya_k.shape), biaya_k)
+    return np.lexsort((sekunder, tingkat), axis=0)
+
+
 tes = aktif[aktif["Jns_fasili"] == "TES"].reset_index(drop=True)
 tea = aktif[aktif["Jns_fasili"] == "TEA"].reset_index(drop=True)
 biaya_tes, eta_tes, pred_tes, inv_tes, jemb_tes = hitung_kandidat(tes)
 biaya_tea, eta_tea, pred_tea, inv_tea, jemb_tea = hitung_kandidat(tea)
 
 # Peringkat TES (3 nama berbeda) per node; rank 2 dan 3 dibiarkan kosong bila tidak ada (kontrak §2.1).
+# Rank 1 = TES terjauh dari pantai yang masih terjangkau <= 20 menit (urutan_kandidat).
 # Catatan kompatibilitas: kolom rank_X_tes berisi NAMA gedung (unik), bukan tes_id.
 nama_tes = tes["Nama_Fasum"].to_numpy()
-urut_tes = np.argsort(biaya_tes, axis=0)
+urut_tes = urutan_kandidat(biaya_tes, eta_tes, tes["d_pantai_m"].to_numpy()[:, None])
 route_rows, rank1_tes = [], np.full(N, -1)
 rank_tes = {}  # n -> [(indeks TES, eta riil)] untuk penugasan kapasitas
 rank1_jembatan = np.zeros(N, dtype=bool)
@@ -765,8 +777,9 @@ for n in np.flatnonzero(is_safe == 0):
     rank1_jembatan[n] = jemb_tes[inv_tes[pilihan[0]], n]
     route_rows.append(tuple(baris))
 
-# TEA terdekat & alternatif (alternatif = TEA terdekat bila hanya ada satu yang memenuhi syarat).
-urut_tea = np.argsort(biaya_tea, axis=0)
+# TEA utama & alternatif menurut urutan yang sama dengan TES (alternatif = TEA utama bila hanya ada satu
+# yang memenuhi syarat). Kolom nearest_tea_id berisi TEA utama, yang tidak selalu paling dekat.
+urut_tea = urutan_kandidat(biaya_tea, eta_tea, tea["d_pantai_m"].to_numpy()[:, None])
 tea_route_rows, tea_r1, tea_r2 = [], np.full(N, -1), np.full(N, -1)
 for n in range(N):
     k1 = urut_tea[0, n]
@@ -847,37 +860,70 @@ for n in np.flatnonzero(simpan_aman):
 for n in np.flatnonzero(tandai_rantai(pred_aman, simpan_aman) & (pred_aman >= 0)):
     safe_next_rows.append((int(node_ids[n]), int(node_ids[pred_aman[n]])))
 
-# 6b. tb_safe_routes_v2 / tb_safe_next_v2: syarat arah (K-B1) dinilai per pasangan warga-tujuan.
-#     Tujuan kandidat = "gerbang", yaitu node zona aman yang bertetangga dengan node bukan tujuan
-#     (rute keluar zona selalu berakhir di gerbang pertama yang dicapainya). Untuk tiap node merah dipilih
-#     gerbang berbiaya terkecil yang lolos syarat arah; rantainya disimpan per gerbang
-#     (kolom kelompok = nomor gerbang), sama seperti tb_tea_next per TEA.
-a_, b_ = kunci_arr[:, 0], kunci_arr[:, 1]
-gerbang = np.unique(np.concatenate([a_[tujuan_aman[a_] & ~tujuan_aman[b_]], b_[tujuan_aman[b_] & ~tujuan_aman[a_]]]))
+# 6b. tb_safe_routes_v2 / tb_safe_next_v2 (navigasi zona aman per warga): untuk tiap node merah dipilih
+#     titik zona aman (bukan kantong) yang PALING JAUH dari pantai di antara yang terjangkau <= 20 menit riil
+#     lewat rute yang dipakai (biaya terkecil) dan lolos syarat arah K-B1, jadi warga terus masuk sedalam
+#     mungkin ke zona hijau. Bila tidak ada yang sempat, dipakai titik berbiaya terkecil yang lolos syarat
+#     arah (selalu titik batas zona). Rute tanpa jembatan >= 20 m tetap didahulukan. Rantainya disimpan
+#     per titik tujuan (kolom kelompok = nomor tujuan), sama seperti tb_tea_next per TEA.
 merah_idx = np.flatnonzero(is_safe == 0)
-terbaik_biaya = np.full(len(merah_idx), INF)
-terbaik_gerbang = np.full(len(merah_idx), -1)
-UKURAN_POTONG = 400
-for awal in range(0, len(gerbang), UKURAN_POTONG):
-    potong = gerbang[awal:awal + UKURAN_POTONG]
-    bt = dijkstra(W_tanpa, directed=True, indices=potong)[:, merah_idx]
-    bd = dijkstra(W_dengan, directed=True, indices=potong)[:, merah_idx]
-    b = np.where(np.isfinite(bt), bt, bd + BIAYA_CADANGAN_JEMBATAN)
-    boleh = arah_boleh(d_pantai[potong][:, None], x_node[potong][:, None], y_node[potong][:, None], merah_idx[None, :])
-    b = np.where(boleh, b, INF)
-    j = np.argmin(b, axis=0)
-    bj = b[j, np.arange(len(merah_idx))]
-    lebih_baik = bj < terbaik_biaya
-    terbaik_biaya[lebih_baik] = bj[lebih_baik]
-    terbaik_gerbang[lebih_baik] = potong[j[lebih_baik]]
+aman_idx = np.flatnonzero(tujuan_aman)
+# Dijkstra MAJU dari node merah (graf asli) memberi rute biaya terkecil ke semua titik zona aman sekaligus.
+Wf_tanpa, Wf_dengan = W_tanpa.T.tocsr(), W_dengan.T.tocsr()
+_kunci_ruas = src.astype(np.int64) * N + dst
+_urut_ruas = np.argsort(_kunci_ruas)
+_kunci_ruas, _waktu_ruas = _kunci_ruas[_urut_ruas], waktu_riil[_urut_ruas]
+
+
+def waktu_maju(pred):
+    """Waktu riil (menit) dari node asal tiap baris ke semua node, sepanjang pohon predecessor Dijkstra maju."""
+    k, n_ = pred.shape
+    sah = pred >= 0
+    kolom = np.broadcast_to(np.arange(n_), pred.shape)
+    w = np.zeros(pred.shape)
+    w[sah] = _waktu_ruas[np.searchsorted(_kunci_ruas, pred[sah].astype(np.int64) * N + kolom[sah])]
+    geser = (np.arange(k, dtype=np.int64) * n_)[:, None]
+    ptr = np.where(sah, pred + geser, kolom + geser).ravel()
+    w = w.ravel()
+    ar = np.arange(k * n_)
+    while True:
+        w = w + np.where(ptr != ar, w[ptr], 0.0)
+        ptr_baru = ptr[ptr]
+        if np.array_equal(ptr_baru, ptr):
+            return w.reshape(k, n_)
+        ptr = ptr_baru
+
+
+tujuan_v2 = np.full(len(merah_idx), -1)
+sempat_v2 = np.zeros(len(merah_idx), dtype=bool)
+UKURAN_POTONG = 250
+for awal in range(0, len(merah_idx), UKURAN_POTONG):
+    potong = merah_idx[awal:awal + UKURAN_POTONG]
+    boleh = arah_boleh(d_pantai[aman_idx][None, :], x_node[aman_idx][None, :], y_node[aman_idx][None, :], potong[:, None])
+    belum = np.ones(len(potong), dtype=bool)
+    for W_f in (Wf_tanpa, Wf_dengan):  # tingkat 1: tanpa jembatan; tingkat 2: lewat jembatan (cadangan)
+        if not belum.any():
+            break
+        b, p = dijkstra(W_f, directed=True, indices=potong[belum], return_predecessors=True)
+        t = waktu_maju(p)[:, aman_idx]
+        b = np.where(boleh[belum], b[:, aman_idx], INF)
+        ada = np.isfinite(b).any(axis=1)
+        sempat = np.isfinite(b) & (t <= BATAS_WAKTU_MENIT)
+        ada_sempat = sempat.any(axis=1)
+        pilih = np.where(ada_sempat, np.argmax(np.where(sempat, d_pantai[aman_idx][None, :], -INF), axis=1),
+                         np.argmin(b, axis=1))
+        baris = np.flatnonzero(belum)
+        tujuan_v2[awal + baris[ada]] = aman_idx[pilih[ada]]
+        sempat_v2[awal + baris[ada]] = ada_sempat[ada]
+        belum[baris[ada]] = False
 
 eta_aman2 = np.full(N, np.nan)
 jemb_aman2 = np.zeros(N, dtype=bool)
 mendekat_aman2 = np.full(N, np.nan)
 safe2_route_rows, safe2_next_rows = [], []
-gerbang_dipakai = np.unique(terbaik_gerbang[terbaik_gerbang >= 0])
-for nomor, g in enumerate(gerbang_dipakai, start=1):
-    asal = merah_idx[terbaik_gerbang == g]
+tujuan_dipakai = np.unique(tujuan_v2[tujuan_v2 >= 0])
+for nomor, g in enumerate(tujuan_dipakai, start=1):
+    asal = merah_idx[tujuan_v2 == g]
     _, p_g = pohon_rute(np.array([g]))
     p_g = p_g[0]
     tanda = np.zeros(N, dtype=bool)
@@ -895,9 +941,11 @@ for nomor, g in enumerate(gerbang_dipakai, start=1):
                                  round(mendekat_aman2[n], 1)))
 safe2_route_rows.sort()
 print(f"      tb_safe_routes: {len(safe_route_rows):,} (node merah dibuang karena tujuan global tak lolos arah: "
-      f"{(ada_aman & ~lolos_arah).sum():,}) | tb_safe_next: {len(safe_next_rows):,} | gerbang zona aman: "
-      f"{len(gerbang):,} (dipakai {len(gerbang_dipakai):,}) | tb_safe_routes_v2: {len(safe2_route_rows):,} dari "
-      f"{len(merah_idx):,} node merah | tb_safe_next_v2: {len(safe2_next_rows):,}")
+      f"{(ada_aman & ~lolos_arah).sum():,}) | tb_safe_next: {len(safe_next_rows):,}")
+print(f"      tb_safe_routes_v2: {len(safe2_route_rows):,} dari {len(merah_idx):,} node merah ({sempat_v2.sum():,} ke titik "
+      f"terjauh yang sempat <= {BATAS_WAKTU_MENIT:.0f} menit; ETA pohon > batas: "
+      f"{(eta_aman2[merah_idx[sempat_v2]] > BATAS_WAKTU_MENIT + 1e-9).sum():,}) | titik tujuan: {len(tujuan_dipakai):,} | "
+      f"tb_safe_next_v2: {len(safe2_next_rows):,}")
 
 # ==============================================================================
 # 7. DEMAND PENDUDUK (KRB 2023-2027) & PENUGASAN BERBASIS KAPASITAS
@@ -937,27 +985,34 @@ print(f"      Penduduk terpapar KRB: {sum(jiwa_kel.values()):,.0f} jiwa di {len(
       f"terdistribusi: {demand.sum():,.0f} | bangunan di zona merah: {len(gdf_bm):,} | "
       f"node berpenghuni: {(demand > 0).sum():,}")
 
-# Kandidat per node asal: 3 TES (berkapasitas), 2 TEA & zona aman (tak terbatas).
+# Kandidat per node asal: 3 TES (berkapasitas), 2 TEA & zona aman (tak terbatas), masing-masing dengan
+# jarak pantai tujuan dan penanda rute lewat jembatan >= 20 m.
 kand = []
+d_tes, d_tea = tes["d_pantai_m"].to_numpy(), tea["d_pantai_m"].to_numpy()
 for n, daftar in rank_tes.items():
     for k, eta in daftar:
-        kand.append((n, "TES", tes.at[k, "facility_id"], eta))
+        kand.append((n, "TES", tes.at[k, "facility_id"], eta, d_tes[k], jemb_tes[inv_tes[k], n]))
 for n in np.flatnonzero(tea_r1 >= 0):
-    kand.append((n, "TEA", tea.at[tea_r1[n], "facility_id"], float(eta_tea[tea_r1[n], n])))
-    kand.append((n, "TEA", tea.at[tea_r2[n], "facility_id"], float(eta_tea[tea_r2[n], n])))
+    for k in (tea_r1[n], tea_r2[n]):
+        kand.append((n, "TEA", tea.at[k, "facility_id"], float(eta_tea[k, n]), d_tea[k], jemb_tea[inv_tea[k], n]))
 # Zona aman: node merah memakai rute v2 (patuh aturan pantai); node aman berdemand memakai pohon global.
 eta_aman_alok = np.where(is_safe == 0, eta_aman2, np.where(np.isfinite(biaya_aman), eta_aman, np.nan))
+tujuan_aman_node = np.full(N, -1)
+tujuan_aman_node[merah_idx] = tujuan_v2
+tujuan_aman_node[is_safe == 1] = np.where(np.isfinite(biaya_aman), asal_aman, -1)[is_safe == 1]
+jemb_aman_alok = np.where(is_safe == 0, jemb_aman2, jemb_aman.astype(bool))
 for n in np.flatnonzero(~np.isnan(eta_aman_alok)):
-    kand.append((n, "ZONA_AMAN", "Zona Aman", float(eta_aman_alok[n])))
-df_k = pd.DataFrame(kand, columns=["n", "jenis", "tujuan", "eta"]).drop_duplicates(["n", "jenis", "tujuan"])
+    kand.append((n, "ZONA_AMAN", "Zona Aman", float(eta_aman_alok[n]), d_pantai[tujuan_aman_node[n]], jemb_aman_alok[n]))
+df_k = pd.DataFrame(kand, columns=["n", "jenis", "tujuan", "eta", "d_tujuan", "jembatan"]).drop_duplicates(["n", "jenis", "tujuan"])
 df_k = df_k[demand[df_k["n"]] > 0]
 # Greedy dua tahap: semua kandidat <= batas waktu dialokasikan dulu, lalu sisa warga memakai kandidat lain.
-# Di antara kandidat yang sempat, keluar zona (TEA / zona aman) didahulukan sebelum TES (asumsi kerja K-B6:
-# "bila sempat dalam 20 menit, keluar zona dulu; bila tidak, TES tercepat yang menjauh"), lalu urut ETA.
+# Di antara kandidat yang sempat (TES, TEA, zona aman), yang PALING JAUH dari pantai didahulukan; rute tanpa
+# jembatan >= 20 m lebih dulu. Kandidat yang tidak sempat menyusul, urut ETA (K-B6: tercepat yang menjauh).
 # TES penuh dilewati; TEA/zona aman selalu menampung sisa.
 df_k["layak"] = df_k["eta"] <= BATAS_WAKTU_MENIT
-df_k["urutan_jenis"] = np.where(df_k["layak"] & (df_k["jenis"] != "TES"), 0, 1)
-df_k = df_k.sort_values(["layak", "urutan_jenis", "eta", "n", "tujuan"], ascending=[False, True, True, True, True])
+df_k["jembatan_layak"] = df_k["layak"] & df_k["jembatan"].astype(bool)
+df_k["kunci"] = np.where(df_k["layak"], -df_k["d_tujuan"], df_k["eta"])
+df_k = df_k.sort_values(["layak", "jembatan_layak", "kunci", "n", "tujuan"], ascending=[False, True, True, True, True])
 
 kap_tes = dict(zip(tes["facility_id"], tes["kapasitas"]))
 beban = {k: 0.0 for k in kap_tes}
@@ -1108,7 +1163,8 @@ cur.execute("CREATE TABLE tb_bridge_edges (edge_id INTEGER PRIMARY KEY)")
 cur.executemany("INSERT INTO tb_bridge_edges VALUES (?)", [(int(j) + 1,) for j in np.flatnonzero(jembatan_besar_baris)])
 
 # --- Tabel tambahan V4 ---
-# Rute zona aman yang patuh syarat arah, per node zona merah. kelompok = nomor gerbang tujuan (kunci rantai);
+# Rute zona aman per node zona merah ke titik zona hijau terjauh dari pantai yang sempat <= 20 menit (lolos syarat
+# arah). kelompok = nomor titik tujuan (kunci rantai);
 # aplikasi menelusuri tb_safe_next_v2 dengan kelompok milik node asal sampai node tanpa next hop.
 cur.execute("""CREATE TABLE tb_safe_routes_v2 (
     origin_node_id INTEGER PRIMARY KEY, kelompok INTEGER NOT NULL, safe_node_id INTEGER NOT NULL,
@@ -1206,9 +1262,14 @@ metadata = {
     "penalti_jembatan": str(PENALTI_JEMBATAN),
     "gabung_jarak_m": str(GABUNG_JARAK_M),
     "luas_min_zona_aman_ha": str(LUAS_MIN_ZONA_AMAN_HA),
-    "catatan_rute_aman": "Navigasi zona aman: tb_safe_routes_v2 + tb_safe_next_v2 (kelompok milik node asal), tujuan lolos "
-                         "syarat arah. tb_safe_routes (semua node, safe_eta = 0 di tujuan zona hijau) untuk status tiba; "
-                         "rantainya tidak menjamin syarat arah.",
+    "aturan_tujuan": "Di antara tujuan yang terjangkau <= 20 menit riil (eta tabel <= 14,9) dan lolos syarat arah, dipilih "
+                     "yang paling jauh dari pantai (jarak_pantai_m / safe_d_pantai_m); bila tidak ada, yang tercepat. "
+                     "Berlaku untuk rank_1 TES, nearest_tea_id, tb_safe_routes_v2 dan urutan tb_route_shares. "
+                     "Rute tanpa jembatan >= 20 m selalu didahulukan.",
+    "catatan_rute_aman": "Navigasi zona aman: tb_safe_routes_v2 + tb_safe_next_v2 (kelompok milik node asal), tujuan = titik "
+                         "zona hijau terjauh dari pantai yang sempat <= 20 menit. tb_safe_routes (pohon global ke batas "
+                         "zona hijau terdekat, safe_eta = 0 di zona hijau) untuk status tiba dan kompatibilitas; baris "
+                         "zona merahnya hanya yang lolos syarat arah.",
     "catatan_tingkat_bahaya": "tb_inundation_zones.tingkat_bahaya bernilai 'Tinggi' untuk seluruh zona merah (peta evakuasi hanya merah/hijau)",
 }
 cur.execute("CREATE TABLE tb_metadata (kunci TEXT PRIMARY KEY, nilai TEXT)")

@@ -12,7 +12,7 @@ Membandingkan skenario Baseline dan Siaga Padang dengan agen yang sama.
 * **Waktu jalan**: < 1 detik.
 
 ### 2. Pembangun Database (`build_db.py`)
-Menghasilkan `ranah_siaga_v4.db` dari data BPBD (rincian: [build_db_v4.md](build_db_v4.md)). Skrip ini juga menghitung cakupan berbasis penugasan per jiwa (71,0% jiwa punya tujuan ≤ 20 menit), yang menjadi pembanding silang hasil simulasi agen dengan rute zona aman v2 (70,9%); dengan tabel kontrak, simulasi menghasilkan 68,8%.
+Menghasilkan `ranah_siaga_v4.db` dari data BPBD (rincian: [build_db_v4.md](build_db_v4.md)). Skrip ini juga menghitung cakupan berbasis penugasan per jiwa (71,7% jiwa punya tujuan ≤ 20 menit), yang menjadi pembanding silang hasil simulasi agen (72,3%).
 
 ## Parameter Resmi Simulasi
 
@@ -32,46 +32,49 @@ Sumber: [aturan_evakuasi_bpbd.md](aturan_evakuasi_bpbd.md).
 |---|---|---|
 | Perilaku | Warga tanpa aplikasi berjalan ke TES/TEA **terdekat menurut jarak jalan murni** | Warga mengikuti rekomendasi database |
 | Aturan arah & jembatan | Tidak | Ya (sudah tertanam di rute DB: tujuan menjauh > 15°, jembatan ≥ 20 m hanya cadangan) |
-| Kandidat tujuan | 1 fasilitas terdekat | TES rank 1–3, TEA utama & alternatif, zona aman dari `tb_safe_routes` (tabel kontrak yang dibaca aplikasi; pembanding: `tb_safe_routes_v2`, opsi `--rute-aman v2`). Urutan: TEA/zona aman yang sempat ≤ 20 menit lebih dulu (K-B6), lalu menurut ETA |
+| Kandidat tujuan | 1 fasilitas terdekat | TES rank 1–3, TEA utama & alternatif, zona aman dari `tb_safe_routes_v2` (pembanding: tabel kontrak lama `tb_safe_routes`, opsi `--rute-aman kontrak`). Urutan: di antara yang sempat ≤ 20 menit, yang paling jauh dari pantai lebih dulu; yang tidak sempat menyusul menurut ETA |
 | Kapasitas | Diabaikan saat memilih; yang datang setelah TES penuh tidak tertampung | TES penuh dilewati, agen pindah ke kandidat berikutnya |
 | Urutan pemrosesan | Menurut ETA (yang lebih cepat masuk lebih dulu) | Menurut ETA kandidat pertama |
 
 **Kriteria selamat**: tiba ≤ 20 menit **dan** tertampung. Untuk TES berarti belum penuh saat agen tiba; TEA dan zona aman selalu menampung.
 
-## Hasil Resmi (11 Oktober 2026, data v4 versi 2026.10.12)
+## Hasil Resmi (11 Oktober 2026, data v4 versi 2026.10.13)
 
 | Metrik | Baseline (terdekat) | Siaga Padang |
 | :--- | :--- | :--- |
 | TES melebihi kapasitas | **82** dari 244 | **0** dari 244 |
-| Tiba ≤ 20 menit (tanpa melihat kapasitas) | 13.554 agen (67,8%) | 13.765 agen (68,8%) |
-| **Selamat: tiba ≤ 20 menit & tertampung** | **7.118 agen (35,6%)** | **13.765 agen (68,8%)** |
+| Tiba ≤ 20 menit (tanpa melihat kapasitas) | 13.554 agen (67,8%) | 14.452 agen (72,3%) |
+| **Selamat: tiba ≤ 20 menit & tertampung** | **7.118 agen (35,6%)** | **14.452 agen (72,3%)** |
 | Tiba di TES tapi tidak tertampung | 11.655 agen | 0 |
-| Rata-rata waktu tempuh | 18,69 menit | 20,69 menit |
-| Rata-rata tambahan waktu karena pengalihan | 0 | 4,00 menit |
-| Tujuan TES / TEA / zona aman (agen) | 18.980 / 1.020 / 0 | 3.700 / 705 / 15.595 |
-| Pembanding 1,2 m/s: selamat | 36,7% | 76,1% |
+| Rata-rata waktu tempuh | 18,69 menit | 24,93 menit |
+| Rata-rata tambahan waktu karena pengalihan | 0 | 3,18 menit |
+| Tujuan TES / TEA / zona aman (agen) | 18.980 / 1.020 / 0 | 3.698 / 297 / 16.005 |
+| Pembanding 1,2 m/s: selamat | 36,7% | 78,4% |
 
 ### Interpretasi
 * **Angka keselamatan semu.** Tanpa memperhatikan kapasitas, 67,8% warga Baseline "tiba tepat waktu", tetapi 82 TES kelebihan beban dan 11.655 agen tidak tertampung. Keselamatan nyata Baseline hanya 35,6%.
-* **Siaga Padang hampir menggandakan keselamatan nyata** menjadi 68,8% tanpa satu pun TES kelebihan kapasitas. Sekitar 81% warga diarahkan keluar zona (zona aman/TEA) karena kebijakan "keluar zona dulu bila sempat" (K-B6); TES dipakai bila keluar zona tidak sempat dan TES masih ada tempat.
-* **Ada harga dari aturan arah.** Tujuan harus menjauh dari pantai lebih dari 15° (sejajar tidak boleh) dan jembatan ≥ 20 m hanya cadangan. Di 9 dari 56 kelurahan, keselamatan Siaga Padang lebih rendah daripada Baseline: Batang Kabung (0,3% vs 1,1%), Air Tawar Timur (22,3% vs 31,0%), Pasir Nan Tigo (17,0% vs 18,8%), Bungus Selatan, Bungus Barat (54,8% vs 79,8%), Air Manis, Rawang, Taluak Bayua, dan Teluk Kabung Selatan. Di wilayah ini tujuan terdekat berada di arah laut atau sejajar pantai sehingga tidak boleh direkomendasikan. Selisih itu konsekuensi aturan BPBD; Baseline sendiri melanggar aturan tersebut.
+* **Siaga Padang menggandakan keselamatan nyata** menjadi 72,3% tanpa satu pun TES kelebihan kapasitas. Sekitar 81% warga diarahkan keluar zona (zona aman/TEA), karena titik zona hijau yang sempat dicapai hampir selalu lebih jauh dari pantai daripada TES di zona merah.
+* **Rata-rata waktu tempuh lebih panjang, dan memang disengaja.** Warga yang masih sempat diarahkan ke tujuan terjauh dari pantai yang masih terjangkau ≤ 20 menit, bukan ke tujuan tercepat. Waktu tempuhnya bertambah, tetapi tetap di bawah 20 menit dan posisinya lebih aman.
+* **Ada harga dari aturan arah.** Tujuan harus menjauh dari pantai lebih dari 15° (sejajar tidak boleh) dan jembatan ≥ 20 m hanya cadangan. Di 7 dari 56 kelurahan, keselamatan Siaga Padang lebih rendah daripada Baseline: Batang Kabung (0,3% vs 1,1%), Air Tawar Timur (25,8% vs 31,0%), Bungus Selatan (54,0% vs 63,7%), Bungus Barat (66,3% vs 79,8%), Air Manis, Teluk Kabung Selatan, dan Gates Nan XX. Di wilayah ini tujuan terdekat berada di arah laut atau sejajar pantai sehingga tidak boleh direkomendasikan. Selisih itu konsekuensi aturan BPBD; Baseline sendiri melanggar aturan tersebut.
 * **Kantong rawan.** Kelurahan dengan keselamatan terendah (Batang Kabung, Pasir Nan Tigo, Padang Sarai, Bungo Pasang di Koto Tangah) adalah kandidat lokasi TES vertikal baru untuk direkomendasikan ke BPBD. Rinciannya di `analisis/output/hasil_simulasi_kelurahan.csv` dan peta celah `hasil_build/peta_celah_kelurahan.csv` (H-7).
 
-### Pembanding: rute zona aman v2 (di luar kontrak)
+### Pembanding: tabel zona aman kontrak lama
 
-Tabel kontrak `tb_safe_routes` hanya memberi rute zona aman kepada simpul merah yang tujuan pohon global-nya lolos syarat arah (7.793 dari 8.812). Tabel tambahan `tb_safe_routes_v2` menilai syarat per pasangan warga–tujuan sehingga menjangkau 8.795 simpul. Bila aplikasi memakai v2 (opsional, handoff Android §4.7):
+Bila aplikasi tetap memakai `tb_safe_routes` (kontrak §2.1 lama: pohon global ke batas zona hijau terdekat; 1.019 simpul merah tanpa baris karena tujuannya tidak lolos syarat arah):
 
-| Metrik Siaga Padang | Tabel kontrak (resmi) | v2 (pembanding) |
+| Metrik Siaga Padang | `tb_safe_routes_v2` (resmi, usulan wajib) | `tb_safe_routes` (kontrak lama) |
 | :--- | :--- | :--- |
-| Selamat: tiba ≤ 20 menit & tertampung | **68,8%** | 70,9% |
+| Selamat: tiba ≤ 20 menit & tertampung | **72,3%** | 69,0% |
 | TES melebihi kapasitas | 0 | 0 |
-| Rata-rata waktu tempuh | 20,69 menit | 19,45 menit |
-| Tujuan TES / TEA / zona aman (agen) | 3.700 / 705 / 15.595 | 2.970 / 355 / 16.675 |
-| Pembanding 1,2 m/s: selamat | 76,1% | 77,8% |
+| Rata-rata waktu tempuh | 24,93 menit | 23,69 menit |
+| Tujuan TES / TEA / zona aman (agen) | 3.698 / 297 / 16.005 | 7.402 / 1.342 / 11.256 |
+| Pembanding 1,2 m/s: selamat | 78,4% | 75,8% |
 
-Selisih 2,1 poin berasal dari warga yang di tabel kontrak tidak punya opsi zona aman sehingga harus ke TES/TEA yang lebih jauh. Jalankan: `env\Scripts\python.exe analisis\simulasi_resmi_padang.py --rute-aman v2` (keluaran berakhiran `_v2`).
+Dengan tabel lama, tujuan zona aman berhenti di batas zona hijau yang dekat pantai, sehingga TES/TEA lebih sering terpilih sebagai "yang terjauh", dan warga tanpa baris zona aman harus ke tujuan yang lebih lama. Jalankan: `env\Scripts\python.exe analisis\simulasi_resmi_padang.py --rute-aman kontrak` (keluaran berakhiran `_kontrak`).
 
-Catatan: cakupan penugasan di `build_db.py` (71,0% jiwa punya tujuan ≤ 20 menit) memakai rute zona aman v2, sehingga mendekati angka pembanding v2.
+Riwayat: DB 2026.10.12 (aturan "tercepat yang lolos syarat", keluar zona didahulukan) menghasilkan 68,8% dengan tabel kontrak dan 70,9% dengan v2.
+
+Catatan: cakupan penugasan di `build_db.py` (71,7% jiwa punya tujuan ≤ 20 menit) memakai aturan dan rute v2 yang sama.
 
 ## Batasan Model
 * Tidak memodelkan kemacetan pejalan kaki atau antrean tangga (lihat simulasi mikro BPR di `legacy/simulasi/`).

@@ -1,4 +1,4 @@
-# Handoff Backend: Dataset Siaga Padang 2026.10.12
+# Handoff Backend: Dataset Siaga Padang 2026.10.13
 
 **Untuk:** Sheva (backend) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 11 Oktober 2026
 **Acuan:** kontrak DB `siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1 dan tugas S-6; alur rilis di `backend/DATASET_V4_ROLLOUT.md`. Sisi aplikasi: [handoff_android.md](handoff_android.md) (Mikail).
@@ -11,24 +11,26 @@ Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit 
 
 | | |
 |---|---|
-| Versi dataset | **2026.10.12** |
-| `.db` | 29.974.528 byte, SHA-256 `077edbc573e175606643decb1a9ed87a8c0bb93711caf27b99a956cb23789680` |
-| `.zip` | 6.287.484 byte, SHA-256 `c848d90081359c0f76bc5aba080c680be6b042a744c0b4953ff7842f399f1d83` |
+| Versi dataset | **2026.10.13** |
+| `.db` | 30.916.608 byte, SHA-256 `553808d708fd4b44d0ebac6954e22823e4336ee33b43000f33f1d9951f4cf05d` |
+| `.zip` | 6.479.624 byte, SHA-256 `609bef0f168e78c0aa4ab73744f881cab9b41be4545fed30d6ae0889193d5867` |
 | `schema_version` | `android-v1` (sama dengan `SUPPORTED_SCHEMA_VERSION` aplikasi) |
 | `minimum_app_version` | **0.2.0** (aplikasi 0.1.0 tidak bisa membuka DB ini, lihat §4) |
 
-> **Paket 2026.10.10 (`e0fc52de…`) yang sudah di-*stage* di Supabase diganti versi ini.** Paket itu belum mengikuti kontrak §2.1: satuan ETA, kolom baru, syarat arah ±15°, jembatan ≥ 20 m, dan label sumber BPBD/WARGA. Versi 2026.10.11 juga tidak dipakai. Mohon jangan mengaktifkan keduanya, dan perbarui `backend/DATASET_V4_ROLLOUT.md` serta bagian "Dataset baru" di `docs/backend_documentation.md` ke versi, checksum, dan ukuran di atas.
+> **Versi ini menggantikan 2026.10.12** (dan paket 2026.10.10 `e0fc52de…` yang sudah di-*stage* di Supabase, serta 2026.10.11). Bila 2026.10.12 sudah di-*stage*, biarkan tidak aktif dan *stage* versi ini. Mohon perbarui `backend/DATASET_V4_ROLLOUT.md` serta bagian "Dataset baru" di `docs/backend_documentation.md` ke versi, checksum, dan ukuran di atas.
+>
+> **Yang berubah dari 2026.10.12 hanya isi rute** (aturan baru "tujuan terjauh dari pantai yang masih sempat ≤ 20 menit", lihat handoff Android §0). Skema, fasilitas, ID, nama, kapasitas, dan zona sama, jadi langkah backend tidak berubah. `tb_safe_routes_v2` kini 8.812 baris dan diusulkan menjadi tabel navigasi wajib di aplikasi (menunggu persetujuan Mikail).
 
 ---
 
 ## 2. Berkas
 
-Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.12`, atau paket `kirim_siaga_padang_2026.10.12.zip`:
+Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.13`, atau paket `kirim_siaga_padang_2026.10.13.zip`:
 
 | Berkas | Untuk |
 |---|---|
 | `ranah_siaga_v4.db` | Paket yang dilayani `/api/v1/sync/network` (SQLite mentah), masukan `stage_dataset_package.py` dan `bootstrap_from_android_db.py` |
-| `dataset_manifest_android.json` | Argumen `--manifest`: `{"version": "2026.10.12", "checksum": "077edbc5…", "size_bytes": 29974528}` |
+| `dataset_manifest_android.json` | Argumen `--manifest`: `{"version": "2026.10.13", "checksum": "553808d7…", "size_bytes": 30916608}` |
 | `ranah_siaga_v4.db.zip` | Hanya bila unduhan awal saat startup (`app/main.py`) tetap memakai zip; isinya bernama `ranah_siaga_v4.db` |
 
 `hasil_build/dataset_manifest.json` (tanpa `_android`) adalah catatan engine (checksum zip dan `.db`); jangan dipakai sebagai manifest.
@@ -49,11 +51,11 @@ Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.12`, 
    python scripts/bootstrap_from_android_db.py data/ranah_siaga_v4.db \
      --manifest data/dataset_manifest_android_v4.json \
      --minimum-app-version 0.2.0 \
-     --download-url '/api/v1/sync/network?version=2026.10.12'
+     --download-url '/api/v1/sync/network?version=2026.10.13'
    ```
 5. **Periksa:**
-   *   `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.12`, checksum `077edbc5…`, `size_bytes` 29974528, `minimum_app_version` 0.2.0.
-   *   `/api/v1/sync/network?version=2026.10.12`: SHA-256 hasil unduhan sama.
+   *   `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.13`, checksum `553808d7…`, `size_bytes` 30916608, `minimum_app_version` 0.2.0.
+   *   `/api/v1/sync/network?version=2026.10.13`: SHA-256 hasil unduhan sama.
    *   Dropdown TES/TEA operator berisi **269** titik aktif (244 TES + 25 TEA).
    *   Lapor selamat ke salah satu TES baru (misalnya TES_246 Hotel Ibis) diterima.
 6. **Kabari Mikail** bila versi sudah aktif, supaya pembaruan lewat jaringan diuji dari HP.
@@ -64,9 +66,9 @@ Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.12`, 
 
 Dicek dari kode sumber (belum dijalankan ke PostGIS):
 
-| Pemeriksaan backend | DB 2026.10.12 |
+| Pemeriksaan backend | DB 2026.10.13 |
 |---|---|
-| `validate_v4_schema`: `tb_safe_routes` (`origin_node_id`, `safe_node_id`, `safe_eta`, `safe_zone_id`) dan `tb_safe_routes_v2` (+ `kelompok`), tidak kosong | Lolos (30.794 dan 8.795 baris) |
+| `validate_v4_schema`: `tb_safe_routes` (`origin_node_id`, `safe_node_id`, `safe_eta`, `safe_zone_id`) dan `tb_safe_routes_v2` (+ `kelompok`), tidak kosong | Lolos (30.794 dan 8.812 baris) |
 | `validate_v4_minimum_app_version` menolak `0.1.0` | Gunakan `0.2.0` |
 | Bootstrap `tb_tes`: `tes_id`, `nama_tes`, `kapasitas`, `lat`, `lon`, opsional `zona`, `lantai`, `sumber` | Semua ada. `lantai` dan `sumber` kini terisi |
 | Bootstrap `tb_tea`: `tea_id`, `nama_tea`, `kapasitas`, `lat`, `lon`, opsional `kelurahan`, `kecamatan`, `sumber` | Semua ada |
@@ -75,7 +77,7 @@ Dicek dari kode sumber (belum dijalankan ke PostGIS):
 | `tb_nodes` (`node_id`, `lon`, `lat`) dan `tb_edges` (`edge_id`, `u`, `v`, `geometry`) untuk `RouteEdge` | Ada (31.813 simpul, 39.216 ruas) |
 | `verify_package` (ukuran + SHA-256) | Cocok dengan manifest |
 
-Kolom baru `tb_nodes.jarak_pantai_m` (kontrak §2.1) membuat `NodeEntity` aplikasi 0.1.0 menolak DB ini (validasi Room). Karena itu `minimum_app_version` **wajib** 0.2.0, bukan sekadar disarankan. Alasannya kolom ini, bukan tabel `tb_safe_routes_v2`: tabel v2 opsional bagi aplikasi, tetapi tetap ada di DB sehingga `validate_v4_schema` lolos.
+Kolom baru `tb_nodes.jarak_pantai_m` (kontrak §2.1) membuat `NodeEntity` aplikasi 0.1.0 menolak DB ini (validasi Room). Karena itu `minimum_app_version` **wajib** 0.2.0, bukan sekadar disarankan. Alasannya kolom ini. Tabel `tb_safe_routes_v2` sudah ada sejak versi sebelumnya, jadi `validate_v4_schema` tetap lolos.
 
 ---
 
@@ -109,9 +111,9 @@ Graf tetap 31.813 simpul dan 39.216 ruas (sama dengan versi lama), jadi `RouteEd
 
 ## 6. Hal lain di sisi backend
 
-1. **Unduhan awal saat startup** (`app/main.py`): URL Google Drive masih menunjuk ke DB lama. Ganti ke paket 2026.10.12 (Release `db-2026.10.12` atau Drive baru). Isi zip bernama `ranah_siaga_v4.db`, jadi ganti nama setelah ekstraksi atau atur `DATASET_PACKAGE_PATH`. Karena paket kini disimpan di database server, langkah ini hanya cadangan.
+1. **Unduhan awal saat startup** (`app/main.py`): URL Google Drive masih menunjuk ke DB lama. Ganti ke paket 2026.10.13 (Release `db-2026.10.13` atau Drive baru). Isi zip bernama `ranah_siaga_v4.db`, jadi ganti nama setelah ekstraksi atau atur `DATASET_PACKAGE_PATH`. Karena paket kini disimpan di database server, langkah ini hanya cadangan.
 2. **Rollback:** bila versi baru bermasalah, aktifkan kembali `DataVersion` sebelumnya. Aplikasi 0.2.0 menolak dataset lama tanpa kolom baru bila `DatasetPackageInstaller` sudah diperketat (handoff Android §4.5).
-3. **Dokumen:** perbarui `backend/DATASET_V4_ROLLOUT.md` dan `docs/backend_documentation.md` (bagian "Dataset baru") ke 2026.10.12.
+3. **Dokumen:** perbarui `backend/DATASET_V4_ROLLOUT.md` dan `docs/backend_documentation.md` (bagian "Dataset baru") ke 2026.10.13.
 
 ---
 
