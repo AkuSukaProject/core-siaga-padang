@@ -16,6 +16,7 @@ Keluaran (analisis/output/):
   - hasil_simulasi_kelurahan.csv    : tingkat keselamatan per kelurahan
 """
 import sys
+import argparse
 import os
 import json
 import time
@@ -42,6 +43,15 @@ KECEPATAN_PEMBANDING_MS = 1.2
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT, "hasil_build", "ranah_siaga_v4.db")
 DIR_OUTPUT = os.path.join(ROOT, "analisis", "output")
+
+# Sumber rute zona aman skenario Siaga Padang:
+#   kontrak (bawaan): tb_safe_routes, tabel yang dibaca aplikasi sesuai kontrak DB §2.1;
+#   v2: tb_safe_routes_v2 (opsional, di luar kontrak, cakupan lebih luas). Keluaran v2 diberi akhiran _v2.
+_arg = argparse.ArgumentParser(description="Simulasi kanonis Baseline vs Siaga Padang")
+_arg.add_argument("--rute-aman", choices=["kontrak", "v2"], default="kontrak")
+RUTE_AMAN = _arg.parse_args().rute_aman
+TABEL_AMAN = "tb_safe_routes" if RUTE_AMAN == "kontrak" else "tb_safe_routes_v2"
+AKHIRAN = "" if RUTE_AMAN == "kontrak" else "_v2"
 
 start_total = time.time()
 
@@ -183,8 +193,8 @@ for r in pd.read_sql("SELECT * FROM tb_tea_routes", conn).itertuples(index=False
         k = k_of[tea_id]
         kandidat.setdefault(n, []).append((k, float(eta_tea[k][n])))
 eta_aman = np.full(N, np.inf)
-# Rute zona aman v2: tujuan selalu lebih jauh dari pantai daripada titik asal (aturan BPBD).
-safe = pd.read_sql("SELECT origin_node_id, safe_eta FROM tb_safe_routes_v2", conn)
+# Rute zona aman (tabel kontrak atau v2); keduanya hanya berisi tujuan yang lolos syarat arah BPBD.
+safe = pd.read_sql(f"SELECT origin_node_id, safe_eta FROM {TABEL_AMAN}", conn)
 eta_aman[idx_of[safe["origin_node_id"]].to_numpy()] = safe["safe_eta"].to_numpy() * KONVERSI_ETA
 ZONA_AMAN = -1
 
@@ -273,14 +283,14 @@ fas_out = fas[["facility_id", "jenis", "nama", "kelurahan", "kapasitas", "lat", 
 fas_out["kapasitas_agen"] = np.where(is_tes, kap_agen, np.nan)
 fas_out["beban_baseline_agen"] = beban_a
 fas_out["beban_siaga_agen"] = beban_b
-fas_out.to_csv(os.path.join(DIR_OUTPUT, "hasil_simulasi_fasilitas.csv"), index=False, encoding="utf-8-sig")
+fas_out.to_csv(os.path.join(DIR_OUTPUT, f"hasil_simulasi_fasilitas{AKHIRAN}.csv"), index=False, encoding="utf-8-sig")
 
 kel = nodes["kelurahan"].fillna("-").to_numpy()[asal_agen]
 df_kel = pd.DataFrame({"kelurahan": kel, "baseline": selamat_a, "siaga": selamat_b}).groupby("kelurahan").agg(
     agen=("baseline", "size"), selamat_baseline=("baseline", "sum"), selamat_siaga=("siaga", "sum"))
 df_kel["persen_baseline"] = (df_kel["selamat_baseline"] / df_kel["agen"] * 100).round(1)
 df_kel["persen_siaga"] = (df_kel["selamat_siaga"] / df_kel["agen"] * 100).round(1)
-df_kel.sort_values("persen_siaga").to_csv(os.path.join(DIR_OUTPUT, "hasil_simulasi_kelurahan.csv"), encoding="utf-8-sig")
+df_kel.sort_values("persen_siaga").to_csv(os.path.join(DIR_OUTPUT, f"hasil_simulasi_kelurahan{AKHIRAN}.csv"), encoding="utf-8-sig")
 
 # ==============================================================================
 # 6. PETA BERDAMPINGAN
@@ -386,10 +396,11 @@ fas.forEach(f => {{ tambah(mapA, f, false); tambah(mapB, f, true); }});
 </body>
 </html>
 """
-path_html = os.path.join(DIR_OUTPUT, "peta_simulasi_berdampingan.html")
+path_html = os.path.join(DIR_OUTPUT, f"peta_simulasi_berdampingan{AKHIRAN}.html")
 with open(path_html, "w", encoding="utf-8") as f:
     f.write(html)
 
-print(f"\nKeluaran di {os.path.relpath(DIR_OUTPUT, ROOT)}/: peta_simulasi_berdampingan.html, "
-      f"hasil_simulasi_fasilitas.csv, hasil_simulasi_kelurahan.csv")
+print(f"\nRute zona aman: {TABEL_AMAN} ({RUTE_AMAN})")
+print(f"Keluaran di {os.path.relpath(DIR_OUTPUT, ROOT)}/: peta_simulasi_berdampingan{AKHIRAN}.html, "
+      f"hasil_simulasi_fasilitas{AKHIRAN}.csv, hasil_simulasi_kelurahan{AKHIRAN}.csv")
 print(f"Total waktu: {time.time() - start_total:.1f} detik")

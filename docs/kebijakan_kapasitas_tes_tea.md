@@ -23,7 +23,7 @@ Sistem memberlakukan aturan perhitungan rute yang sangat berbeda untuk Tempat Ev
 Angka lama di proposal (74,49% selamat) dihitung dengan asumsi semua warga ke TES dan tidak dapat direproduksi. Simulasi kanonis dijalankan ulang dengan data BPBD terbaru, TES berbatas kapasitas, serta TEA dan zona aman tanpa batas ([simulasi_kanonis.md](simulasi_kanonis.md)):
 
 *   **Baseline** (warga ke tempat terdekat, kapasitas diabaikan): 35,6% selamat, 82 TES kelebihan beban.
-*   **Siaga Padang** (rekomendasi DB): **70,9%** selamat, **0** TES kelebihan beban. Sekitar 83% warga diarahkan keluar zona (zona aman/TEA) karena kebijakan "keluar zona dulu bila sempat" (K-B6), sehingga beban TES jauh berkurang.
+*   **Siaga Padang** (rekomendasi DB, tabel sesuai kontrak): **68,8%** selamat, **0** TES kelebihan beban (70,9% bila aplikasi memakai rute zona aman v2 yang opsional). Sekitar 81% warga diarahkan keluar zona (zona aman/TEA) karena kebijakan "keluar zona dulu bila sempat" (K-B6), sehingga beban TES jauh berkurang.
 *   Angka tidak mendekati 100% karena aturan BPBD (tujuan harus menjauhi pantai, hindari jembatan) dan sebaran TES: sekitar 22% warga zona merah tidak sempat ke tempat evakuasi mana pun dalam 20 menit pada laju orang terlemah.
 
 ## 4. Kebijakan Antarmuka (UI) dan Mode Darurat
