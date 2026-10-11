@@ -26,7 +26,7 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (
 | `tb_tea` | `tea_id` (`TEA_001`…) | TEA di luar area landaan: nama, kelurahan, kecamatan (`sektor`), kapasitas (0 = tidak ada data), lat, lon, `jarak_pantai_m`, `sumber` | `nearest_node_id` → `tb_nodes` |
 | `tb_tea_routes` | `origin_node_id` | TEA utama & alternatif per node yang lolos syarat arah | → `tb_nodes` (1:1); `nearest_tea_id`, `alt_tea_id` → `tb_tea` |
 | `tb_tea_next` | (`tea_id`, `node_id`) | Node berikutnya menuju tiap TEA | `tea_id` → `tb_tea`; `node_id`, `next_node_id` → `tb_nodes` |
-| `tb_safe_routes` | `origin_node_id` | Zona aman terdekat untuk **semua** node dari satu pohon global: `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_zone_id`. `safe_eta = 0` menandai tujuan zona hijau (status tiba). Rantainya tidak menjamin syarat arah | → `tb_nodes` (1:1); `safe_zone_id` → `tb_safe_zones` |
+| `tb_safe_routes` | `origin_node_id` | Zona aman terdekat untuk **semua** node dari satu pohon global: `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_zone_id`. `safe_eta = 0` menandai tujuan zona hijau (status tiba). Simpul merah hanya diberi baris bila tujuannya lolos syarat arah (7.793 dari 8.812); dipakai aplikasi untuk navigasi sesuai kontrak | → `tb_nodes` (1:1); `safe_zone_id` → `tb_safe_zones` |
 | `tb_safe_next` | (`node_id`, `next_node_id`) | Node berikutnya pada pohon global | → `tb_nodes` |
 | `tb_inundation_zones` | `zone_id` | Poligon zona merah per kelurahan (`MULTIPOLYGON`, 7 desimal). `tingkat_bahaya` selalu `Tinggi` | Pemeriksaan spasial |
 | `tb_safe_zones` | `safe_zone_id` | Poligon zona hijau per kelurahan. `elevasi_m` NULL | Pemeriksaan spasial |
@@ -38,7 +38,7 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (
 
 | Tabel | Primary key | Isi |
 |---|---|---|
-| `tb_safe_routes_v2` | `origin_node_id` | Zona aman per node **zona merah** yang lolos syarat arah, untuk navigasi: `kelompok` (nomor gerbang tujuan), `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m`, `safe_zone_id` |
+| `tb_safe_routes_v2` | `origin_node_id` | **Di luar kontrak, opsional.** Zona aman per node **zona merah** dengan syarat arah dinilai per pasangan warga–tujuan (8.795 simpul): `kelompok` (nomor gerbang tujuan), `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m`, `safe_zone_id` |
 | `tb_safe_next_v2` | (`kelompok`, `node_id`) | Next-hop menuju zona aman per gerbang; dirangkai seperti `tb_tea_next` |
 | `tb_fasilitas_info` | `facility_id` | Semua TES/TEA sumber, termasuk yang tidak dipakai: `dipakai`, `alasan_tidak_dipakai`, `kapasitas` (termasuk estimasi internal), `kapasitas_sumber`, `d_pantai_m`, `indeks_bahaya`, data 2019, `nama_bpbd` (nama asli), `sumber`, `nama_daftar_resmi_bpbd`, `lantai` |
 | `tb_node_info` | `node_id` | Kelurahan, `d_pantai_m`, `indeks_bahaya`, `demand_jiwa`, flag rute TES/zona aman lewat jembatan ≥ 20 m, `kantong_aman`, `rute_tes_mendekat_pantai_m`, `rute_aman_mendekat_pantai_m` |

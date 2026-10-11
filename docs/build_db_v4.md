@@ -102,6 +102,10 @@ Uji ini dibuat sebelum kontrak diterapkan, dengan syarat tujuan "lebih jauh dari
 
 Keluaran di `hasil_build/`: `ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip` (deterministik, tidak di-commit), `dataset_manifest.json` (checksum zip dan `.db`), `dataset_manifest_android.json` (format aset aplikasi), `daftar_tes_tea.csv` (H-1: nama unik, koordinat, sumber, daya tampung, lantai), `bpbd_2019_tanpa_titik.csv`, dan `peta_celah_kelurahan.csv` (H-7).
 
+## Perbaikan untuk versi DB berikutnya
+
+- Teks `tb_metadata.catatan_rute_aman` masih menyebut `tb_safe_routes_v2` sebagai jalur navigasi. Sesuai kontrak, navigasi memakai `tb_safe_routes` / `tb_safe_next` (yang kini patuh syarat arah); v2 opsional. Teks ini tidak memengaruhi fungsi dan tidak diubah di 2026.10.12 agar isi rilis tetap sama.
+
 ## Hal yang perlu dikonfirmasi ke BPBD
 
 Daftar pertanyaan lengkap yang siap dikirim: [pertanyaan_bpbd.md](pertanyaan_bpbd.md). Ringkasnya:

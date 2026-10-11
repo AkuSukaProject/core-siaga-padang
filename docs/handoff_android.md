@@ -3,7 +3,7 @@
 **Untuk:** Mikail (Android) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 11 Oktober 2026
 **Acuan:** kontrak DB di `siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §1 (asumsi kerja) dan §2.1 (isi DB); tugas terkait M-3, M-8, M-9. Sisi server: [handoff_backend.md](handoff_backend.md) (Sheva).
 
-Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit `fcf0926`, 10 Oktober). Ke-21 kueri `@Query` di branch itu sudah diuji berjalan pada DB ini; perubahan yang tetap wajib ada di §4.
+Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit `fcf0926`, 10 Oktober). Ke-21 kueri `@Query` di branch itu sudah diuji berjalan pada DB ini. Perubahan **wajib** di §4.1–§4.6 semuanya berasal dari kontrak §2.1 dan tugas M-3, M-8, M-9; §4.7 adalah tambahan opsional di luar kontrak.
 
 ---
 
@@ -21,7 +21,7 @@ Yang berubah dari DB 2026.09.28 yang sekarang dipakai aplikasi:
 1. **Data baru BPBD**: zona merah dari KRB 2023–2027, 244 TES (45 bersumber BPBD, 199 WARGA), 25 TEA, penduduk terpapar 242.750 jiwa.
 2. **Aturan BPBD tertanam di rute**: tujuan harus menjauhi pantai (tidak boleh sejajar), jembatan ≥ 20 m dihindari, keluar zona dulu bila sempat.
 3. **Satuan ETA tetap 1,2 m/s** (kontrak); aplikasi mengonversi ke 0,89 m/s (M-3).
-4. **Kolom dan tabel baru** sesuai kontrak: `jarak_pantai_m`, `sumber`, `lantai`, `tb_bridge_edges`, rute zona aman v2.
+4. **Kolom dan tabel baru** sesuai kontrak: `jarak_pantai_m`, `sumber`, `lantai`, `tb_bridge_edges`. Ada juga tabel rute zona aman v2 di luar kontrak, **opsional** (§4.7).
 5. **Nilai yang boleh kosong**: `tb_tes.kapasitas`, `rank_2_*`, `rank_3_*`.
 
 ---
@@ -59,7 +59,7 @@ Aset yang terbundel sekarang (`ranah_siaga.db` 13 September, 130 MB) adalah DB l
 | `rank_k_eta` dan `safe_eta` pada **1,2 m/s** | Ya. 20 menit pada laju FEMA = `eta` ≤ 14,9 menit di tabel |
 | `tb_edges` ruas lurus tanpa geometri, urutan lon lat | Ya (18.961 ruas tanpa geometri) |
 | `tb_safe_routes.safe_eta = 0` menandai tujuan zona hijau | Ya, tidak pernah 0 di zona merah |
-| Pola `tb_tea_*`, `tb_safe_*` | Sama |
+| Pola `tb_tea_*`, `tb_safe_*` | Sama. Rute zona aman di `tb_safe_routes` / `tb_safe_next` dihitung ulang dan patuh syarat arah (§4.3) |
 | Poligon WKT `MULTIPOLYGON` 2D, 7 desimal | Ya, semua poligon |
 | Ukuran ≤ 75 MB | 29,97 MB |
 | `tb_tes`: `sumber`, `jarak_pantai_m`, `kapasitas` kosong bila tidak ada data, `lantai` | Ya |
@@ -76,7 +76,7 @@ Aset yang terbundel sekarang (`ranah_siaga.db` 13 September, 130 MB) adalah DB l
 
 ---
 
-## 4. Perubahan kode yang wajib (M-9)
+## 4. Perubahan kode (wajib: §4.1–§4.6 dari kontrak; opsional: §4.7)
 
 ### 4.1 `NodeEntity.kt`: kolom baru `jarak_pantai_m`
 Room memvalidasi `tb_nodes` saat menyalin DB dari aset. Skema baru:
@@ -95,7 +95,6 @@ Tanpa ini, Room menolak DB dan aplikasi berhenti saat pertama dibuka. Akibatnya 
 |---|---|---|
 | `RouteRow` | `rank2Tes`, `rank2Path`, `rank2Eta`, `rank3Tes`, `rank3Path`, `rank3Eta` → nullable (`String?`, `Double?`) | Kontrak: rank 2/3 boleh kosong. 187 simpul tanpa rank 2, 869 tanpa rank 3. Saat ini bertipe non-null, jadi pembacaan baris itu gagal |
 | `TesRow` | `kapasitas: Double` → `Double?` | 77 dari 244 TES tidak punya daya tampung dari data BPBD (kontrak: kosong, bukan nilai bawaan) |
-| `SafeRouteRow` | Tambah `@ColumnInfo(name = "kelompok") val kelompok: Long?` | Kunci rantai rute zona aman v2 (§4.3) |
 
 Lalu sesuaikan pemakainya di `EvacuationRepository.kt`:
 *   `RouteRow.select(rank)` (± baris 609): bila `rankNTes == null`, rank itu tidak ada. `loadRoute(originNodeId, rank)` sebaiknya mengembalikan `null` atau melempar error yang ditangani, bukan crash.
@@ -103,10 +102,38 @@ Lalu sesuaikan pemakainya di `EvacuationRepository.kt`:
 *   `findRouteToFacility` (± baris 233) dan `AlternativeRouteSelector` / F-08: lewati rank yang kosong.
 *   Tampilan kapasitas TES (direktori, balon): `null` = "daya tampung belum ada data", bukan 0.
 
-### 4.3 Navigasi zona aman: pindah ke tabel v2
-`tb_safe_routes` / `tb_safe_next` adalah satu pohon untuk semua simpang dan tidak menjamin syarat arah. Di DB ini, 1.019 simpul merah yang tujuan pohon global-nya tidak lolos syarat arah tidak lagi punya baris di tabel lama. Untuk **navigasi**, pakai v2:
+### 4.3 Rute zona aman: tidak ada perubahan kode
+Sesuai kontrak, `tb_safe_routes` / `tb_safe_next` tetap berpola sama dan dihitung ulang dengan aturan arah. Kueri `EvacuationDao.findSafeRoute`, `findSafePathSteps`, dan `ZoneDao.findSafeRouteEta`, `findSafeZoneTargetGeometries` **tidak perlu diubah**.
 
-`EvacuationDao.findSafeRoute`:
+Yang berubah hanya isinya:
+*   **Semua rute zona aman di tabel ini lolos syarat arah.** 7.793 simpul merah punya rute; semuanya menjauh dari pantai (atau ≤ 100 m), dan rantai `tb_safe_next` dari tiap simpul berakhir di `safe_node_id`-nya.
+*   **1.019 simpul merah tidak punya baris**, karena zona aman terdekatnya tidak lolos syarat arah (misalnya sejajar pantai). Untuk mereka `findSafeRoute` mengembalikan `null`, dan aplikasi memakai TES/TEA, seperti yang sudah ditangani `runCatching`/`?: return` di `EvacuationRepository`. Bila ingin simpul-simpul ini tetap punya rute zona aman, lihat §4.7.
+*   Semua simpul aman tetap punya baris dengan `safe_eta = 0`, jadi status "sudah tiba" tidak berubah.
+
+### 4.4 Satuan waktu tempuh (M-3)
+| Sumber waktu di aplikasi | Perlakuan |
+|---|---|
+| `rank_k_eta`, `safe_eta` dari DB (menit pada 1,2 m/s) | Kalikan 1,2 ÷ 0,89 (`EvacuationRepository.loadRoute` ± baris 256, `buildSafeZoneRoute`) |
+| Panjang jalur dibagi laju (TEA, jalan memutar, `RequiredPaceAdvisor`, ± baris 322, 360, 410, 420) | Ganti `WALKING_SPEED_METERS_PER_SECOND` ke 0,89 m/s; **jangan** dikalikan lagi |
+| `estimatedDistanceMeters = estimatedSeconds × laju` (± baris 85) | Gunakan laju yang sama dengan yang membentuk `estimatedSeconds`, atau hitung jarak langsung dari panjang ruas |
+
+Bila M-3 belum dikerjakan, jangan memasang DB ini dulu: ETA di DB pada 1,2 m/s akan tampil apa adanya (terlalu cepat untuk orang terlemah).
+
+### 4.5 `DatasetPackageInstaller.kt` (pembaruan lewat jaringan)
+`REQUIRED_COLUMNS` saat ini cocok dengan DB ini. Saran (bukan kontrak): untuk 0.2.0, tambahkan pemeriksaan kolom yang kini dibaca aplikasi, agar paket lama ditolak sebelum diaktifkan:
+*   `tb_nodes`: tambah `jarak_pantai_m`
+*   `tb_bridge_edges`: `edge_id` (bila M-8 membacanya)
+*   `tb_safe_routes_v2`, `tb_safe_next_v2`: hanya bila memakai §4.7
+
+### 4.6 Versi aplikasi
+`android/app/build.gradle.kts`: `versionName = "0.2.0"`, `versionCode = 3` (kesepakatan dengan Sheva untuk `minimum_app_version`).
+
+### 4.7 Opsional, di luar kontrak: rute zona aman v2
+DB juga berisi `tb_safe_routes_v2` dan `tb_safe_next_v2`. Isinya rute zona aman per simpul merah yang syarat arahnya dinilai per pasangan warga–tujuan, sehingga **8.795** simpul merah punya rute (tabel lama: 7.793). Tabel ini tidak ada di kontrak §2.1; memakainya adalah keputusan Mikail. Bila tidak dipakai, tidak ada yang rusak.
+
+Bila dipakai, perubahannya:
+*   `SafeRouteRow`: tambah `@ColumnInfo(name = "kelompok") val kelompok: Long?`.
+*   `EvacuationDao.findSafeRoute`:
 ```sql
 SELECT route.origin_node_id, route.safe_node_id, route.safe_eta, route.kelompok, zone.nama_zona
 FROM tb_safe_routes_v2 AS route
@@ -114,8 +141,7 @@ LEFT JOIN tb_safe_zones AS zone ON zone.safe_zone_id = route.safe_zone_id
 WHERE route.origin_node_id = :originNodeId
 LIMIT 1
 ```
-
-`EvacuationDao.findSafePathSteps` (tambah parameter `kelompok`):
+*   `EvacuationDao.findSafePathSteps` (tambah parameter `kelompok`):
 ```sql
 WITH RECURSIVE path AS (
     SELECT node_id, next_node_id, 1 AS step
@@ -129,34 +155,9 @@ WITH RECURSIVE path AS (
 )
 SELECT node_id AS nodeId, next_node_id AS nextNodeId FROM path ORDER BY step ASC
 ```
-`EvacuationRepository.safePathNodeIds(originNodeId, row)` memanggilnya dengan `row.kelompok`. Pemeriksaan `pathNodeIds.last() == row.safeNodeId` tetap berlaku.
-
-Catatan perilaku:
-*   `tb_safe_routes_v2` hanya berisi simpul **zona merah** (8.795 dari 8.812). Untuk simpul aman tidak ada baris: pengguna sudah di zona aman.
-*   17 simpul merah tidak punya zona aman yang lolos syarat arah. Untuk mereka TES/TEA tetap ada; jangan jatuh kembali ke tabel lama.
-*   `kelompok` milik **simpul asal**. Saat pengguna berpindah, baca ulang baris v2 simpul baru beserta `kelompok`-nya.
-*   `findSafeZoneDetour` (± baris 440): untuk tetangga yang sudah zona aman (tidak ada baris v2), anggap tetangga itu sudah tujuan.
-
-**Tetap memakai tabel lama** (`ZoneDao.kt`): `findSafeRouteEta` dan `findSafeZoneTargetGeometries`. Keduanya membutuhkan semua simpang, dan `safe_eta = 0` tepat pada simpul tujuan zona hijau (bukan kantong aman < 50 ha), sehingga cocok untuk status "sudah tiba".
-
-### 4.4 Satuan waktu tempuh (M-3)
-| Sumber waktu di aplikasi | Perlakuan |
-|---|---|
-| `rank_k_eta`, `safe_eta` dari DB (menit pada 1,2 m/s) | Kalikan 1,2 ÷ 0,89 (`EvacuationRepository.loadRoute` ± baris 256, `buildSafeZoneRoute`) |
-| Panjang jalur dibagi laju (TEA, jalan memutar, `RequiredPaceAdvisor`, ± baris 322, 360, 410, 420) | Ganti `WALKING_SPEED_METERS_PER_SECOND` ke 0,89 m/s; **jangan** dikalikan lagi |
-| `estimatedDistanceMeters = estimatedSeconds × laju` (± baris 85) | Gunakan laju yang sama dengan yang membentuk `estimatedSeconds`, atau hitung jarak langsung dari panjang ruas |
-
-Bila M-3 belum dikerjakan, jangan memasang DB ini dulu: ETA di DB pada 1,2 m/s akan tampil apa adanya (terlalu cepat untuk orang terlemah).
-
-### 4.5 `DatasetPackageInstaller.kt` (pembaruan lewat jaringan)
-`REQUIRED_COLUMNS` saat ini cocok dengan DB ini. Untuk 0.2.0, tambahkan pemeriksaan tabel dan kolom yang kini dibaca aplikasi, agar paket lama (tanpa v2) ditolak sebelum diaktifkan:
-*   `tb_safe_routes_v2`: `origin_node_id`, `kelompok`, `safe_node_id`, `safe_eta`, `safe_zone_id`
-*   `tb_safe_next_v2`: `kelompok`, `node_id`, `next_node_id`
-*   `tb_nodes`: tambah `jarak_pantai_m`
-*   `tb_bridge_edges`: `edge_id` (bila M-8 membacanya)
-
-### 4.6 Versi aplikasi
-`android/app/build.gradle.kts`: `versionName = "0.2.0"`, `versionCode = 3`.
+*   `safePathNodeIds(originNodeId, row)` memanggilnya dengan `row.kelompok`; pemeriksaan `pathNodeIds.last() == row.safeNodeId` tetap berlaku.
+*   `kelompok` milik **simpul asal**: saat pengguna berpindah, baca ulang baris v2 simpul baru. `tb_safe_routes_v2` hanya berisi simpul merah; untuk tetangga yang sudah zona aman (tanpa baris v2) di `findSafeZoneDetour`, anggap tetangga itu tujuan.
+*   `ZoneDao.findSafeRouteEta` dan `findSafeZoneTargetGeometries` tetap memakai `tb_safe_routes`.
 
 ---
 
@@ -164,7 +165,7 @@ Bila M-3 belum dikerjakan, jangan memasang DB ini dulu: ETA di DB pada 1,2 m/s a
 
 | Aturan | Di DB | Akibat untuk aplikasi |
 |---|---|---|
-| **Arah (K-B1)** | TES rank 1–3, TEA, dan zona aman v2 hanya tujuan yang menjauh dari pantai > 15° (rasio > 0,27; ambang skrip audit 0,26 + margin). Tujuan ≤ 100 m tidak dinilai | Jangan menambah logika "TES terdekat" sendiri. Cek tetangga untuk jalan terhalang juga memakai rute prakomputasi tetangga ([konsep_pengalihan_rute_lokal.md](konsep_pengalihan_rute_lokal.md)) |
+| **Arah (K-B1)** | TES rank 1–3, TEA, dan zona aman (`tb_safe_routes`, juga v2) hanya tujuan yang menjauh dari pantai > 15° (rasio > 0,27; ambang skrip audit 0,26 + margin). Tujuan ≤ 100 m tidak dinilai | Jangan menambah logika "TES terdekat" sendiri. Cek tetangga untuk jalan terhalang juga memakai rute prakomputasi tetangga ([konsep_pengalihan_rute_lokal.md](konsep_pengalihan_rute_lokal.md)) |
 | **Jembatan (K-B2)** | Rute dicari dulu tanpa jembatan ≥ 20 m. Rute lewat jembatan hanya bila tujuan itu tak terjangkau tanpa jembatan | Keterangan "lewat jembatan" (M-8): `SELECT edge_id FROM tb_bridge_edges WHERE edge_id IN (:edgeIdsRute)` |
 | **Keluar zona dulu (K-B6)** | `tb_route_shares` (opsi A) mendahulukan TEA/zona aman yang ≤ 20 menit | `PrimaryRouteSelector` saat ini memilih yang tercepat. Sesuaikan: bila ada TEA/zona aman ≤ 20 menit (`eta` tabel ≤ 14,9), pilih itu sebelum TES |
 | **Status zona (K-B4)** | `tb_inundation_zones.tingkat_bahaya` selalu `Tinggi` | Peta hanya merah dan hijau |
@@ -190,12 +191,13 @@ Bila M-3 belum dikerjakan, jangan memasang DB ini dulu: ETA di DB pada 1,2 m/s a
 | Tabel | Isi | Kegunaan |
 |---|---|---|
 | `tb_bridge_edges` | `edge_id` jembatan ≥ 20 m | Keterangan "lewat jembatan" (M-8) |
+| `tb_safe_routes_v2`, `tb_safe_next_v2` | Rute zona aman v2 (di luar kontrak) | Cakupan rute zona aman lebih luas (§4.7) |
 | `tb_route_shares` | Porsi tujuan per simpul (opsi A) | Pemilihan tujuan berbasis daya tampung (RENCANA_KERJA §2.4) |
 | `tb_fasilitas_info` | Semua TES/TEA termasuk yang dikeluarkan, alasan, sumber kapasitas, `koordinat_sumber`, nama asli BPBD | Halaman direktori / data wilayah |
 | `tb_node_info` | Kelurahan, jarak pantai, jiwa, flag rute lewat jembatan | Analisis |
 | `tb_kelurahan_info` | Profil tsunami per kelurahan dari KRB | Data wilayah (masa tenang) |
 | `tb_jalur_resmi` | Ruas jalur evakuasi resmi BPBD | Sorot jalur di peta |
-| `tb_metadata` | Versi, sumber data, parameter | Halaman Tentang |
+| `tb_metadata` | Versi, sumber data, parameter | Halaman Tentang. Catatan: teks `catatan_rute_aman` di versi ini masih menyebut v2 sebagai jalur navigasi; yang berlaku adalah §4.3 dan §4.7 dokumen ini |
 
 ---
 
@@ -204,7 +206,7 @@ Bila M-3 belum dikerjakan, jangan memasang DB ini dulu: ETA di DB pada 1,2 m/s a
 1. Pasang aplikasi 0.2.0 dengan aset baru: DB tersalin, tidak ada error Room.
 2. Titik di zona merah dekat pantai (misalnya Purus, Ulak Karang): tujuan utama tidak ke arah laut; ETA tampil pada laju 0,89 m/s (± 34% lebih lama dari angka tabel).
 3. Titik dengan rank 2/3 kosong (misalnya di Koto Tangah): tidak crash; "Ada kendala?" berpindah ke TEA/zona aman.
-4. Rute zona aman: garis berakhir di zona hijau, dan "tiba" terdeteksi saat keluar zona.
+4. Rute zona aman: garis berakhir di zona hijau, dan "tiba" terdeteksi saat keluar zona. Titik yang tidak punya rute zona aman tetap diarahkan ke TES/TEA tanpa error.
 5. Rute yang melewati jembatan menampilkan keterangan "lewat jembatan".
 6. Direktori TES menampilkan TES baru (misalnya Hotel Ibis) dan TES tanpa daya tampung tanpa error.
 7. Widget dan rencana keluarga tetap berfungsi dengan ID dan nama baru.

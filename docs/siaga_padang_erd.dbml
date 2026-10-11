@@ -123,7 +123,7 @@ Table tb_safe_routes_v2 {
   mendekat_pantai_maks_m REAL [note: "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal"]
   safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
-  Note: "Zona aman per node ZONA MERAH yang patuh aturan pantai: tujuan selalu lebih jauh dari pantai daripada asal. Dipakai aplikasi baru."
+  Note: "OPSIONAL, di luar kontrak: zona aman per node ZONA MERAH dengan syarat arah per pasangan warga-tujuan (cakupan lebih luas dari tabel kontrak)."
 }
 
 Table tb_safe_next_v2 {
@@ -145,7 +145,7 @@ Table tb_safe_routes {
   safe_eta REAL
   safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
-  Note: "LAMA (kompatibilitas): zona aman terdekat per node dari satu pohon global; tidak menjamin aturan pantai."
+  Note: "Kontrak: zona aman per node dari satu pohon global; simpul merah hanya bila tujuan lolos syarat arah. safe_eta = 0 = tujuan zona hijau."
 }
 
 Table tb_safe_next {
@@ -156,7 +156,7 @@ Table tb_safe_next {
     (node_id, next_node_id) [pk]
   }
 
-  Note: "LAMA (kompatibilitas): next-hop pohon global menuju zona aman."
+  Note: "Kontrak: next-hop pohon global menuju zona aman."
 }
 
 TableGroup Rute_Zona_Aman {

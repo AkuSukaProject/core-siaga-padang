@@ -39,7 +39,8 @@ Isi DB mengikuti kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`
 6. **Syarat arah (filter keras, K-B1).** Fasilitas hanya menjadi kandidat untuk node asal bila menjauh dari pantai lebih dari 15°, yaitu (jarak pantai tujuan − asal) ÷ jarak lurus > sin 15°. Tujuan ≤ 100 m tidak dinilai. Rank 2 dan 3 boleh kosong.
 7. **Zona aman.** Kantong aman (< 50 ha, dikelilingi zona merah) tidak dijadikan tujuan.
    - **Pohon global** dari semua node aman (`tb_safe_routes` / `tb_safe_next`): `safe_eta = 0` menandai tujuan zona hijau.
-   - **Rute navigasi** (`tb_safe_routes_v2` / `tb_safe_next_v2`): untuk tiap node merah dipilih "gerbang" zona aman termurah yang lolos syarat arah; rantainya disimpan per gerbang (`kelompok`).
+   - Simpul merah di pohon global hanya diberi baris bila tujuannya lolos syarat arah (pola tabel sesuai kontrak).
+   - **Rute v2, opsional di luar kontrak** (`tb_safe_routes_v2` / `tb_safe_next_v2`): untuk tiap node merah dipilih "gerbang" zona aman termurah yang lolos syarat arah; rantainya disimpan per gerbang (`kelompok`).
 8. **Demand & penugasan (opsi A).** Jiwa terpapar per kelurahan (tabel KRB) disebar ke node zona merah menurut luas jejak bangunan, lalu dialokasikan secara *greedy*. Tujuan ≤ 20 menit didahulukan; di antaranya, keluar zona (TEA/zona aman) sebelum TES (K-B6). TES dibatasi kapasitas, TEA dan zona aman tidak.
 9. **Zona spasial.** Raster landaan dipoligonkan, dipotong per kelurahan menjadi zona merah dan zona hijau, lalu disimpan sebagai WKT `MULTIPOLYGON` 7 desimal.
 10. **SQLite & paket.** Kolom ETA ditulis pada 1,2 m/s (kontrak). Tabel ditulis, lalu `VACUUM`. DB dipaketkan ke `ranah_siaga_v4.db.zip`; checksum ditulis ke `dataset_manifest.json` dan `dataset_manifest_android.json`. Ikut ditulis: `daftar_tes_tea.csv`, `bpbd_2019_tanpa_titik.csv`, `peta_celah_kelurahan.csv`. Laporan build dicetak di terminal.
@@ -53,7 +54,7 @@ Build bersifat deterministik: input dan label versi (`--versi`) yang sama mengha
 | Posisi pengguna di zona merah atau aman | `tb_nodes.is_safe` di node terdekat, atau pemeriksaan poligon `tb_inundation_zones` / `tb_safe_zones` |
 | Rute ke TES (evakuasi vertikal) | `tb_routes` (hanya ada untuk node zona merah) → `rank_X_path` |
 | Rute ke TEA (evakuasi horizontal) | `tb_tea_routes` → rangkai dari `tb_tea_next` dalam satu kueri |
-| Rute keluar ke zona aman | `tb_safe_routes_v2` → rangkai dari `tb_safe_next_v2` dengan `kelompok` node asal |
+| Rute keluar ke zona aman | `tb_safe_routes` → rangkai dari `tb_safe_next` (kontrak); opsional `tb_safe_routes_v2` + `tb_safe_next_v2` dengan `kelompok` node asal untuk cakupan lebih luas |
 | Status tiba di zona aman | `tb_safe_routes.safe_eta = 0` pada node terdekat |
 | Keterangan "lewat jembatan" | `tb_bridge_edges` (edge_id ruas rute) |
 | Daftar & peta fasilitas | `v_fasilitas_evakuasi` |

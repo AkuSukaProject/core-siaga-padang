@@ -75,7 +75,7 @@ Dicek dari kode sumber (belum dijalankan ke PostGIS):
 | `tb_nodes` (`node_id`, `lon`, `lat`) dan `tb_edges` (`edge_id`, `u`, `v`, `geometry`) untuk `RouteEdge` | Ada (31.813 simpul, 39.216 ruas) |
 | `verify_package` (ukuran + SHA-256) | Cocok dengan manifest |
 
-Kolom baru `tb_nodes.jarak_pantai_m` membuat `NodeEntity` aplikasi 0.1.0 menolak DB ini (validasi Room). Karena itu `minimum_app_version` **wajib** 0.2.0, bukan sekadar disarankan.
+Kolom baru `tb_nodes.jarak_pantai_m` (kontrak §2.1) membuat `NodeEntity` aplikasi 0.1.0 menolak DB ini (validasi Room). Karena itu `minimum_app_version` **wajib** 0.2.0, bukan sekadar disarankan. Alasannya kolom ini, bukan tabel `tb_safe_routes_v2`: tabel v2 opsional bagi aplikasi, tetapi tetap ada di DB sehingga `validate_v4_schema` lolos.
 
 ---
 
@@ -110,7 +110,7 @@ Graf tetap 31.813 simpul dan 39.216 ruas (sama dengan versi lama), jadi `RouteEd
 ## 6. Hal lain di sisi backend
 
 1. **Unduhan awal saat startup** (`app/main.py`): URL Google Drive masih menunjuk ke DB lama. Ganti ke paket 2026.10.12 (Release `db-2026.10.12` atau Drive baru). Isi zip bernama `ranah_siaga_v4.db`, jadi ganti nama setelah ekstraksi atau atur `DATASET_PACKAGE_PATH`. Karena paket kini disimpan di database server, langkah ini hanya cadangan.
-2. **Rollback:** bila versi baru bermasalah, aktifkan kembali `DataVersion` sebelumnya. Aplikasi 0.2.0 tidak akan menerima dataset tanpa `tb_safe_routes_v2` bila `DatasetPackageInstaller` sudah diperketat (handoff Android §4.5).
+2. **Rollback:** bila versi baru bermasalah, aktifkan kembali `DataVersion` sebelumnya. Aplikasi 0.2.0 menolak dataset lama tanpa kolom baru bila `DatasetPackageInstaller` sudah diperketat (handoff Android §4.5).
 3. **Dokumen:** perbarui `backend/DATASET_V4_ROLLOUT.md` dan `docs/backend_documentation.md` (bagian "Dataset baru") ke 2026.10.12.
 
 ---
