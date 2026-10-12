@@ -137,6 +137,12 @@ FILE_JEMBATAN_OSM = os.path.join("data_osm", "jembatan_osm.json")
 # Koordinat bangunan daftar resmi BPBD 2019 yang tidak punya titik di data 2025, dicari lewat OSM Nominatim
 # dan diperiksa nama + jalannya (hasil: sudah_ada_di_data_2025 / baru_cocok / ragu / tidak_ditemukan).
 FILE_GEOKODE_BPBD = os.path.join("data_osm", "geokode_daftar_resmi_bpbd.csv")
+# Zona rawan tsunami dari peta evakuasi BPBD (Peta TES dan Potensial Shelter, 1:15.000, Blue Line), hasil
+# digitasi data_bpbd_digitasi/digitasi_peta_evakuasi.py. Zona merah = landaan KRB + zona ini.
+FILE_ZONA_PETA_EVAKUASI = os.path.join("data_bpbd_digitasi", "zona_rawan_peta_evakuasi_bpbd.geojson")
+# Ketelitian digitasi peta evakuasi (± 20-40 m): TEA baru dianggap di dalam zona hasil digitasi bila lebih dari
+# jarak ini ke dalam, supaya TEA di tepi zona (mis. Bukit Datar, 4 m) tidak gugur karena selisih digitasi.
+TOLERANSI_DIGITASI_M = 30.0
 # Jarak maksimum titik geokode ke titik TES 2025 yang dianggap bangunan yang sama.
 JARAK_MAKS_GEOKODE_M = 100.0
 DIR_HASIL = "hasil_build"
@@ -316,7 +322,16 @@ def daratan_dari_pantai(kota):
 kota = gdf_kel.union_all()
 daratan = daratan_dari_pantai(kota)
 kota_darat = kota.intersection(daratan)
-zona_merah = kontur_landaan().intersection(daratan).simplify(1.0)
+zona_krb = kontur_landaan()
+if os.path.exists(FILE_ZONA_PETA_EVAKUASI):
+    _pe = gpd.read_file(FILE_ZONA_PETA_EVAKUASI).to_crs(CRS_METER).set_index("nama").geometry
+    zona_peta_evakuasi, cakupan_peta_evakuasi = _pe["zona_rawan_peta_evakuasi"], _pe["cakupan_peta"]
+    SUMBER_ZONA = ("Raster Peta_Bahaya_Tsunami KRB 2023-2027 (BPBD) digabung dengan zona rawan tsunami peta evakuasi "
+                   "BPBD (Peta TES dan Potensial Shelter 1:15.000, digitasi data_bpbd_digitasi/), dipotong garis pantai OSM")
+else:
+    zona_peta_evakuasi = cakupan_peta_evakuasi = shapely.Polygon()
+    SUMBER_ZONA = "Raster Peta_Bahaya_Tsunami KRB 2023-2027 (BPBD), dipotong garis pantai OSM"
+zona_merah = shapely.union_all([zona_krb, zona_peta_evakuasi]).intersection(daratan).simplify(1.0)
 batas_kepingan = LUAS_MIN_KEPINGAN_HA * 1e4
 zona_merah = shapely.union_all([shapely.Polygon(p.exterior, [h for h in p.interiors if shapely.Polygon(h).area >= batas_kepingan])
                                 for p in shapely.get_parts(zona_merah)])
@@ -330,7 +345,9 @@ _keping_hijau = [p for p in shapely.get_parts(kota_darat.difference(zona_merah))
                  and p.boundary.intersection(_dekat_merah).length > 1.0]
 zona_merah = shapely.make_valid(shapely.union_all([zona_merah] + _keping_hijau))
 shapely.prepare(zona_merah)
-print(f"      Zona merah (kontur sub-piksel, dipotong ke daratan OSM): {zona_merah.area / 1e4:,.0f} ha, "
+print(f"      Zona peta evakuasi BPBD: {zona_peta_evakuasi.area / 1e4:,.0f} ha (cakupan peta {cakupan_peta_evakuasi.area / 1e4:,.0f} ha) | "
+      f"tambahan terhadap landaan KRB: {zona_peta_evakuasi.difference(zona_krb).intersection(daratan).area / 1e4:,.0f} ha")
+print(f"      Zona merah (KRB + peta evakuasi, dipotong ke daratan OSM): {zona_merah.area / 1e4:,.0f} ha, "
       f"{zona_merah.difference(kota).area / 1e4:,.0f} ha di pita pantai luar batas kelurahan | {len(_keping_hijau)} kepingan hijau "
       f"< {LUAS_MIN_KEPINGAN_HA:g} ha digabung | batas kelurahan di laut: {kota.difference(daratan).area / 1e4:,.0f} ha (dibuang)")
 
@@ -667,7 +684,8 @@ fas["alasan_tidak_dipakai"] = ""
 # bangunan 2 lantai). Pencocokan 2019 mensyaratkan nomor gedung sama persis.
 tes_tak_layak = (fas["Jns_fasili"] == "TES") & (fas["status_2019"] == "tidak potensial")
 fas.loc[tes_tak_layak, ["dipakai", "alasan_tidak_dipakai"]] = [0, "Verifikasi BPBD 2019: tidak potensial"]
-tea_di_landaan = (fas["Jns_fasili"] == "TEA") & di_zona_merah(x_fas, y_fas)
+_zona_tegas = shapely.union_all([zona_krb, zona_peta_evakuasi.buffer(-TOLERANSI_DIGITASI_M)]).intersection(daratan)
+tea_di_landaan = (fas["Jns_fasili"] == "TEA") & shapely.intersects(_zona_tegas, shapely.points(x_fas, y_fas))
 fas.loc[tea_di_landaan, ["dipakai", "alasan_tidak_dipakai"]] = [0, "TEA berada di dalam area landaan tsunami"]
 # Syarat H-1: semua titik berada di Kota Padang (batas kelurahan BPBD).
 luar_kota = ~fas["di_kota"] & (fas["dipakai"] == 1)
@@ -880,24 +898,18 @@ print(f"      tb_routes: {len(route_rows):,} node (rank 2 kosong: {sum(r[4] is N
 # 6. RUTE KE ZONA AMAN (KANTONG AMAN DIKELUARKAN + SYARAT ARAH PER WARGA)
 # ==============================================================================
 langkah("[6/9] Menghitung rute ke zona aman...")
-# Kantong aman: komponen sel raster tanpa landaan (8-tetangga) yang tidak menyentuh tepi raster
-# dan luasnya < LUAS_MIN_ZONA_AMAN_HA. Laut juga bernilai kosong, jadi tebing pantai yang
-# bersambung dengan laut tidak dihitung kantong (aturan arah yang menyaringnya).
-sel_aman = np.ma.getmaskarray(raster_bahaya)
-label_aman, _ = ndimage.label(sel_aman, structure=np.ones((3, 3), dtype=int))
-luas_sel_ha = abs(raster_src.transform.a * raster_src.transform.e) / 1e4
-luas_komponen_ha = np.bincount(label_aman.ravel()) * luas_sel_ha
-tepi = np.unique(np.concatenate([label_aman[0], label_aman[-1], label_aman[:, 0], label_aman[:, -1]]))
-komponen_kantong = luas_komponen_ha < LUAS_MIN_ZONA_AMAN_HA
-komponen_kantong[0] = False
-komponen_kantong[tepi] = False
-r_sel, c_sel, di_raster = r_tsunami.sel(x_node, y_node)
-kantong_node = np.zeros(N, dtype=bool)
-kantong_node[di_raster] = komponen_kantong[label_aman[r_sel[di_raster], c_sel[di_raster]]]
-kantong_node &= is_safe == 1
+# Kantong aman: bagian zona hijau (darat kota di luar zona merah) yang < LUAS_MIN_ZONA_AMAN_HA dan seluruh
+# tepinya berbatasan dengan zona merah. Bagian yang menyentuh pantai atau batas luar kota tidak dihitung
+# kantong (aturan arah yang menyaringnya). Dihitung dari poligon gabungan, bukan raster, karena zona merah
+# kini juga berasal dari peta evakuasi.
+_dekat_merah_k = zona_merah.buffer(1.0)
+kantong = [p for p in shapely.get_parts(kota_darat.difference(zona_merah))
+           if p.area < LUAS_MIN_ZONA_AMAN_HA * 1e4 and p.boundary.difference(_dekat_merah_k).length < 1.0]
+kantong_geom = shapely.union_all(kantong) if kantong else shapely.Polygon()
+kantong_node = shapely.intersects(kantong_geom, titik_node) & (is_safe == 1)
 tujuan_aman = (is_safe == 1) & ~kantong_node
-print(f"      Kantong aman (< {LUAS_MIN_ZONA_AMAN_HA:.0f} ha, dikelilingi zona merah): {komponen_kantong.sum():,} "
-      f"({luas_komponen_ha[komponen_kantong].sum():,.0f} ha) | node di kantong (bukan tujuan): {kantong_node.sum():,}")
+print(f"      Kantong aman (< {LUAS_MIN_ZONA_AMAN_HA:.0f} ha, dikelilingi zona merah): {len(kantong):,} "
+      f"({kantong_geom.area / 1e4:,.0f} ha) | node di kantong (bukan tujuan): {kantong_node.sum():,}")
 
 # 6a. tb_safe_routes / tb_safe_next: satu pohon global untuk SEMUA node. Dipakai aplikasi untuk
 #     safe_eta = 0 (penanda tujuan zona hijau, kontrak §2.1) dan kompatibilitas; tidak menjamin syarat arah.
@@ -1019,34 +1031,62 @@ krb = krb[krb[0].astype(str).str.upper() == "TSUNAMI"].copy()
 krb["KEL"] = krb[2].map(norm_kel)
 jiwa_kel = dict(zip(krb["KEL"], pd.to_numeric(krb[8], errors="coerce").fillna(0)))
 
-# Sebaran dasimetrik: jiwa terpapar per kelurahan dibagi menurut luas jejak bangunan RTRW yang berada
-# di zona merah, lalu tiap bangunan ditempelkan ke node zona merah terdekat di kelurahan yang sama.
+# Sebaran dasimetrik: jiwa terpapar KRB per kelurahan dibagi menurut luas jejak bangunan RTRW yang berada
+# di landaan KRB, lalu tiap bangunan ditempelkan ke node zona merah terdekat di kelurahan yang sama.
+# Bangunan di zona merah tambahan dari peta evakuasi tidak tercakup tabel KRB, jadi penduduknya diperkirakan
+# dengan kepadatan (jiwa per m2 bangunan) kelurahan yang sama, atau median kota bila kelurahan itu tanpa landaan KRB.
 bx, by = shapely.get_x(pusat_bangunan.values), shapely.get_y(pusat_bangunan.values)
+zona_krb_darat = zona_krb.intersection(daratan)
+shapely.prepare(zona_krb_darat)
+titik_bangunan = shapely.points(bx, by)
 bangunan_merah = di_zona_merah(bx, by)
-gdf_bm = gpd.GeoDataFrame({"luas": luas_bangunan[bangunan_merah]},
+gdf_bm = gpd.GeoDataFrame({"luas": luas_bangunan[bangunan_merah],
+                           "krb": shapely.intersects(zona_krb_darat, titik_bangunan[bangunan_merah])},
                           geometry=pusat_bangunan.values[bangunan_merah], crs=CRS_METER)
 gdf_bm = gpd.sjoin(gdf_bm, gdf_kel[["KEL", "geometry"]], how="inner", predicate="within")
 demand = np.zeros(N)
 kel_tanpa_bangunan, kel_tanpa_node_merah = [], []
-for kel, jiwa in jiwa_kel.items():
+
+
+def sebar(kel, jiwa, b):
+    """Sebar jiwa ke node zona merah kelurahan kel menurut luas bangunan b (rata bila tanpa bangunan)."""
     node_merah = np.flatnonzero((kel_node == kel) & (is_safe == 0))
     if len(node_merah) == 0:
         node_merah = np.flatnonzero(kel_node == kel)
         kel_tanpa_node_merah.append(kel)
-    if len(node_merah) == 0:
-        continue
-    b = gdf_bm[gdf_bm["KEL"] == kel]
+    if len(node_merah) == 0 or jiwa <= 0:
+        return
     if len(b) == 0:
         kel_tanpa_bangunan.append(kel)
         demand[node_merah] += jiwa / len(node_merah)
-        continue
+        return
     _, terdekat = cKDTree(np.column_stack([x_node[node_merah], y_node[node_merah]])).query(
         np.column_stack([b.geometry.x, b.geometry.y]))
     bobot = np.bincount(terdekat, weights=b["luas"].to_numpy(), minlength=len(node_merah))
     demand[node_merah] += jiwa * bobot / bobot.sum()
-print(f"      Penduduk terpapar KRB: {sum(jiwa_kel.values()):,.0f} jiwa di {len(jiwa_kel)} kelurahan | "
-      f"terdistribusi: {demand.sum():,.0f} | bangunan di zona merah: {len(gdf_bm):,} | "
-      f"node berpenghuni: {(demand > 0).sum():,}")
+
+
+kepadatan = {}
+for kel, jiwa in jiwa_kel.items():
+    b = gdf_bm[(gdf_bm["KEL"] == kel) & gdf_bm["krb"]]
+    if len(b) == 0:
+        b = gdf_bm[gdf_bm["KEL"] == kel]
+    if len(b):
+        kepadatan[kel] = jiwa / b["luas"].sum()
+    sebar(kel, jiwa, b)
+kepadatan_median = float(np.median(list(kepadatan.values())))
+jiwa_tambahan = {}
+for kel, b in gdf_bm[~gdf_bm["krb"]].groupby("KEL"):
+    if kel in jiwa_kel and not gdf_bm[(gdf_bm["KEL"] == kel) & gdf_bm["krb"]].empty:
+        jiwa_tambahan[kel] = kepadatan[kel] * b["luas"].sum()
+    elif kel not in jiwa_kel:
+        jiwa_tambahan[kel] = kepadatan_median * b["luas"].sum()
+    else:
+        continue  # bangunan kelurahan ini sudah dipakai menyebar jiwa KRB
+    sebar(kel, jiwa_tambahan[kel], b)
+print(f"      Penduduk terpapar KRB: {sum(jiwa_kel.values()):,.0f} jiwa di {len(jiwa_kel)} kelurahan | tambahan di zona "
+      f"peta evakuasi (perkiraan): {sum(jiwa_tambahan.values()):,.0f} jiwa di {len(jiwa_tambahan)} kelurahan | "
+      f"terdistribusi: {demand.sum():,.0f} | bangunan di zona merah: {len(gdf_bm):,} | node berpenghuni: {(demand > 0).sum():,}")
 
 # Kandidat per node asal: 3 TES (berkapasitas), 2 TEA & zona aman (tak terbatas), masing-masing dengan
 # jarak pantai tujuan dan penanda rute lewat jembatan >= 20 m.
@@ -1308,6 +1348,7 @@ mendekat_berarti = (is_safe == 0) & (np.nan_to_num(mendekat_aman2) > TOLERANSI_M
 tanpa_rute_aman = (is_safe == 0) & np.isnan(eta_aman2)
 tb_kel["jiwa_rute_aman_mendekat_pantai"] = [round(float(demand[(kel_node == k) & mendekat_berarti].sum()), 1) for k in krb["KEL"]]
 tb_kel["jiwa_tanpa_rute_aman"] = [round(float(demand[(kel_node == k) & tanpa_rute_aman].sum()), 1) for k in krb["KEL"]]
+tb_kel["jiwa_tambahan_peta_evakuasi"] = [round(float(jiwa_tambahan.get(k, 0.0)), 1) for k in krb["KEL"]]
 tb_kel.to_sql("tb_kelurahan_info", conn, index=False)
 
 versi = ARGS.versi or datetime.now().strftime("%Y.%m.%d")
@@ -1320,7 +1361,10 @@ metadata = {
                          "Bidang RR 2019) diberi sumber BPBD; selebihnya WARGA (lapis 'Kesepakatan warga')",
     "sumber_garis_pantai": SUMBER_PANTAI,
     "sumber_jembatan": SUMBER_JEMBATAN,
-    "sumber_zona_merah": "BPBD - KRB Kota Padang 2023-2027, raster Peta_Bahaya_Tsunami",
+    "sumber_zona_merah": SUMBER_ZONA,
+    "catatan_penduduk": "demand_jiwa = jiwa terpapar KRB per kelurahan (disebar ke bangunan di landaan KRB) ditambah "
+                        "perkiraan penduduk bangunan di zona merah tambahan peta evakuasi (kepadatan per luas bangunan "
+                        "kelurahan yang sama; median kota bila kelurahan itu tidak punya landaan KRB)",
     "sumber_penduduk": "BPBD - KRB Kota Padang 2023-2027, penduduk terpapar tsunami per kelurahan",
     "sumber_verifikasi_gedung": "BPBD - Daftar Shelter OK.xlsx (verifikasi 2019: lantai & kapasitas)",
     "sumber_jalur_resmi": "BPBD - Jalur_evakuasi_Padang.shp (jalur per RT/RW Kelurahan Tangguh)",
@@ -1416,7 +1460,8 @@ ada_tea = np.flatnonzero(tea_r1 >= 0)
 eta_min[ada_tea] = np.minimum(eta_min[ada_tea], eta_tea[tea_r1[ada_tea], ada_tea])
 eta_min = np.fmin(eta_min, np.where(np.isnan(eta_aman2), INF, eta_aman2))
 celah_rows = []
-for kel in krb["KEL"]:
+# Semua kelurahan yang punya simpul zona merah (termasuk yang zona merahnya hanya dari peta evakuasi).
+for kel in list(krb["KEL"]) + sorted(set(kel_node[merah]) - set(krb["KEL"]) - {""}):
     m = merah & (kel_node == kel)
     if not m.any():
         continue

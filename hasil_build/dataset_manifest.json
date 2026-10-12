@@ -1,10 +1,10 @@
 {
-  "version": "2026.10.14",
+  "version": "2026.10.15",
   "filename": "ranah_siaga_v4.db.zip",
-  "size_bytes": 6677497,
-  "checksum_sha256": "E167927F29D19130CBFFB9898C0FFCB25A5C61992CF386759AE88455D8819DE6",
+  "size_bytes": 7031563,
+  "checksum_sha256": "3631DB162BFFB2628DB699653BAE4EA79E229012FC2C6E8D2860BE4A3AB12D3F",
   "db_filename": "ranah_siaga_v4.db",
-  "db_size_bytes": 31522816,
-  "db_checksum_sha256": "6FE87165E5B922A634825D8FD1AF1BAC0B42B632D8A32DD9333E23F7F336F8F0",
+  "db_size_bytes": 34328576,
+  "db_checksum_sha256": "6DED16E3943F07D3697C44BF5E8E6459187DAC389E73E3C1C3A9A59999C9C45A",
   "description": "Siaga Padang V4 Database (data BPBD KRB 2023-2027, TES/TEA 2025, aturan evakuasi BPBD)"
 }

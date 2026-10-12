@@ -12,7 +12,7 @@ Sistem memberlakukan aturan perhitungan rute yang sangat berbeda untuk Tempat Ev
     TEA merupakan kawasan evakuasi horizontal menjauhi pantai berupa lahan terbuka yang luas. Angka kapasitas yang tertera di data TEA berfungsi sebagai estimasi logistik pengungsian pasca-bencana, bukan sebagai batas hidup/mati saat *Golden Hour*. 
     Memaksa warga yang sudah berjalan cepat dan tiba di zona aman/kaki bukit untuk berpindah ke bukit lain (hanya karena alasan kuota) sangatlah berbahaya. Oleh karena itu, rute menuju TEA **tidak dibatasi kapasitas**, dan hanya murni mencari waktu tempuh tercepat dari posisi warga.
 
-## 2. Sumber angka kapasitas di database (versi 2026.10.14)
+## 2. Sumber angka kapasitas di database (versi 2026.10.15)
 
 *   **`tb_tes.kapasitas`** hanya berisi daya tampung dari data BPBD, berurutan: titik TES/TEA 2025, daftar resmi BPBD 2019 ("TES OK"), lalu verifikasi BPBD 2019. Bila tidak ada, kolom **kosong** (77 dari 244 TES), sesuai kontrak DB aplikasi; nilai bawaan seperti 300 tidak dipakai lagi.
 *   **Penugasan internal (opsi A, `tb_route_shares`)** tetap butuh angka untuk TES yang kosong. Engine memperkirakannya dari luas jejak bangunan RTRW × jumlah lantai di atas lantai 2 ÷ 1 m² per orang, atau median TES BPBD. Estimasi ini hanya ada di `tb_fasilitas_info` (`kapasitas_sumber` = "estimasi …") dan tidak ditampilkan sebagai data resmi.
@@ -22,8 +22,8 @@ Sistem memberlakukan aturan perhitungan rute yang sangat berbeda untuk Tempat Ev
 
 Angka lama di proposal (74,49% selamat) dihitung dengan asumsi semua warga ke TES dan tidak dapat direproduksi. Simulasi kanonis dijalankan ulang dengan data BPBD terbaru, TES berbatas kapasitas, serta TEA dan zona aman tanpa batas ([simulasi_kanonis.md](simulasi_kanonis.md)):
 
-*   **Baseline** (warga ke tempat terdekat, kapasitas diabaikan): 35,6% selamat, 83 TES kelebihan beban.
-*   **Siaga Padang** (rekomendasi DB, rute zona aman v2): **72,2%** selamat, **0** TES kelebihan beban (68,9% bila aplikasi tetap memakai tabel zona aman kontrak lama). Sekitar 81% warga diarahkan keluar zona (zona aman/TEA), karena tujuan dipilih yang paling jauh dari pantai di antara yang sempat ≤ 20 menit dan titik zona hijau hampir selalu lebih jauh dari pantai daripada TES. Beban TES jadi jauh berkurang.
+*   **Baseline** (warga ke tempat terdekat, kapasitas diabaikan): 36,7% selamat, 104 TES kelebihan beban.
+*   **Siaga Padang** (rekomendasi DB, rute zona aman v2): **68,5%** selamat, **0** TES kelebihan beban (66,1% bila aplikasi tetap memakai tabel zona aman kontrak lama). Sekitar 72% warga diarahkan keluar zona (zona aman/TEA), karena tujuan dipilih yang paling jauh dari pantai di antara yang sempat ≤ 20 menit dan titik zona hijau hampir selalu lebih jauh dari pantai daripada TES. Beban TES jadi jauh berkurang.
 *   Angka tidak mendekati 100% karena aturan BPBD (tujuan harus menjauhi pantai, hindari jembatan) dan sebaran TES: sekitar 22% warga zona merah tidak sempat ke tempat evakuasi mana pun dalam 20 menit pada laju orang terlemah.
 
 ## 4. Kebijakan Antarmuka (UI) dan Mode Darurat

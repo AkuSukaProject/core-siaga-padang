@@ -1,6 +1,6 @@
 # Pertanyaan Lanjutan untuk BPBD Kota Padang
 
-**Disusun:** 11 Oktober 2026 · **Untuk:** Bidang Pencegahan dan Kesiapsiagaan (PK) BPBD Kota Padang (Bang Resko) · **Dasar:** DB rute evakuasi versi 2026.10.14
+**Disusun:** 11 Oktober 2026 · **Untuk:** Bidang Pencegahan dan Kesiapsiagaan (PK) BPBD Kota Padang (Bang Resko) · **Dasar:** DB rute evakuasi versi 2026.10.15
 
 Daftar ini melanjutkan pertanyaan di `siagapadang/docs/MASUKAN_BPBD_WAWANCARA.md` §6. Isinya hal-hal yang muncul setelah data BPBD diolah menjadi database aplikasi. Pertanyaan bertanda ⭐ paling berpengaruh pada isi aplikasi; jawabannya kami butuhkan sebelum **15 Oktober 2026** (DB final 16 Oktober, titik putus 18 Oktober).
 
@@ -36,16 +36,16 @@ Terima kasih atas data dan masukan dari BPBD. Data KRB 2023–2027, titik TES/TE
 ### C. Tempat evakuasi akhir (TEA)
 
 14. ⭐ **Daftar TEA resmi.** Data TEA kami dari digitasi Kelurahan Tangguh/latihan 2025. Apakah ada daftar TEA yang ditetapkan BPBD?
-15. ⭐ **21 TEA berada di dalam zona landaan** menurut peta bahaya tsunami KRB 2023–2027 (Lampiran 4), misalnya Bundaran Siti Nurbaya, Lapangan SSAG, dan LANTAMAL. Untuk sementara tidak kami pakai. Apakah titiknya salah plot, atau memang tidak layak sebagai TEA?
+15. ⭐ **21 TEA berada di dalam zona landaan** menurut peta bahaya tsunami KRB 2023–2027 (Lampiran 4), misalnya Bundaran Siti Nurbaya, Lapangan SSAG, dan LANTAMAL. Ditambah 3 TEA yang berada di dalam zona merah peta evakuasi BPBD: RTH Imam Bonjol, Kuburan Silungkang, dan halaman Masjid Raya Syekh Ahmad Khatib. Untuk sementara tidak kami pakai. Apakah titiknya salah plot, atau memang tidak layak sebagai TEA?
 
 ### D. Zona, ketinggian, dan penduduk
 
-16. **Garis biru batas 11 m.** Bolehkah kami meminta data titik atau garis biru batas zona aman? Saat ini batas zona hijau kami ambil dari peta bahaya tsunami KRB.
-17. **Jumlah jiwa terpapar.** Kami memakai 242.750 jiwa di 56 kelurahan (tabel KRB 2023–2027). Di wawancara juga disebut sekitar 260.000. Angka mana yang dipakai BPBD?
+16. ⭐ **Zona rawan tsunami & Blue Line dalam bentuk data.** Peta evakuasi BPBD ("Peta Tempat Evakuasi Sementara dan Lokasi Potensial Shelter") jauh lebih luas zona merahnya daripada raster bahaya tsunami KRB 2023–2027. Contohnya, Masjid Raya Syekh Ahmad Khatib berada ± 250 m di luar landaan KRB, tetapi di dalam zona merah peta evakuasi (sampai Blue Line Ampang). Kami memakai gabungan keduanya dengan mendigitasi gambar peta evakuasi (ketelitian ± 20–40 m). (a) Mana yang menjadi acuan resmi zona merah untuk evakuasi? (b) Bolehkah kami meminta berkas SHP/GDB zona rawan dan garis Blue Line (batas 11 m), termasuk untuk Bungus–Teluk Kabung dan Koto Tangah utara yang tidak tergambar di peta itu?
+17. **Jumlah jiwa terpapar.** Kami memakai 242.750 jiwa di 56 kelurahan (tabel KRB 2023–2027), ditambah perkiraan 71.193 jiwa di zona merah tambahan peta evakuasi (dari luas bangunan). Di wawancara juga disebut sekitar 260.000. Angka mana yang dipakai BPBD?
 
 ### E. Hasil untuk BPBD
 
-18. Dari perhitungan kami, sekitar **22% warga zona merah tidak sempat mencapai tempat evakuasi mana pun dalam 20 menit** (berjalan 0,89 m/s), terutama di Batang Kabung, Padang Sarai, Pasir Nan Tigo, dan Bungo Pasang (Koto Tangah). Rinciannya per kelurahan ada di Lampiran 5. Apakah data ini berguna bagi BPBD sebagai masukan penempatan TES baru?
+18. Dari perhitungan kami, sekitar **21% warga zona merah tidak sempat mencapai tempat evakuasi mana pun dalam 20 menit** (berjalan 0,89 m/s), terutama di Batang Kabung, Padang Sarai, Pasir Nan Tigo, dan Bungo Pasang (Koto Tangah). Rinciannya per kelurahan ada di Lampiran 5. Apakah data ini berguna bagi BPBD sebagai masukan penempatan TES baru?
 
 Terima kasih banyak, Bang. Bila lebih mudah dijelaskan lewat telepon atau bertemu langsung, kami siap menyesuaikan.
 
@@ -132,6 +132,9 @@ Indeks bahaya dari raster Peta Bahaya Tsunami KRB 2023–2027 (0–1).
 | TEA_040 | Lapangan Voli | Taluak Bayua | 0,92 |
 | TEA_042 | Lapangan TVRI | Jati | 0,29 |
 | TEA_043 | Dinas PU Sumatera Barat | Alai Parak Kopi | 0,88 |
+| TEA_033 | RTH Imam Bonjol | – | zona peta evakuasi |
+| TEA_038 | Kuburan Silungkang | – | zona peta evakuasi |
+| TEA_044 | Masjid Raya Syekh Ahmad Khatib (halaman) | Alai Parak Kopi | zona peta evakuasi |
 
 ## Lampiran 5. Warga yang tidak sempat ke tempat evakuasi mana pun (pertanyaan 18)
 

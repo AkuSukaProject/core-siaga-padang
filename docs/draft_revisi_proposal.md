@@ -1,6 +1,6 @@
 # Draft Revisi Proposal GEMASTIK: Integrasi Hasil Simulasi
 
-> **⚠️ Angka di draf ini berasal dari data lama** (143 TES, 12 TEA, 524 ribu jiwa, kecepatan 1,2 m/s). Data BPBD terbaru memakai 244 TES, 25 TEA, dan 242.750 jiwa terpapar (KRB 2023–2027). Jangan disalin ke proposal. Hasil simulasi dengan data baru (Baseline 35,6% vs Siaga Padang 72,2%, 83 vs 0 TES melebihi kapasitas) ada di [simulasi_kanonis.md](simulasi_kanonis.md); teks draf ini perlu ditulis ulang mengikuti angka tersebut.
+> **⚠️ Angka di draf ini berasal dari data lama** (143 TES, 12 TEA, 524 ribu jiwa, kecepatan 1,2 m/s). Data BPBD terbaru memakai 244 TES, 25 TEA, dan 242.750 jiwa terpapar (KRB 2023–2027). Jangan disalin ke proposal. Hasil simulasi dengan data baru (Baseline 36,7% vs Siaga Padang 68,5%, 104 vs 0 TES melebihi kapasitas) ada di [simulasi_kanonis.md](simulasi_kanonis.md); teks draf ini perlu ditulis ulang mengikuti angka tersebut.
 
 Dokumen ini berisi draf teks siap salin (*copy-paste*) yang dapat Anda gunakan untuk merevisi **BAB V** dan **BAB VI** pada proposal GEMASTIK Anda, berdasarkan hasil simulasi terbaru.
 

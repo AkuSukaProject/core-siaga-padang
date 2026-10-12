@@ -1,6 +1,6 @@
 # Spesifikasi ERD Database Siaga Padang (`ranah_siaga_v4.db`)
 
-Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (rilis 2026.10.14): tabel, primary key, dan keterkaitan logis antartabel. Database dibangun oleh [`build_db.py`](../build_db.py) dari data BPBD (lihat [build_db_v4.md](build_db_v4.md)) dan mengikuti kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1).
+Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (rilis 2026.10.15): tabel, primary key, dan keterkaitan logis antartabel. Database dibangun oleh [`build_db.py`](../build_db.py) dari data BPBD (lihat [build_db_v4.md](build_db_v4.md)) dan mengikuti kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1).
 
 - **DBML lengkap** (impor ke dbdiagram.io): [`siaga_padang_erd.dbml`](siaga_padang_erd.dbml). Berkas ini dibangkitkan otomatis oleh [`generate_dbml_file.py`](../generate_dbml_file.py) dari DB.
 - Semua relasi adalah **keterkaitan logis** yang dipakai aplikasi, bukan *foreign key constraint* SQLite.
@@ -26,9 +26,9 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (
 | `tb_tea` | `tea_id` (`TEA_001`…) | TEA di luar area landaan: nama, kelurahan, kecamatan (`sektor`), kapasitas (0 = tidak ada data), lat, lon, `jarak_pantai_m`, `sumber` | `nearest_node_id` → `tb_nodes` |
 | `tb_tea_routes` | `origin_node_id` | TEA utama & alternatif per node yang lolos syarat arah, dengan urutan yang sama seperti TES (`nearest_tea_id` = TEA utama, tidak selalu yang paling dekat) | → `tb_nodes` (1:1); `nearest_tea_id`, `alt_tea_id` → `tb_tea` |
 | `tb_tea_next` | (`tea_id`, `node_id`) | Node berikutnya menuju tiap TEA | `tea_id` → `tb_tea`; `node_id`, `next_node_id` → `tb_nodes` |
-| `tb_safe_routes` | `origin_node_id` | Batas zona hijau terdekat untuk **semua** node dari satu pohon global: `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_zone_id`. `safe_eta = 0` menandai tujuan zona hijau (status tiba). Simpul merah hanya diberi baris bila tujuannya lolos syarat arah (7.760 dari 8.808). Sejak 2026.10.13 diusulkan hanya untuk status tiba dan kompatibilitas; navigasi lewat `tb_safe_routes_v2` | → `tb_nodes` (1:1); `safe_zone_id` → `tb_safe_zones` |
+| `tb_safe_routes` | `origin_node_id` | Batas zona hijau terdekat untuk **semua** node dari satu pohon global: `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_zone_id`. `safe_eta = 0` menandai tujuan zona hijau (status tiba). Simpul merah hanya diberi baris bila tujuannya lolos syarat arah (10.444 dari 11.418). Sejak 2026.10.13 diusulkan hanya untuk status tiba dan kompatibilitas; navigasi lewat `tb_safe_routes_v2` | → `tb_nodes` (1:1); `safe_zone_id` → `tb_safe_zones` |
 | `tb_safe_next` | (`node_id`, `next_node_id`) | Node berikutnya pada pohon global | → `tb_nodes` |
-| `tb_inundation_zones` | `zone_id` | Poligon zona merah per kelurahan (`MULTIPOLYGON`, 7 desimal): kontur raster KRB, dipotong ke daratan (garis pantai OSM), termasuk pita pantai di luar batas kelurahan BPBD. Sama persis dengan `tb_nodes.is_safe = 0`. `tingkat_bahaya` selalu `Tinggi` | Pemeriksaan spasial |
+| `tb_inundation_zones` | `zone_id` | Poligon zona merah per kelurahan (`MULTIPOLYGON`, 7 desimal): landaan raster KRB ditambah zona rawan peta evakuasi BPBD (Blue Line, digitasi), dipotong ke daratan (garis pantai OSM), termasuk pita pantai di luar batas kelurahan BPBD. Sama persis dengan `tb_nodes.is_safe = 0`. `tingkat_bahaya` selalu `Tinggi` | Pemeriksaan spasial |
 | `tb_safe_zones` | `safe_zone_id` | Poligon zona hijau per kelurahan: bagian darat kelurahan di luar zona merah (tanpa celah, tidak tumpang tindih). `elevasi_m` NULL | Pemeriksaan spasial |
 | `tb_route_shares` | – | Porsi penugasan warga per node (opsi A): `jenis` (TES/TEA/ZONA_AMAN), `nama_tujuan`, `porsi` | `origin_node_id` → `tb_nodes` |
 | `tb_bridge_edges` | `edge_id` | Ruas yang memuat jembatan ≥ 20 m | `edge_id` → `tb_edges` |
@@ -38,11 +38,11 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (
 
 | Tabel | Primary key | Isi |
 |---|---|---|
-| `tb_safe_routes_v2` | `origin_node_id` | **Navigasi zona aman (usulan perubahan kontrak: wajib).** Per node **zona merah** (8.808, semuanya): titik zona hijau terjauh dari pantai yang sempat ≤ 20 menit dan lolos syarat arah, atau batas zona hijau termurah bila tidak ada yang sempat. Kolom: `kelompok` (nomor titik tujuan), `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m`, `safe_zone_id` |
+| `tb_safe_routes_v2` | `origin_node_id` | **Navigasi zona aman (usulan perubahan kontrak: wajib).** Per node **zona merah** (11.418, semuanya): titik zona hijau terjauh dari pantai yang sempat ≤ 20 menit dan lolos syarat arah, atau batas zona hijau termurah bila tidak ada yang sempat. Kolom: `kelompok` (nomor titik tujuan), `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m`, `safe_zone_id` |
 | `tb_safe_next_v2` | (`kelompok`, `node_id`) | Next-hop menuju zona aman per titik tujuan (945 kelompok); dirangkai seperti `tb_tea_next` |
 | `tb_fasilitas_info` | `facility_id` | Semua TES/TEA sumber, termasuk yang tidak dipakai: `dipakai`, `alasan_tidak_dipakai`, `kapasitas` (termasuk estimasi internal), `kapasitas_sumber`, `d_pantai_m`, `indeks_bahaya`, data 2019, `nama_bpbd` (nama asli), `sumber`, `nama_daftar_resmi_bpbd`, `lantai` |
 | `tb_node_info` | `node_id` | Kelurahan, `d_pantai_m`, `indeks_bahaya`, `demand_jiwa`, flag rute TES/zona aman lewat jembatan ≥ 20 m, `kantong_aman`, `rute_tes_mendekat_pantai_m`, `rute_aman_mendekat_pantai_m` |
-| `tb_kelurahan_info` | – (`kelurahan` unik) | Profil tsunami 56 kelurahan dari tabel KRB, ditambah `jiwa_rute_aman_mendekat_pantai` dan `jiwa_tanpa_rute_aman` |
+| `tb_kelurahan_info` | – (`kelurahan` unik) | Profil tsunami 56 kelurahan dari tabel KRB, ditambah `jiwa_rute_aman_mendekat_pantai`, `jiwa_tanpa_rute_aman`, dan `jiwa_tambahan_peta_evakuasi` (perkiraan penduduk di zona merah tambahan peta evakuasi) |
 | `tb_jalur_resmi` | (`u`, `v`) | Ruas graf yang mengikuti jalur evakuasi resmi BPBD |
 | `tb_metadata` | `kunci` | Versi, sumber data, parameter build |
 
