@@ -7,7 +7,7 @@
 Skrip ini menggantikan rantai lama `core.py` → `build_db_v2_with_tea.py` → `spatial/1..4` (diarsipkan di `legacy/pipeline_db/`).
 
 ```
-env\Scripts\python.exe build_db.py --versi 2026.10.13   # ±2,5 menit, keluaran di hasil_build/ + laporan di terminal
+env\Scripts\python.exe build_db.py --versi 2026.10.14   # ±2,5 menit, keluaran di hasil_build/ + laporan di terminal
 ```
 
 Tanpa `--versi`, label versi diambil dari tanggal build. Satu label versi hanya boleh dipakai untuk satu isi DB. Butuh `rasterio` untuk membaca raster di File Geodatabase BPBD.
@@ -48,7 +48,7 @@ Tanpa `--versi`, label versi diambil dari tanggal build. Satu label versi hanya 
 |---|---|---|
 | Laju orang terlemah (FEMA, K-B3) | Semua keputusan engine (20 menit, penugasan, simulasi) memakai 0,894 m/s | `KECEPATAN_JALAN_MS` |
 | Satuan kolom ETA (kontrak §2.1) | `rank_k_eta` dan `safe_eta` disimpan pada **1,2 m/s**; aplikasi mengalikan 1,2 ÷ 0,89. 20 menit riil = 14,9 menit tabel | `KECEPATAN_TABEL_MS` |
-| Zona merah = area landaan | Node di sel raster bahaya tsunami → `is_safe = 0` | – |
+| Zona merah = area landaan (sejak 2026.10.14) | Poligon zona merah dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 (sel 30 m) dibentuk dengan **kontur sub-piksel** (tepi mengikuti raster tanpa tangga 30 m), **dipotong ke daratan menurut garis pantai OSM** (kontrak H-3), dan **tidak dipotong batas kelurahan**: pita pantai yang di luar poligon kelurahan BPBD (59 ha) tetap merah dan dibagi ke kelurahan terdekat. Lubang kering dan serpihan hijau < 1 ha yang dikelilingi zona merah ikut merah. `is_safe` simpul, TEA di landaan, dan sebaran penduduk memakai poligon yang sama, jadi peta dan rute selalu sepakat. Simpul di dalam poligon → `is_safe = 0` | `LUAS_MIN_KEPINGAN_HA` |
 | Arah tujuan (K-B1) | TES, TEA, dan zona aman hanya menjadi tujuan bila menjauh dari pantai: (jarak_pantai tujuan − asal) ÷ jarak lurus > 0,27 (ambang 0,26 ≈ sin 15° milik skrip audit tim + margin 0,01). Sejajar tidak boleh. Tujuan ≤ 100 m tidak dinilai. Arah tidak pernah dilonggarkan | `ARAH_MIN_SIN`, `ARAH_JARAK_DEKAT_M` |
 | **Tujuan terjauh dari pantai** (sejak 2026.10.13) | Di antara tujuan yang terjangkau ≤ 20 menit riil (eta tabel ≤ 14,9) dan lolos syarat arah, dipilih yang **paling jauh dari pantai**; bila tidak ada, yang tercepat. Berlaku untuk urutan rank 1–3 TES, TEA utama/alternatif, zona aman v2, dan penugasan. Rute tanpa jembatan ≥ 20 m tetap didahulukan. Tercatat di `tb_metadata.aturan_tujuan` | `BATAS_WAKTU_MENIT` |
 | Zona aman per warga (`tb_safe_routes_v2`) | Dijkstra maju dari tiap node merah ke semua titik zona aman (bukan kantong). Dipilih titik **terdalam** (jarak pantai terbesar) yang sempat ≤ 20 menit dan lolos syarat arah, jadi warga terus masuk ke zona hijau; bila tidak ada yang sempat, titik batas zona hijau termurah. Rantai disimpan per titik tujuan (`tb_safe_next_v2.kelompok`) | – |
@@ -81,7 +81,7 @@ Uji ini dibuat sebelum kontrak diterapkan, dengan syarat tujuan "lebih jauh dari
 | **Gabungan (dipakai)** | **13,8%** | **2,8%** | **11,2%** | **1,7%** | **71,4%** |
 | Larangan total ruas > 50 m | – | – | – | – | 7,9% node tanpa jalan keluar |
 
-## Hasil build versi 2026.10.13
+## Hasil build versi 2026.10.14
 
 | Metrik | Nilai |
 |---|---|
@@ -90,22 +90,23 @@ Uji ini dibuat sebelum kontrak diterapkan, dengan syarat tujuan "lebih jauh dari
 | Dikeluarkan | TES: Taman Siswa ("tidak potensial"); Incasi Raya, Youth Center, FK Unand (titik ganda). TEA: 21 di dalam landaan |
 | Kapasitas TES dari data BPBD | 167 (BPBD 2025 155, daftar resmi 2019 11, verifikasi 2019 1); 77 kosong |
 | Daftar resmi BPBD 2019 (62 bangunan) | 45 tertaut: 20 lewat nama, 11 titik sama dengan nama lain, 14 titik baru dari geokode OSM (TES_235–TES_248). 17 belum punya titik |
-| Node zona merah / zona aman | 8.812 / 23.001 |
+| Node zona merah / zona aman | 8.808 / 23.005 |
 | Penduduk terpapar (KRB) | 242.750 jiwa di 56 kelurahan, disebar ke 7.678 node lewat 64.247 bangunan |
 | Arah tujuan | Skrip audit tim `docs/audit/analisis_masukan_bpbd.py`, dijalankan apa adanya: tujuan utama **0% mendekat, 0% sejajar** (DB 2026.09.28: 35,2% dan 18,5%). Verifikasi engine: TES rank 1–3, TEA, zona aman v2 juga 0% |
-| `tb_routes` | 8.728 node merah; rank 2 kosong 187, rank 3 kosong 869; 84 node tanpa TES yang lolos syarat (tetap punya TEA/zona aman). Rank 1 sempat ≤ 20 menit: 53,3% node (2026.10.12: 51,5%) |
-| Zona aman | v2: **8.812 dari 8.812** node merah; 5.140 diarahkan ke titik zona hijau terdalam yang sempat ≤ 20 menit, sisanya ke batas zona hijau termurah. 945 titik tujuan, `tb_safe_next_v2` 32.961 baris. Tabel kontrak lama `tb_safe_routes`: 1.019 node merah dibuang karena tujuan pohon global tidak lolos arah |
-| Jembatan ≥ 20 m | 176 ruas (OSM). Rute TES rank-1 yang terpaksa lewat jembatan (cadangan): 2.061 node (58.538 jiwa) |
-| Tidak sempat ke tujuan mana pun (0,894 m/s) | 20 menit: 23,3% node, 52.105 jiwa (21,5%) · 30 menit: 13,8% node, 30.067 jiwa (12,4%). Per kelurahan: `hasil_build/peta_celah_kelurahan.csv` |
-| Penugasan berkapasitas (opsi A) | 174.092 jiwa (71,7%) punya tujuan ≤ 20 menit; TES 44.293 · TEA 3.727 · zona aman 194.731 jiwa |
+| `tb_routes` | 8.724 node merah; rank 2 kosong 186, rank 3 kosong 860; 84 node tanpa TES yang lolos syarat (tetap punya TEA/zona aman). Rank 1 sempat ≤ 20 menit: 53,2% node (2026.10.12: 51,5%) |
+| Zona merah / hijau | 6.164 ha zona merah (56 poligon kelurahan; 59 ha di pita pantai luar batas kelurahan), zona hijau 96 poligon. 0 ha di laut (sebelumnya 329 ha zona merah dan 55 ha zona hijau di laut), tanpa celah atau tumpang tindih. 0 simpul yang `is_safe`-nya berbeda dengan poligon. Selisih dengan sel raster: 36 ha (kontur dan pengisian lubang) |
+| Zona aman | v2: **8.808 dari 8.808** node merah; 5.116 diarahkan ke titik zona hijau terdalam yang sempat ≤ 20 menit, sisanya ke batas zona hijau termurah. 945 titik tujuan, `tb_safe_next_v2` 32.890 baris. Tabel kontrak lama `tb_safe_routes`: 1.048 node merah dibuang karena tujuan pohon global tidak lolos arah |
+| Jembatan ≥ 20 m | 176 ruas (OSM). Rute TES rank-1 yang terpaksa lewat jembatan (cadangan): 2.059 node (58.753 jiwa) |
+| Tidak sempat ke tujuan mana pun (0,894 m/s) | 20 menit: 23,1% node, 51.882 jiwa (21,4%) · 30 menit: 13,8% node, 29.921 jiwa (12,3%). Per kelurahan: `hasil_build/peta_celah_kelurahan.csv` |
+| Penugasan berkapasitas (opsi A) | 173.788 jiwa (71,6%) punya tujuan ≤ 20 menit; TES 44.649 · TEA 3.727 · zona aman 194.374 jiwa |
 | Ruas rute TES rank-1 di jalur evakuasi resmi | 32,0% |
-| Ukuran DB / waktu build | 30,92 MB / ±2,5 menit (rute zona aman per titik tujuan) |
+| Ukuran DB / waktu build | 31,52 MB / ±3 menit (rute zona aman per titik tujuan) |
 
 Keluaran di `hasil_build/`: `ranah_siaga_v4.db`, `ranah_siaga_v4.db.zip` (deterministik, tidak di-commit), `dataset_manifest.json` (checksum zip dan `.db`), `dataset_manifest_android.json` (format aset aplikasi), `daftar_tes_tea.csv` (H-1: nama unik, koordinat, sumber, daya tampung, lantai), `bpbd_2019_tanpa_titik.csv`, dan `peta_celah_kelurahan.csv` (H-7).
 
 ## Perbaikan untuk versi DB berikutnya
 
-- Menunggu persetujuan Mikail atas usulan perubahan kontrak di 2026.10.13 (v2 wajib, aturan tujuan terjauh). Bila ditolak, aturan terjauh tetap berlaku untuk TES/TEA, tetapi rute zona aman kembali ke `tb_safe_routes` (batas zona hijau terdekat).
+- Menunggu persetujuan Mikail atas usulan perubahan kontrak sejak 2026.10.13 (v2 wajib, aturan tujuan terjauh). Bila ditolak, aturan terjauh tetap berlaku untuk TES/TEA, tetapi rute zona aman kembali ke `tb_safe_routes` (batas zona hijau terdekat).
 
 ## Hal yang perlu dikonfirmasi ke BPBD
 

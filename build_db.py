@@ -47,6 +47,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 from scipy import ndimage
 from scipy.spatial import cKDTree
+import contourpy
 from pyproj import Transformer
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -104,6 +105,9 @@ LANTAI_TERENDAM = 2
 # Titik TES/TEA bernama & berjenis sama yang berjarak <= nilai ini dianggap tempat yang sama dan
 # digabung (syarat nama unik H-1); yang lebih jauh dianggap tempat berbeda dan namanya dibedakan.
 GABUNG_JARAK_M = 100.0
+# Zona merah dari raster KRB 30 m: lubang kering dan kepingan zona hijau yang lebih kecil dari ini, yang
+# dikelilingi zona merah, ikut dijadikan zona merah (di bawah ketelitian raster; arah aman).
+LUAS_MIN_KEPINGAN_HA = 1.0
 # Ambang kemiripan nama untuk mencocokkan TES 2025 dengan daftar verifikasi 2019.
 AMBANG_KEMIRIPAN_NAMA = 0.88
 # Jalur evakuasi resmi BPBD/Kelurahan Tangguh diutamakan ("ikuti rambu evakuasi", bagian 11):
@@ -276,6 +280,65 @@ sampel_bahaya = r_tsunami.sampel
 print(f"      Kelurahan: {len(gdf_kel)} | Sel landaan tsunami: {raster_bahaya.count():,} "
       f"({raster_bahaya.count() * 0.09:,.0f} ha) | Bangunan: {len(bangunan):,} | Ruas jalur evakuasi resmi: {len(gdf_jalur):,}")
 
+
+def kontur_landaan():
+    """Poligon landaan dari raster KRB dengan kontur sub-piksel (marching squares, level 0,5 di antara pusat sel).
+    Tepinya mengikuti raster tanpa tangga 30 m; luasnya setara jumlah sel."""
+    t = raster_src.transform
+    z = np.pad((~np.ma.getmaskarray(raster_bahaya)).astype(float), 1)
+    gx = t.c + (np.arange(z.shape[1]) - 0.5) * t.a
+    gy = t.f + (np.arange(z.shape[0]) - 0.5) * t.e
+    titik_l, offset_l = contourpy.contour_generator(gx, gy, z, fill_type=contourpy.FillType.OuterOffset).filled(0.5, 2.0)
+    ke_m = Transformer.from_crs(raster_crs, CRS_METER, always_xy=True)
+    hasil = []
+    for titik, offset in zip(titik_l, offset_l):
+        xx, yy = ke_m.transform(titik[:, 0], titik[:, 1])
+        cincin = [np.column_stack([xx[a:b], yy[a:b]]) for a, b in zip(offset[:-1], offset[1:])]
+        hasil.append(shapely.Polygon(cincin[0], cincin[1:]))
+    return shapely.make_valid(shapely.union_all(hasil))
+
+
+def daratan_dari_pantai(kota):
+    """Daratan di sekitar kota: muka hasil memotong kotak sekitar kota dengan garis pantai OSM, yang memuat
+    sebagian besar kota (daratan utama) atau sebagian besar isinya kota (pulau). Batas kelurahan BPBD menjorok
+    ke laut di beberapa tempat (± 235 ha), raster KRB juga (± 330 ha), jadi zona dipotong ke daratan ini."""
+    if not SUMBER_PANTAI.startswith("OpenStreetMap"):
+        return kota
+    kotak = shapely.box(*kota.buffer(3000).bounds)
+    muka = shapely.get_parts(shapely.polygonize(shapely.get_parts(shapely.union_all([laut.intersection(kotak), kotak.boundary]))))
+    isi_kota = np.array([f.intersection(kota).area for f in muka])
+    return shapely.union_all([f for f, a in zip(muka, isi_kota) if a > 0.5 * f.area or a > 0.1 * kota.area])
+
+
+# Zona merah (dipakai bersama oleh poligon tb_inundation_zones, is_safe simpul, TEA di landaan, dan sebaran
+# penduduk) supaya peta dan rute selalu sepakat. Dipotong ke daratan (garis pantai OSM, kontrak H-3), bukan ke
+# batas kelurahan: pita pantai di darat yang di luar poligon kelurahan BPBD tetap zona merah.
+kota = gdf_kel.union_all()
+daratan = daratan_dari_pantai(kota)
+kota_darat = kota.intersection(daratan)
+zona_merah = kontur_landaan().intersection(daratan).simplify(1.0)
+batas_kepingan = LUAS_MIN_KEPINGAN_HA * 1e4
+zona_merah = shapely.union_all([shapely.Polygon(p.exterior, [h for h in p.interiors if shapely.Polygon(h).area >= batas_kepingan])
+                                for p in shapely.get_parts(zona_merah)])
+# Kepingan hijau kecil yang hanya berbatasan dengan zona merah atau sisi luar kota (laut), misalnya serpihan pantai
+# di antara kontur dan batas kelurahan.
+# Pulau kecil yang tidak bersentuhan dengan zona merah tetap mengikuti raster (bukan zona merah).
+_dekat_merah = zona_merah.buffer(1.0)
+_tepi_merah = _dekat_merah.union(kota_darat.boundary.buffer(1.0))
+_keping_hijau = [p for p in shapely.get_parts(kota_darat.difference(zona_merah))
+                 if p.area < batas_kepingan and p.boundary.difference(_tepi_merah).length < 1.0
+                 and p.boundary.intersection(_dekat_merah).length > 1.0]
+zona_merah = shapely.make_valid(shapely.union_all([zona_merah] + _keping_hijau))
+shapely.prepare(zona_merah)
+print(f"      Zona merah (kontur sub-piksel, dipotong ke daratan OSM): {zona_merah.area / 1e4:,.0f} ha, "
+      f"{zona_merah.difference(kota).area / 1e4:,.0f} ha di pita pantai luar batas kelurahan | {len(_keping_hijau)} kepingan hijau "
+      f"< {LUAS_MIN_KEPINGAN_HA:g} ha digabung | batas kelurahan di laut: {kota.difference(daratan).area / 1e4:,.0f} ha (dibuang)")
+
+
+def di_zona_merah(x_m, y_m):
+    titik = shapely.points(np.asarray(x_m, dtype=float), np.asarray(y_m, dtype=float))
+    return shapely.intersects(zona_merah, titik)
+
 # ==============================================================================
 # 2. GRAF JALAN: ATRIBUT NODE (ZONA MERAH, JARAK KE PANTAI, KELURAHAN)
 # ==============================================================================
@@ -292,7 +355,7 @@ x_node, y_node = ke_meter.transform(lon, lat)
 titik_node = shapely.points(x_node, y_node)
 
 indeks_bahaya_node = sampel_bahaya(x_node, y_node)
-is_safe = np.where(np.isnan(indeks_bahaya_node), 1, 0)
+is_safe = np.where(di_zona_merah(x_node, y_node), 0, 1)
 d_pantai = shapely.distance(titik_node, laut)
 
 gdf_nodes = gpd.GeoDataFrame({"i": np.arange(N)}, geometry=titik_node, crs=CRS_METER)
@@ -604,7 +667,7 @@ fas["alasan_tidak_dipakai"] = ""
 # bangunan 2 lantai). Pencocokan 2019 mensyaratkan nomor gedung sama persis.
 tes_tak_layak = (fas["Jns_fasili"] == "TES") & (fas["status_2019"] == "tidak potensial")
 fas.loc[tes_tak_layak, ["dipakai", "alasan_tidak_dipakai"]] = [0, "Verifikasi BPBD 2019: tidak potensial"]
-tea_di_landaan = (fas["Jns_fasili"] == "TEA") & fas["indeks_bahaya"].notna()
+tea_di_landaan = (fas["Jns_fasili"] == "TEA") & di_zona_merah(x_fas, y_fas)
 fas.loc[tea_di_landaan, ["dipakai", "alasan_tidak_dipakai"]] = [0, "TEA berada di dalam area landaan tsunami"]
 # Syarat H-1: semua titik berada di Kota Padang (batas kelurahan BPBD).
 luar_kota = ~fas["di_kota"] & (fas["dipakai"] == 1)
@@ -959,7 +1022,7 @@ jiwa_kel = dict(zip(krb["KEL"], pd.to_numeric(krb[8], errors="coerce").fillna(0)
 # Sebaran dasimetrik: jiwa terpapar per kelurahan dibagi menurut luas jejak bangunan RTRW yang berada
 # di zona merah, lalu tiap bangunan ditempelkan ke node zona merah terdekat di kelurahan yang sama.
 bx, by = shapely.get_x(pusat_bangunan.values), shapely.get_y(pusat_bangunan.values)
-bangunan_merah = ~np.isnan(sampel_bahaya(bx, by))
+bangunan_merah = di_zona_merah(bx, by)
 gdf_bm = gpd.GeoDataFrame({"luas": luas_bangunan[bangunan_merah]},
                           geometry=pusat_bangunan.values[bangunan_merah], crs=CRS_METER)
 gdf_bm = gpd.sjoin(gdf_bm, gdf_kel[["KEL", "geometry"]], how="inner", predicate="within")
@@ -1043,20 +1106,36 @@ jiwa_tanpa_tujuan = sisa.sum()
 # 8. POLIGON ZONA MERAH & ZONA AMAN (DARI RASTER BAHAYA TSUNAMI)
 # ==============================================================================
 langkah("[8/9] Membentuk poligon zona merah dan zona aman...")
-mask_landaan = (~np.ma.getmaskarray(raster_bahaya)).astype(np.uint8)
-poligon = [shape(g) for g, v in rasterio.features.shapes(mask_landaan, mask=mask_landaan.astype(bool),
-                                                          transform=raster_src.transform) if v == 1]
-landaan = gpd.GeoSeries(poligon, crs=raster_crs).to_crs(CRS_METER).union_all()
-landaan = landaan.simplify(10).buffer(0)
+# Pita pantai di luar batas kelurahan dibagi ke kelurahan terdekat (diagram Voronoi titik batas kelurahan).
+luar_kota = zona_merah.difference(kota)
+_dekat = shapely.box(*luar_kota.buffer(500).bounds)
+_titik, _label = [], []
+for kel, geom in zip(gdf_kel["KEL"], gdf_kel.geometry):
+    xy = shapely.get_coordinates(shapely.segmentize(geom.boundary, 20).intersection(_dekat))
+    _titik.append(xy)
+    _label += [kel] * len(xy)
+_titik = np.vstack(_titik)
+_titik, _unik = np.unique(np.round(_titik, 3), axis=0, return_index=True)
+_label = np.array(_label)[_unik]
+_sel = shapely.get_parts(shapely.voronoi_polygons(shapely.multipoints(_titik), extend_to=_dekat))
+_pasangan = shapely.STRtree(shapely.points(_titik)).query(_sel, predicate="contains")
+_pemilik = np.empty(len(_sel), dtype=object)
+_pemilik[_pasangan[0]] = _label[_pasangan[1]]
+wilayah_luar = {k: shapely.union_all(_sel[_pemilik == k]).intersection(luar_kota) for k in set(_pemilik) - {None}}
 inundation_rows, safe_zone_rows = [], []
 for kel, geom in zip(gdf_kel["KEL"], gdf_kel.geometry):
-    merah = geom.intersection(landaan)
-    hijau = geom.difference(landaan).simplify(10)
+    merah = geom.intersection(zona_merah)
+    if kel in wilayah_luar:
+        merah = merah.union(wilayah_luar[kel])
+    hijau = geom.intersection(daratan).difference(zona_merah)
+    # Serpihan < 100 m2 di sepanjang pantai hanyalah sisa pembulatan geometri, bukan zona hijau.
+    hijau = shapely.union_all([p for p in shapely.get_parts(hijau) if p.area >= 100])
     if not merah.is_empty and merah.area > 100:
         inundation_rows.append((judul(kel), "Tinggi", wkt_multipolygon(gpd.GeoSeries([merah], crs=CRS_METER).to_crs("EPSG:4326").iloc[0])))
     if not hijau.is_empty and hijau.area > 100:
         safe_zone_rows.append((judul(kel), None, wkt_multipolygon(gpd.GeoSeries([hijau], crs=CRS_METER).to_crs("EPSG:4326").iloc[0])))
-print(f"      Zona merah: {len(inundation_rows)} poligon kelurahan | zona aman: {len(safe_zone_rows)}")
+print(f"      Zona merah: {len(inundation_rows)} poligon kelurahan | zona aman: {len(safe_zone_rows)} | "
+      f"pita pantai luar batas kelurahan dibagi ke {len(wilayah_luar)} kelurahan")
 
 # ==============================================================================
 # 9. TULIS SQLITE

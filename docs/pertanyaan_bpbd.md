@@ -1,6 +1,6 @@
 # Pertanyaan Lanjutan untuk BPBD Kota Padang
 
-**Disusun:** 11 Oktober 2026 · **Untuk:** Bidang Pencegahan dan Kesiapsiagaan (PK) BPBD Kota Padang (Bang Resko) · **Dasar:** DB rute evakuasi versi 2026.10.13
+**Disusun:** 11 Oktober 2026 · **Untuk:** Bidang Pencegahan dan Kesiapsiagaan (PK) BPBD Kota Padang (Bang Resko) · **Dasar:** DB rute evakuasi versi 2026.10.14
 
 Daftar ini melanjutkan pertanyaan di `siagapadang/docs/MASUKAN_BPBD_WAWANCARA.md` §6. Isinya hal-hal yang muncul setelah data BPBD diolah menjadi database aplikasi. Pertanyaan bertanda ⭐ paling berpengaruh pada isi aplikasi; jawabannya kami butuhkan sebelum **15 Oktober 2026** (DB final 16 Oktober, titik putus 18 Oktober).
 

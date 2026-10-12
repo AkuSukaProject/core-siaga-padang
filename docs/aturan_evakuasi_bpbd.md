@@ -90,7 +90,7 @@ Ukuran "arah" yang dipakai adalah **jarak ke garis pantai**, bukan arah mata ang
 1. **Jarak ke pantai** setiap node dan fasilitas dihitung dari garis pantai OpenStreetMap (`natural=coastline`), disimpan sebagai `jarak_pantai_m`.
 2. **Syarat arah (aturan keras) untuk semua jenis tujuan.** TES, TEA, dan titik zona aman hanya boleh menjadi tujuan bila **menjauh**: (jarak pantai tujuan − jarak pantai warga) ÷ jarak lurus warga–tujuan > sin 15° (engine memakai rasio > 0,27: ambang 0,26 milik skrip audit tim + margin pembulatan). Tujuan yang sejajar pantai (dalam ±15°) atau mendekat dibuang. Tujuan dalam 100 m dari warga tidak dinilai arahnya. Arah tidak pernah dilonggarkan.
    - TES dan TEA dinilai per pasangan warga–fasilitas.
-   - Zona aman: `tb_safe_routes_v2` + `tb_safe_next_v2` menilai syarat per pasangan warga–titik zona aman, sehingga semua 8.812 simpul merah punya rute (usulan: tabel wajib bagi aplikasi sejak 2026.10.13). Tabel kontrak lama `tb_safe_routes` / `tb_safe_next` (satu pohon global) hanya memberi rute kepada simpul merah yang tujuannya lolos syarat (7.793 dari 8.812).
+   - Zona aman: `tb_safe_routes_v2` + `tb_safe_next_v2` menilai syarat per pasangan warga–titik zona aman, sehingga semua 8.808 simpul merah punya rute (usulan: tabel wajib bagi aplikasi sejak 2026.10.13). Tabel kontrak lama `tb_safe_routes` / `tb_safe_next` (satu pohon global) hanya memberi rute kepada simpul merah yang tujuannya lolos syarat (7.760 dari 8.808).
    - Hasil: skrip audit tim (`siagapadang/docs/audit/analisis_masukan_bpbd.py`) mencatat 0% tujuan utama mendekat dan 0% sejajar; verifikasi engine juga 0% untuk TES rank 1–3, TEA, dan zona aman.
 3. **Kantong aman kecil bukan tujuan.** Bagian zona aman yang dikelilingi zona merah dan < 50 ha (84 kantong, 123 ha) tidak dijadikan tujuan.
 4. **Bobot jalur (penalti), dua lapis**, supaya jalur menuju tujuan yang sudah lolos syarat tidak memutar mendekati laut:
@@ -329,7 +329,7 @@ Prinsip penulisan: **singkat**, karena orang hanya bisa mengingat ±3 hal. Pakai
 
 ## 16. Kesesuaian dengan Engine Saat Ini
 
-Status per 11 Oktober 2026 (DB versi 2026.10.13). Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `hasil_build/ranah_siaga_v4.db`), mengikuti aturan di dokumen ini dan kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
+Status per 12 Oktober 2026 (DB versi 2026.10.14). Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `hasil_build/ranah_siaga_v4.db`), mengikuti aturan di dokumen ini dan kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
 
 | Aturan BPBD | Kondisi engine (`build_db.py`) | Status |
 |---|---|---|
@@ -338,7 +338,7 @@ Status per 11 Oktober 2026 (DB versi 2026.10.13). Pembangun DB sekarang adalah [
 | Tujuan harus menjauhi pantai, tidak sejajar | Syarat arah ±15° (K-B1) untuk TES, TEA, dan zona aman: 0% mendekat, 0% sejajar (metrik skrip audit tim). Tujuan ≤ 100 m tidak dinilai. Kantong aman < 50 ha bukan tujuan. Garis pantai OSM. | ✅ Sesuai (batas 15° dan 100 m menunggu konfirmasi BPBD) |
 | Jalur tidak memutar ke pantai | Penalti 10 m per meter mendekat + ×50 untuk ruas yang mendekat > 50 m. Sisa jalur yang sempat mendekat > 50 m: TES rank-1 14,5%, zona aman 13,7% node zona merah (> 200 m: 3,0% dan 3,0%), terutama di Koto Tangah, karena jalannya memang hanya ke arah itu. Tujuannya tetap lolos syarat arah. | ⚠️ Sesuai sejauh jaringan jalan memungkinkan |
 | Rute tidak melewati jembatan | Jembatan ≥ 20 m dihindari: rute dicari dulu tanpa jembatan, rute lewat jembatan hanya cadangan bila tujuan tidak terjangkau tanpa jembatan (K-B2). Ruas di `tb_bridge_edges`. | ✅ Sesuai kebijakan 5.2.1 (masih perlu konfirmasi BPBD) |
-| Zona merah = area landaan | `is_safe` dan poligon zona merah diambil dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 | ✅ Sesuai |
+| Zona merah = area landaan | Poligon zona merah dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 (sel 30 m) dibentuk dengan **kontur sub-piksel** (tepi mengikuti raster tanpa tangga 30 m), **dipotong ke daratan menurut garis pantai OSM** (kontrak H-3), dan **tidak dipotong batas kelurahan**: pita pantai yang di luar poligon kelurahan BPBD (59 ha) tetap merah dan dibagi ke kelurahan terdekat. Lubang kering dan serpihan hijau < 1 ha yang dikelilingi zona merah ikut merah. `is_safe` simpul, TEA di landaan, dan sebaran penduduk memakai poligon yang sama, jadi peta dan rute selalu sepakat | ✅ Sesuai |
 | Peta evakuasi hanya merah/hijau | `tb_inundation_zones.tingkat_bahaya` diisi `Tinggi` untuk semua zona merah | ✅ Sesuai |
 | TEA tidak terkena bencana | TEA yang titiknya berada di area landaan dikeluarkan dari routing (21 titik, lihat laporan build) | ✅ Sesuai, daftar perlu dikonfirmasi BPBD |
 | Data TES bangunan ≤ 2 lantai tidak layak | Engine mengikuti penilaian BPBD 2019: yang "tidak potensial" dikeluarkan (Universitas Taman Siswa). Jumlah lantai bukan syarat tersendiri, karena di data BPBD 6 dari 7 bangunan ≤ 2 lantai sudah "tidak potensial"; satu-satunya pengecualian, Masjid Raya Sumbar (2 lantai, potensial, 15.000 orang), tetap dipakai dan ditanyakan ke BPBD. | ⚠️ Data lantai TES warga 2025 belum ada |
