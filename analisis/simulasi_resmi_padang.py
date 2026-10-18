@@ -38,6 +38,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 RANDOM_SEED = 42
 TOTAL_AGEN = 20000
 BATAS_WAKTU_MENIT = 20.0
+# Batas "sempat" untuk memilih tujuan, sama dengan aplikasi (K-B6, 12 Oktober): 20 menit dikurangi cadangan 5 menit.
+BATAS_SEMPAT_MENIT = 15.0
 # Skenario pembanding kecepatan rata-rata (bukan kecepatan resmi).
 KECEPATAN_PEMBANDING_MS = 1.2
 
@@ -206,10 +208,13 @@ ZONA_AMAN = -1
 
 
 def urutan(c):
-    """Aturan tujuan: di antara kandidat yang sempat dalam batas waktu, yang paling jauh dari pantai lebih dulu;
-    kandidat yang tidak sempat menyusul, urut ETA (tercepat yang menjauh, K-B6)."""
+    """Aturan aplikasi (K-B6, 12 Oktober): bila TEA atau zona aman sempat <= 15 menit, itu lebih dulu; lalu TES yang
+    sempat; di dalam tiap kelompok yang paling jauh dari pantai lebih dulu. Yang tidak sempat menyusul, urut ETA."""
     k, eta, d = c
-    return (0, -d) if eta <= BATAS_WAKTU_MENIT else (1, eta)
+    if eta > BATAS_SEMPAT_MENIT:
+        return (2, eta)
+    keluar_zona = k == ZONA_AMAN or not is_tes[k]
+    return (0 if keluar_zona else 1, -d)
 
 
 for n in np.unique(asal_agen):

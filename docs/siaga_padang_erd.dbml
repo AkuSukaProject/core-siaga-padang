@@ -1,5 +1,5 @@
 // DBML Schema Definition for dbdiagram.io
-// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.15). Jangan diedit manual.
+// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.16). Jangan diedit manual.
 
 Project SiagaPadangERD {
   database_type: 'SQLite'
@@ -123,7 +123,7 @@ Table tb_safe_routes_v2 {
   mendekat_pantai_maks_m REAL [note: "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal"]
   safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
-  Note: "Navigasi zona aman (usulan kontrak: wajib): per node ZONA MERAH, titik zona hijau terjauh dari pantai yang sempat <= 20 menit dan lolos syarat arah."
+  Note: "Navigasi zona aman (K-B6): per node ZONA MERAH, titik zona hijau terjauh dari pantai yang sempat <= 15 menit dan lolos syarat arah; bila tidak ada, batas zona hijau tercepat."
 }
 
 Table tb_safe_next_v2 {

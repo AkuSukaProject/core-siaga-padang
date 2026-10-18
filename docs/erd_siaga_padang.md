@@ -1,6 +1,6 @@
 # Spesifikasi ERD Database Siaga Padang (`ranah_siaga_v4.db`)
 
-Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (rilis 2026.10.15): tabel, primary key, dan keterkaitan logis antartabel. Database dibangun oleh [`build_db.py`](../build_db.py) dari data BPBD (lihat [build_db_v4.md](build_db_v4.md)) dan mengikuti kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1).
+Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (rilis 2026.10.16): tabel, primary key, dan keterkaitan logis antartabel. Database dibangun oleh [`build_db.py`](../build_db.py) dari data BPBD (lihat [build_db_v4.md](build_db_v4.md)) dan mengikuti kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1).
 
 - **DBML lengkap** (impor ke dbdiagram.io): [`siaga_padang_erd.dbml`](siaga_padang_erd.dbml). Berkas ini dibangkitkan otomatis oleh [`generate_dbml_file.py`](../generate_dbml_file.py) dari DB.
 - Semua relasi adalah **keterkaitan logis** yang dipakai aplikasi, bukan *foreign key constraint* SQLite.
@@ -38,7 +38,7 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (
 
 | Tabel | Primary key | Isi |
 |---|---|---|
-| `tb_safe_routes_v2` | `origin_node_id` | **Navigasi zona aman (usulan perubahan kontrak: wajib).** Per node **zona merah** (11.418, semuanya): titik zona hijau terjauh dari pantai yang sempat ≤ 20 menit dan lolos syarat arah, atau batas zona hijau termurah bila tidak ada yang sempat. Kolom: `kelompok` (nomor titik tujuan), `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m`, `safe_zone_id` |
+| `tb_safe_routes_v2` | `origin_node_id` | **Navigasi zona aman (K-B6, 12 Oktober).** Per node **zona merah** (11.418, semuanya): titik zona hijau terjauh dari pantai yang sempat ≤ 15 menit (`safe_eta` ≤ 11,175) dan lolos syarat arah, atau batas zona hijau yang tercepat dicapai bila tidak ada yang sempat. Kolom: `kelompok` (nomor titik tujuan), `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m`, `safe_zone_id` |
 | `tb_safe_next_v2` | (`kelompok`, `node_id`) | Next-hop menuju zona aman per titik tujuan (945 kelompok); dirangkai seperti `tb_tea_next` |
 | `tb_fasilitas_info` | `facility_id` | Semua TES/TEA sumber, termasuk yang tidak dipakai: `dipakai`, `alasan_tidak_dipakai`, `kapasitas` (termasuk estimasi internal), `kapasitas_sumber`, `d_pantai_m`, `indeks_bahaya`, data 2019, `nama_bpbd` (nama asli), `sumber`, `nama_daftar_resmi_bpbd`, `lantai` |
 | `tb_node_info` | `node_id` | Kelurahan, `d_pantai_m`, `indeks_bahaya`, `demand_jiwa`, flag rute TES/zona aman lewat jembatan ≥ 20 m, `kantong_aman`, `rute_tes_mendekat_pantai_m`, `rute_aman_mendekat_pantai_m` |

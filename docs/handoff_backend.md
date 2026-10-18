@@ -1,6 +1,6 @@
-# Handoff Backend: Dataset Siaga Padang 2026.10.15
+# Handoff Backend: Dataset Siaga Padang 2026.10.16
 
-**Untuk:** Sheva (backend) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 12 Oktober 2026
+**Untuk:** Sheva (backend) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 18 Oktober 2026
 **Acuan:** kontrak DB `siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1 dan tugas S-6; alur rilis di `backend/DATASET_V4_ROLLOUT.md`. Sisi aplikasi: [handoff_android.md](handoff_android.md) (Mikail).
 
 Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit `fcf0926`, 10 Oktober).
@@ -11,31 +11,33 @@ Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit 
 
 | | |
 |---|---|
-| Versi dataset | **2026.10.15** |
-| `.db` | 34.328.576 byte, SHA-256 `6ded16e3943f07d3697c44bf5e8e6459187dac389e73e3c1c3a9a59999c9c45a` |
-| `.zip` | 7.031.563 byte, SHA-256 `3631db162bffb2628db699653bae4ea79e229012fc2c6e8d2860be4a3ab12d3f` |
+| Versi dataset | **2026.10.16** |
+| `.db` | 34.197.504 byte, SHA-256 `3c0d982860dad047295a66635a8a2d69d17332fad536804b24d7d4c2f810b054` |
+| `.zip` | 6.992.036 byte, SHA-256 `9c393feb99fbb28fc8c5f9cd0ab14675d89cfb52fe95af6c075e794762fb2b55` |
 | `schema_version` | `android-v1` (sama dengan `SUPPORTED_SCHEMA_VERSION` aplikasi) |
 | `minimum_app_version` | **0.2.0** (aplikasi 0.1.0 tidak bisa membuka DB ini, lihat §4) |
 
-> **Versi ini menggantikan 2026.10.12** (dan paket 2026.10.10 `e0fc52de…` yang sudah di-*stage* di Supabase, serta 2026.10.11, 2026.10.13, dan 2026.10.14 yang tidak dirilis). Bila 2026.10.12 sudah di-*stage*, biarkan tidak aktif dan *stage* versi ini. Mohon perbarui `backend/DATASET_V4_ROLLOUT.md` serta bagian "Dataset baru" di `docs/backend_documentation.md` ke versi, checksum, dan ukuran di atas.
+> **Versi ini menggantikan 2026.10.15** (juga 2026.10.12 dan paket 2026.10.10 `e0fc52de…`; 2026.10.11, 2026.10.13, dan 2026.10.14 tidak dirilis). Bila 2026.10.15 atau 2026.10.12 sudah di-*stage*, biarkan tidak aktif dan *stage* versi ini. Mohon perbarui `backend/DATASET_V4_ROLLOUT.md` serta bagian "Dataset baru" di `docs/backend_documentation.md` ke versi, checksum, dan ukuran di atas.
+>
+> **Yang berubah dari 2026.10.15:** hanya isi rute zona aman v2 dan penugasan, mengikuti aturan K-B6 tanggal 12 Oktober (batas sempat 15 menit, zona hijau dulu; handoff Android §0). Zona, fasilitas, ID, nama, kapasitas, dan skema sama.
 >
 > **Yang berubah dari 2026.10.12:**
-> 1. Isi rute, karena aturan baru "tujuan terjauh dari pantai yang masih sempat ≤ 20 menit" (handoff Android §0).
+> 1. Isi rute, mengikuti aturan pilihan tujuan K-B6 (handoff Android §0).
 > 2. **Zona merah kini gabungan raster KRB dan zona rawan tsunami peta evakuasi BPBD (Blue Line)**, dan bentuknya lebih presisi (§5.3).
 > 3. **3 TEA tidak aktif lagi** karena kini berada di zona merah (§5.1).
 >
-> Skema tabel kontrak, TES, ID, nama, dan kapasitas sama, jadi langkah backend tidak berubah. `tb_safe_routes_v2` kini 11.418 baris dan diusulkan menjadi tabel navigasi wajib di aplikasi (menunggu persetujuan Mikail).
+> Skema tabel kontrak, TES, ID, nama, dan kapasitas sama, jadi langkah backend tidak berubah. `tb_safe_routes_v2` kini 11.418 baris dan dipakai aplikasi untuk navigasi zona aman.
 
 ---
 
 ## 2. Berkas
 
-Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.15`, atau paket `kirim_siaga_padang_2026.10.15.zip`:
+Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.16`, atau paket `kirim_siaga_padang_2026.10.16.zip`:
 
 | Berkas | Untuk |
 |---|---|
 | `ranah_siaga_v4.db` | Paket yang dilayani `/api/v1/sync/network` (SQLite mentah), masukan `stage_dataset_package.py` dan `bootstrap_from_android_db.py` |
-| `dataset_manifest_android.json` | Argumen `--manifest`: `{"version": "2026.10.15", "checksum": "6ded16e3…", "size_bytes": 34328576}` |
+| `dataset_manifest_android.json` | Argumen `--manifest`: `{"version": "2026.10.16", "checksum": "3c0d9828…", "size_bytes": 34197504}` |
 | `ranah_siaga_v4.db.zip` | Hanya bila unduhan awal saat startup (`app/main.py`) tetap memakai zip; isinya bernama `ranah_siaga_v4.db` |
 
 `hasil_build/dataset_manifest.json` (tanpa `_android`) adalah catatan engine (checksum zip dan `.db`); jangan dipakai sebagai manifest.
@@ -56,11 +58,11 @@ Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.15`, 
    python scripts/bootstrap_from_android_db.py data/ranah_siaga_v4.db \
      --manifest data/dataset_manifest_android_v4.json \
      --minimum-app-version 0.2.0 \
-     --download-url '/api/v1/sync/network?version=2026.10.15'
+     --download-url '/api/v1/sync/network?version=2026.10.16'
    ```
 5. **Periksa:**
-   *   `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.15`, checksum `6ded16e3…`, `size_bytes` 34328576, `minimum_app_version` 0.2.0.
-   *   `/api/v1/sync/network?version=2026.10.15`: SHA-256 hasil unduhan sama.
+   *   `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.16`, checksum `3c0d9828…`, `size_bytes` 34197504, `minimum_app_version` 0.2.0.
+   *   `/api/v1/sync/network?version=2026.10.16`: SHA-256 hasil unduhan sama.
    *   Dropdown TES/TEA operator berisi **266** titik aktif (244 TES + 22 TEA).
    *   Lapor selamat ke salah satu TES baru (misalnya TES_246 Hotel Ibis) diterima.
 6. **Kabari Mikail** bila versi sudah aktif, supaya pembaruan lewat jaringan diuji dari HP.
@@ -71,7 +73,7 @@ Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.15`, 
 
 Dicek dari kode sumber (belum dijalankan ke PostGIS):
 
-| Pemeriksaan backend | DB 2026.10.15 |
+| Pemeriksaan backend | DB 2026.10.16 |
 |---|---|
 | `validate_v4_schema`: `tb_safe_routes` (`origin_node_id`, `safe_node_id`, `safe_eta`, `safe_zone_id`) dan `tb_safe_routes_v2` (+ `kelompok`), tidak kosong | Lolos (30.839 dan 11.418 baris) |
 | `validate_v4_minimum_app_version` menolak `0.1.0` | Gunakan `0.2.0` |
@@ -119,9 +121,9 @@ Graf tetap 31.813 simpul dan 39.216 ruas (sama dengan versi lama), jadi `RouteEd
 
 ## 6. Hal lain di sisi backend
 
-1. **Unduhan awal saat startup** (`app/main.py`): URL Google Drive masih menunjuk ke DB lama. Ganti ke paket 2026.10.15 (Release `db-2026.10.15` atau Drive baru). Isi zip bernama `ranah_siaga_v4.db`, jadi ganti nama setelah ekstraksi atau atur `DATASET_PACKAGE_PATH`. Karena paket kini disimpan di database server, langkah ini hanya cadangan.
+1. **Unduhan awal saat startup** (`app/main.py`): URL Google Drive masih menunjuk ke DB lama. Ganti ke paket 2026.10.16 (Release `db-2026.10.16` atau Drive baru). Isi zip bernama `ranah_siaga_v4.db`, jadi ganti nama setelah ekstraksi atau atur `DATASET_PACKAGE_PATH`. Karena paket kini disimpan di database server, langkah ini hanya cadangan.
 2. **Rollback:** bila versi baru bermasalah, aktifkan kembali `DataVersion` sebelumnya. Aplikasi 0.2.0 menolak dataset lama tanpa kolom baru bila `DatasetPackageInstaller` sudah diperketat (handoff Android §4.5).
-3. **Dokumen:** perbarui `backend/DATASET_V4_ROLLOUT.md` dan `docs/backend_documentation.md` (bagian "Dataset baru") ke 2026.10.15.
+3. **Dokumen:** perbarui `backend/DATASET_V4_ROLLOUT.md` dan `docs/backend_documentation.md` (bagian "Dataset baru") ke 2026.10.16.
 
 ---
 

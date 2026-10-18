@@ -1,6 +1,6 @@
 # Pertanyaan Lanjutan untuk BPBD Kota Padang
 
-**Disusun:** 11 Oktober 2026 · **Untuk:** Bidang Pencegahan dan Kesiapsiagaan (PK) BPBD Kota Padang (Bang Resko) · **Dasar:** DB rute evakuasi versi 2026.10.15
+**Disusun:** 11 Oktober 2026 · **Untuk:** Bidang Pencegahan dan Kesiapsiagaan (PK) BPBD Kota Padang (Bang Resko) · **Dasar:** DB rute evakuasi versi 2026.10.16
 
 Daftar ini melanjutkan pertanyaan di `siagapadang/docs/MASUKAN_BPBD_WAWANCARA.md` §6. Isinya hal-hal yang muncul setelah data BPBD diolah menjadi database aplikasi. Pertanyaan bertanda ⭐ paling berpengaruh pada isi aplikasi; jawabannya kami butuhkan sebelum **15 Oktober 2026** (DB final 16 Oktober, titik putus 18 Oktober).
 
@@ -20,7 +20,7 @@ Terima kasih atas data dan masukan dari BPBD. Data KRB 2023–2027, titik TES/TE
 2. ⭐ **Tujuan yang sangat dekat.** TES/TEA dalam 100 m dari posisi warga tidak kami nilai arahnya, walaupun sedikit ke arah pantai. Apakah ini boleh, atau tetap tidak boleh sama sekali?
 3. **Bukit di tepi pantai.** Bolehkah bukit di tepi pantai (misalnya Gunung Padang, Bukit Lampu) menjadi tujuan bagi warga di kakinya?
 4. ⭐ **Jembatan.** Kami menghindari jembatan dengan badan ≥ 20 m. Rute lewat jembatan hanya diberikan bila tidak ada tujuan tanpa jembatan, dengan keterangan "lewat jembatan". Apakah batas 20 m sesuai? Apakah BPBD punya daftar jembatan yang dianggap rawan runtuh?
-5. **Keluar zona dulu.** Bila warga sempat mencapai zona hijau atau TEA dalam 20 menit, aplikasi mengarahkan ke sana lebih dulu, baru ke TES bila tidak sempat. Apakah urutan ini sesuai?
+5. **Keluar zona dulu.** Bila warga sempat mencapai zona hijau atau TEA dalam 15 menit (20 menit dikurangi cadangan 5 menit), aplikasi mengarahkan ke sana lebih dulu, baru ke TES bila tidak sempat. Apakah urutan ini sesuai?
 
 ### B. Tempat evakuasi sementara (TES)
 
@@ -138,7 +138,7 @@ Indeks bahaya dari raster Peta Bahaya Tsunami KRB 2023–2027 (0–1).
 
 ## Lampiran 5. Warga yang tidak sempat ke tempat evakuasi mana pun (pertanyaan 18)
 
-Berkas: `hasil_build/peta_celah_kelurahan.csv` (56 kelurahan; simpul jalan dan jiwa yang tidak sempat dalam 20 dan 30 menit pada 0,89 m/s). Enam kelurahan teratas menurut jiwa yang tidak sempat dalam 20 menit: Batang Kabung (12.215), Padang Sarai (11.079), Pasir Nan Tigo (5.704), Bungo Pasang (4.243), Kampung Olo (3.771), Batipuh Panjang (2.788).
+Berkas: `hasil_build/peta_celah_kelurahan.csv` (66 kelurahan; simpul jalan dan jiwa yang tidak sempat dalam 20 dan 30 menit pada 0,89 m/s). Enam kelurahan teratas menurut jiwa yang tidak sempat dalam 20 menit: Batang Kabung (12.215), Padang Sarai (11.078), Parupuk Tabing (6.552), Pasir Nan Tigo (5.714), Dadok Tunggul Hitam (5.277), Bungo Pasang (5.015).
 
 ---
 

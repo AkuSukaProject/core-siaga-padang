@@ -35,7 +35,7 @@ CATATAN_TABEL = {
     "tb_tea": "TEA yang dipakai routing (di luar area landaan).",
     "tb_tea_routes": "TEA utama & alternatif per node (urutan sama dengan TES: terjauh dari pantai yang sempat <= 20 menit).",
     "tb_tea_next": "Tabel next-hop menuju tiap TEA (rangkai rute di memori).",
-    "tb_safe_routes_v2": "Navigasi zona aman (usulan kontrak: wajib): per node ZONA MERAH, titik zona hijau terjauh dari pantai yang sempat <= 20 menit dan lolos syarat arah.",
+    "tb_safe_routes_v2": "Navigasi zona aman (K-B6): per node ZONA MERAH, titik zona hijau terjauh dari pantai yang sempat <= 15 menit dan lolos syarat arah; bila tidak ada, batas zona hijau tercepat.",
     "tb_safe_next_v2": "Next-hop menuju zona aman per titik tujuan (kelompok milik node asal).",
     "tb_safe_routes": "Kontrak lama: batas zona hijau terdekat per node dari satu pohon global; simpul merah hanya bila tujuan lolos syarat arah. safe_eta = 0 = tujuan zona hijau (status tiba).",
     "tb_safe_next": "Kontrak: next-hop pohon global menuju zona aman.",
