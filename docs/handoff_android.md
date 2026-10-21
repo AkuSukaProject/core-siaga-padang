@@ -1,9 +1,9 @@
-# Handoff Android: Database Siaga Padang 2026.10.16
+# Handoff Android: Database Siaga Padang 2026.10.17
 
-**Untuk:** Mikail (Android) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 18 Oktober 2026
+**Untuk:** Mikail (Android) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 21 Oktober 2026
 **Acuan:** kontrak DB di `siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §1 (asumsi kerja) dan §2.1 (isi DB); tugas terkait M-3, M-8, M-9. Sisi server: [handoff_backend.md](handoff_backend.md) (Sheva).
 
-Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit `fcf0926`, 10 Oktober). Ke-21 kueri `@Query` di branch itu sudah diuji berjalan pada DB ini.
+Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit `fcf0926`, 10 Oktober). Ke-28 kueri `@Query` di branch itu (per 20 Oktober, commit `4bb2831`) sudah diuji berjalan pada DB ini.
 
 > **Versi ini mengikuti keputusan K-B6 tanggal 12 Oktober** (batas "sempat" 15 menit, zona hijau dulu) dan permintaan Mikail atas paket 2026.10.15. Perubahan §4.1–§4.6 berasal dari kontrak. §4.7 (rute zona aman v2) dan §4.8 (pemilih tujuan) adalah kesepakatan baru yang akan dicatat Mikail di `PEMBAGIAN_TUGAS_BPBD.md`.
 
@@ -11,7 +11,7 @@ Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit 
 
 ## 0. Aturan pilihan tujuan (K-B6, 12 Oktober) dan isi DB
 
-| Aturan | Di aplikasi | Di DB 2026.10.16 |
+| Aturan | Di aplikasi | Di DB 2026.10.17 |
 |---|---|---|
 | Batas "sempat" | 15 menit pada laju aplikasi: 20 menit dikurangi cadangan 5 menit untuk waktu gempa yang meleset, orang yang lebih lambat, dan jalan tertutup | `tb_metadata.batas_sempat_menit = 15`. Setara `eta`/`safe_eta` tabel ≤ **11,175** menit (15 × 0,894 ÷ 1,2) |
 | Keluar zona dulu | Bila TEA atau zona hijau sempat, itu yang dipilih | Penugasan `tb_route_shares` dan simulasi kanonis memakai urutan yang sama |
@@ -21,17 +21,17 @@ Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit 
 
 **Masalah di 2026.10.15 yang diperbaiki:**
 
-| | 2026.10.15 | 2026.10.16 |
+| | 2026.10.15 | 2026.10.17 |
 |---|---|---|
-| Rute v2 yang sempat ≤ 15 menit | 446 dari 11.418 | **3.781** dari 11.418 |
+| Rute v2 yang sempat ≤ 15 menit | 446 dari 11.418 | **3.780** dari 11.438 |
 | Simpang yang batas zona hijaunya sempat ≤ 15 menit tetapi rute v2-nya lewat 15 menit | 3.101 | **0** |
-| Rute v2 ≤ 20 menit | 4.944 | 4.944 (tidak ada yang hilang) |
+| Rute v2 ≤ 20 menit | 4.944 | 4.944 dari 11.438 (tidak ada yang hilang) |
 
 Pengecekan sementara di aplikasi ("pakai `tb_safe_routes` bila v2 lewat 15 menit") tidak lagi diperlukan, tetapi aman bila dibiarkan. Di DB ini, setiap simpang yang batas zona hijaunya sempat ≤ 15 menit juga punya rute v2 ≤ 15 menit.
 
 Catatan untuk cadangan v2: di versi uji, cadangan "batas zona hijau termurah" (biaya rute, yang memuat penalti pantai) membuat 107 simpang (3.102 jiwa) kehilangan rute ≤ 20 menit. Karena itu cadangannya kini **batas zona hijau yang tercepat dicapai**. Itu tetap batas zona hijau dan tetap lolos syarat arah.
 
-Simulasi kanonis dengan aturan ini (20.000 agen, laju 0,894 m/s, 313.943 jiwa): **68,2%** selamat, 0 TES kelebihan kapasitas. Baseline: 36,7% dengan 104 TES kelebihan kapasitas.
+Simulasi kanonis dengan aturan ini (20.000 agen, laju 0,894 m/s, 313.943 jiwa): **68,3%** selamat, 0 TES kelebihan kapasitas. Baseline: 36,8% dengan 102 TES kelebihan kapasitas.
 
 ---
 
@@ -39,23 +39,27 @@ Simulasi kanonis dengan aturan ini (20.000 agen, laju 0,894 m/s, 313.943 jiwa): 
 
 | | |
 |---|---|
-| Versi dataset | **2026.10.16** (menggantikan 2026.10.15 yang sudah terpasang; versi 2026.10.10–2026.10.14 juga tidak dipakai) |
-| Berkas | `ranah_siaga_v4.db`, 34.197.504 byte, SHA-256 `3c0d982860dad047295a66635a8a2d69d17332fad536804b24d7d4c2f810b054` |
-| Ukuran (NF-03) | 34,20 MB desimal (batas 75 MB) |
+| Versi dataset | **2026.10.17** (menggantikan 2026.10.16 dan 2026.10.15; versi 2026.10.10–2026.10.14 juga tidak dipakai) |
+| Berkas | `ranah_siaga_v4.db`, 34.439.168 byte, SHA-256 `0e99e49832881e178ed57587d3215c78fb794b7cf59dc20975cfbef79343bb48` |
+| Ukuran (NF-03) | 34,44 MB desimal (batas 75 MB) |
 | Versi aplikasi yang memakai DB ini | **0.2.0, versionCode 3** (backend memakainya sebagai `minimum_app_version`) |
 | Skema Room | `android-v1` tetap, tetapi `NodeEntity` wajib menambah satu kolom (§4.1) |
 
-Yang berubah dari 2026.10.15 (yang sudah terpasang):
-1. **`tb_safe_routes_v2`**: titik terdalam dengan batas 15 menit; cadangan = batas zona hijau tercepat (§0). 864 kelompok, `tb_safe_next_v2` 28.894 baris.
+Yang berubah dari 2026.10.16:
+1. **Jaringan jalan diperbarui ke OpenStreetMap per 20 Oktober 2026** (sebelumnya unduhan 8 Agustus 2026). Graf dibangun dengan cara yang sama seperti `ox.graph_from_place` (penyaring `walk` OSMnx), dari ekstrak Geofabrik karena Overpass sedang tidak bisa dipakai (`graf_dari_geofabrik.py`). Hasilnya 31.859 simpul (31.774 di antaranya sama dengan graf lama; 85 baru, 39 hilang) dan 39.267 ruas (sebelumnya 31.813 dan 39.216). `node_id` tetap ID simpul OSM, sedangkan `edge_id` diberi nomor ulang. Rencana keluarga yang menyimpan `node_id` tetap berlaku kecuali untuk 39 simpul yang hilang; yang menyimpan `edge_id` (laporan jalan terhalang) perlu dibaca ulang dari DB ini.
+2. Akibatnya angka rute bergeser sedikit: 11.438 simpul merah, `tb_routes` 10.708 baris, 174 ruas jembatan ≥ 20 m. Aturan, zona, fasilitas, dan skema sama.
+
+Yang berubah dari 2026.10.15:
+1. **`tb_safe_routes_v2`**: titik terdalam dengan batas 15 menit; cadangan = batas zona hijau tercepat (§0). 862 kelompok, `tb_safe_next_v2` 28.985 baris.
 2. **Penugasan `tb_route_shares`**: urutan K-B6 (sempat ≤ 15 menit, keluar zona dulu, lalu TES terjauh dari pantai).
 3. **`tb_metadata`**: kunci baru `batas_sempat_menit`; `aturan_tujuan` dan `catatan_rute_aman` diperbarui.
 4. **`tb_fasilitas_info.alasan_tidak_dipakai`** untuk TEA kini membedakan "landaan tsunami (raster KRB)" dan "zona merah (peta evakuasi BPBD)".
-5. Zona, simpang, fasilitas, TES rank 1–3, TEA, dan skema sama dengan 2026.10.15.
+5. Zona, fasilitas, TES rank 1–3, TEA, dan skema sama dengan 2026.10.15.
 
 Yang berubah dari 2026.10.12:
 1. **Aturan tujuan** (§0): urutan `rank_1..3` TES dan TEA utama/alternatif terjauh dari pantai, rute zona aman v2, dan penugasan `tb_route_shares`.
-2. **`tb_safe_routes_v2`** mencakup **semua 11.418** simpul merah (sebelumnya 8.795 dari 8.812).
-3. **Zona merah kini gabungan raster KRB dan zona rawan tsunami peta evakuasi BPBD (Blue Line)**, lebih presisi, dan dipotong ke daratan (§3a). Zona merah naik dari 6.164 ha menjadi 7.272 ha, dari 8.808 menjadi **11.418 simpul**, dan dari 56 menjadi 68 kelurahan. Contohnya Masjid Raya Syekh Ahmad Khatib kini di zona merah, sesuai peta evakuasi.
+2. **`tb_safe_routes_v2`** mencakup **semua 11.438** simpul merah (sebelumnya 8.795 dari 8.812).
+3. **Zona merah kini gabungan raster KRB dan zona rawan tsunami peta evakuasi BPBD (Blue Line)**, lebih presisi, dan dipotong ke daratan (§3a). Zona merah naik dari 6.164 ha menjadi 7.272 ha, dari 8.808 menjadi **11.438 simpul**, dan dari 56 menjadi 68 kelurahan. Contohnya Masjid Raya Syekh Ahmad Khatib kini di zona merah, sesuai peta evakuasi.
 4. **Penduduk**: `tb_node_info.demand_jiwa` = 242.750 jiwa terpapar KRB + perkiraan 71.193 jiwa di zona merah tambahan = 313.943 jiwa.
 5. **TEA 22** (sebelumnya 25): TEA_033 RTH Imam Bonjol, TEA_038 Kuburan Silungkang, dan TEA_044 area Masjid Raya Syekh Ahmad Khatib kini di zona merah, jadi tidak dipakai sebagai TEA. TES_205 Masjid Raya tetap TES (evakuasi vertikal).
 6. **`tb_metadata`**: kunci baru `aturan_tujuan` dan `catatan_penduduk`; `sumber_zona_merah` menyebut kedua sumber.
@@ -72,7 +76,7 @@ Yang berubah dari DB 2026.09.28 yang sekarang terbundel di aplikasi:
 
 ## 2. Berkas dan cara memasang
 
-Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.16`, atau paket `kirim_siaga_padang_2026.10.16.zip`:
+Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.17`, atau paket `kirim_siaga_padang_2026.10.17.zip`:
 
 | Berkas | Taruh sebagai |
 |---|---|
@@ -82,21 +86,21 @@ Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.16`, 
 Isi manifest:
 ```json
 {
-  "version": "2026.10.16",
-  "checksum": "3c0d982860dad047295a66635a8a2d69d17332fad536804b24d7d4c2f810b054",
-  "size_bytes": 34197504
+  "version": "2026.10.17",
+  "checksum": "0e99e49832881e178ed57587d3215c78fb794b7cf59dc20975cfbef79343bb48",
+  "size_bytes": 34439168
 }
 ```
 
 Cara paling aman: dari repo engine jalankan `env\Scripts\python.exe salin_db_ke_android.py <repo-aplikasi> --tulis`. Skrip memeriksa checksum, lalu menyalin kedua berkas dengan nama yang benar. `dataset_manifest.json` (tanpa `_android`) dan `.zip` di `hasil_build/` **bukan** untuk aplikasi.
 
-Aset yang terbundel sekarang (`ranah_siaga.db` 13 September, 130 MB) adalah DB lama: belum punya `tb_safe_routes` dan indeks `idx_tb_nodes_lat_lon`, dan manifestnya menyebut versi lain (2026.09.28, 71 MB). Ganti **kedua** berkas sekaligus. `DatasetStorage.refreshBundledCopyIfAssetChanged` lalu menyalin ulang DB karena checksum berubah. Perbarui juga `EvacuationRepository.DEFAULT_DATASET_VERSION` dari `"2026.09.28"` menjadi `"2026.10.16"`.
+Aset yang terbundel sekarang (`ranah_siaga.db` 13 September, 130 MB) adalah DB lama: belum punya `tb_safe_routes` dan indeks `idx_tb_nodes_lat_lon`, dan manifestnya menyebut versi lain (2026.09.28, 71 MB). Ganti **kedua** berkas sekaligus. `DatasetStorage.refreshBundledCopyIfAssetChanged` lalu menyalin ulang DB karena checksum berubah. Perbarui juga `EvacuationRepository.DEFAULT_DATASET_VERSION` dari `"2026.09.28"` menjadi `"2026.10.17"`.
 
 ---
 
 ## 3. Isi DB terhadap kontrak §2.1
 
-| Butir kontrak | DB 2026.10.16 |
+| Butir kontrak | DB 2026.10.17 |
 |---|---|
 | `rank_k_tes` berisi nama TES yang unik | Ya. 269 nama fasilitas (TES + TEA) tanpa duplikat |
 | `rank_k_path` deretan `node_id` dipisah koma | Ya |
@@ -105,16 +109,16 @@ Aset yang terbundel sekarang (`ranah_siaga.db` 13 September, 130 MB) adalah DB l
 | `tb_safe_routes.safe_eta = 0` menandai tujuan zona hijau | Ya, tidak pernah 0 di zona merah |
 | Pola `tb_tea_*`, `tb_safe_*` | Sama. `tb_safe_routes` / `tb_safe_next` patuh syarat arah. Ditambah `tb_safe_routes_v2` / `tb_safe_next_v2` (§4.7) |
 | Poligon WKT `MULTIPOLYGON` 2D, 7 desimal | Ya, semua poligon |
-| Ukuran ≤ 75 MB | 34,20 MB |
+| Ukuran ≤ 75 MB | 34,44 MB |
 | `tb_tes`: `sumber`, `jarak_pantai_m`, `kapasitas` kosong bila tidak ada data, `lantai` | Ya |
 | `tb_tea.jarak_pantai_m` | Ya (ditambah `sumber`) |
 | `tb_nodes.jarak_pantai_m`, `is_safe` dari zona rendaman baru | Ya |
 | `tb_inundation_zones` dari zona BPBD | Ya, raster KRB 2023–2027 digabung zona rawan peta evakuasi BPBD, satu baris per kelurahan (68), dipotong ke daratan (§3a) |
 | `tb_safe_zones` zona hijau baru | Ya (81) |
 | `tb_kelurahan` | Tidak dibuat: poligon zona tetap per kelurahan, jadi tidak diperlukan |
-| `tb_bridge_edges(edge_id)` jembatan ≥ 20 m | Ya, 176 ruas (pembanding tim: 177) |
+| `tb_bridge_edges(edge_id)` jembatan ≥ 20 m | Ya, 174 ruas |
 | Rute dihitung ulang dengan aturan arah dan jembatan | Ya. Skrip `docs/audit/analisis_masukan_bpbd.py` pada DB ini: tujuan utama **0% mendekat, 0% sejajar** (DB 2026.09.28: 35,2% dan 18,5%). Verifikasi engine: TES rank 1–3, TEA, dan zona aman v2 juga 0% |
-| `rank_2`/`rank_3` boleh kosong | Ya (356 dan 1.174 simpul) |
+| `rank_2`/`rank_3` boleh kosong | Ya (357 dan 1.188 simpul) |
 | `v_fasilitas_evakuasi` + `sumber` | Ya |
 | Manifest `version`, `checksum`, `size_bytes` | `dataset_manifest_android.json` |
 
@@ -124,7 +128,7 @@ Aset yang terbundel sekarang (`ranah_siaga.db` 13 September, 130 MB) adalah DB l
 *   Raster KRB adalah model landaan dan lebih sempit dari peta evakuasi BPBD ("Peta Tempat Evakuasi Sementara dan Lokasi Potensial Shelter", 1:15.000), yang dipakai rambu Blue Line. Contohnya Masjid Raya Syekh Ahmad Khatib: di raster KRB masjid ini berada sekitar 250 m di luar landaan, sedangkan di peta evakuasi masjid berada di dalam zona merah dan zona baru berakhir di Blue Line Ampang.
 *   Peta evakuasi hanya tersedia sebagai gambar, jadi kami georeferensi dan digitasi sendiri (`data_bpbd_digitasi/` di repo engine). Ketelitiannya ±20–40 m. Hasil digitasi ini akan diganti berkas vektor bila BPBD memberikannya.
 *   Peta evakuasi mencakup Padang bagian tengah dan utara (Tabing sampai Bukit Gado-Gado). Di luar itu zona merah hanya dari KRB.
-*   Hasilnya, zona merah 7.272 ha (sebelumnya 6.164 ha), 11.418 simpul, dan 68 kelurahan. 12 kelurahan baru berzona merah: Ampang, Andalas, Anduring, Banuaran Nan XX, Gurun Laweh Nan XX, Koto Baru Nan XX, Mato Aie, Parak Gadang Timur, Parak Laweh Pulau Air Nan XX, Sawahan, Sawahan Timur, dan Tanjuang Aur Nan XX.
+*   Hasilnya, zona merah 7.272 ha (sebelumnya 6.164 ha), 11.438 simpul, dan 68 kelurahan. 12 kelurahan baru berzona merah: Ampang, Andalas, Anduring, Banuaran Nan XX, Gurun Laweh Nan XX, Koto Baru Nan XX, Mato Aie, Parak Gadang Timur, Parak Laweh Pulau Air Nan XX, Sawahan, Sawahan Timur, dan Tanjuang Aur Nan XX.
 
 Bentuk poligonnya juga lebih presisi. Tidak ada perubahan kode:
 *   **Tepi zona** mengikuti raster BPBD 30 m dengan kontur sub-piksel, bukan tangga kotak 30 m yang disederhanakan 10 m.
@@ -167,7 +171,7 @@ Lalu sesuaikan pemakainya di `EvacuationRepository.kt`:
 *   Tampilan kapasitas TES (direktori, balon): `null` = "daya tampung belum ada data", bukan 0.
 
 ### 4.3 Rute zona aman kontrak lama: tidak berubah
-`tb_safe_routes` / `tb_safe_next` tetap berpola sama seperti 2026.10.12: 10.444 simpul merah punya rute ke batas zona hijau terdekat yang lolos syarat arah, 974 simpul merah tanpa baris (aplikasi memakai TES/TEA), dan semua simpul aman punya `safe_eta = 0`. Kueri `ZoneDao.findSafeRouteEta` dan `findSafeZoneTargetGeometries` tetap memakai tabel ini. Tabel ini juga cadangan navigasi; navigasi utama lewat v2 (§4.7).
+`tb_safe_routes` / `tb_safe_next` tetap berpola sama seperti 2026.10.12: 10.463 simpul merah punya rute ke batas zona hijau terdekat yang lolos syarat arah, 975 simpul merah tanpa baris (aplikasi memakai TES/TEA), dan semua simpul aman punya `safe_eta = 0`. Kueri `ZoneDao.findSafeRouteEta` dan `findSafeZoneTargetGeometries` tetap memakai tabel ini. Tabel ini juga cadangan navigasi; navigasi utama lewat v2 (§4.7).
 
 ### 4.4 Satuan waktu tempuh (M-3)
 | Sumber waktu di aplikasi | Perlakuan |
@@ -188,7 +192,7 @@ Bila M-3 belum dikerjakan, jangan memasang DB ini dulu: ETA di DB pada 1,2 m/s a
 `android/app/build.gradle.kts`: `versionName = "0.2.0"`, `versionCode = 3` (kesepakatan dengan Sheva untuk `minimum_app_version`).
 
 ### 4.7 Navigasi zona aman lewat v2
-`tb_safe_routes_v2` berisi satu baris per simpul **zona merah** (11.418, semuanya). Tujuannya titik zona hijau terdalam yang sempat ≤ 15 menit (`safe_eta` ≤ 11,175) dan lolos syarat arah (3.781 simpul); bila tidak ada yang sempat, batas zona hijau yang tercepat dicapai dan lolos syarat arah (7.637 simpul).
+`tb_safe_routes_v2` berisi satu baris per simpul **zona merah** (11.438, semuanya). Tujuannya titik zona hijau terdalam yang sempat ≤ 15 menit (`safe_eta` ≤ 11,175) dan lolos syarat arah (3.780 simpul); bila tidak ada yang sempat, batas zona hijau yang tercepat dicapai dan lolos syarat arah (7.658 simpul).
 
 ```sql
 CREATE TABLE tb_safe_routes_v2 (
@@ -299,4 +303,4 @@ Tidak berubah dari 2026.10.12.
 *   **Mikail:** memperbarui K-B6 (§1) dan tabel zona aman v2 (§2.1) di `PEMBAGIAN_TUGAS_BPBD.md` sesuai §0.
 *   **BPBD:** daftar lengkap di [pertanyaan_bpbd.md](pertanyaan_bpbd.md). Yang bisa mengubah isi DB berikutnya: batas sejajar 15° dan pengecualian 100 m, bukit di tepi pantai, batas jembatan, koordinat 17 bangunan daftar shelter, verifikasi 14 titik baru, daftar TEA resmi, 24 TEA yang berada di zona merah, dan berkas vektor zona rawan serta Blue Line. Perubahan apa pun akan diterbitkan sebagai versi DB baru dengan handoff yang diperbarui.
 
-Dokumen pendukung: [erd_siaga_padang.md](erd_siaga_padang.md) dan [siaga_padang_erd.dbml](siaga_padang_erd.dbml) (struktur tabel), [aturan_evakuasi_bpbd.md](aturan_evakuasi_bpbd.md) (aturan dan teks, termasuk 5.1.2 tujuan terjauh), [build_db_v4.md](build_db_v4.md) (cara DB dibangun), [simulasi_kanonis.md](simulasi_kanonis.md) (angka 68,5%).
+Dokumen pendukung: [erd_siaga_padang.md](erd_siaga_padang.md) dan [siaga_padang_erd.dbml](siaga_padang_erd.dbml) (struktur tabel), [aturan_evakuasi_bpbd.md](aturan_evakuasi_bpbd.md) (aturan dan teks, termasuk 5.1.2 tujuan terjauh), [build_db_v4.md](build_db_v4.md) (cara DB dibangun), [simulasi_kanonis.md](simulasi_kanonis.md) (angka 68,3%).

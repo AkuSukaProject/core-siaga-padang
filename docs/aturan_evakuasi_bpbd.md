@@ -90,7 +90,7 @@ Ukuran "arah" yang dipakai adalah **jarak ke garis pantai**, bukan arah mata ang
 1. **Jarak ke pantai** setiap node dan fasilitas dihitung dari garis pantai OpenStreetMap (`natural=coastline`), disimpan sebagai `jarak_pantai_m`.
 2. **Syarat arah (aturan keras) untuk semua jenis tujuan.** TES, TEA, dan titik zona aman hanya boleh menjadi tujuan bila **menjauh**: (jarak pantai tujuan − jarak pantai warga) ÷ jarak lurus warga–tujuan > sin 15° (engine memakai rasio > 0,27: ambang 0,26 milik skrip audit tim + margin pembulatan). Tujuan yang sejajar pantai (dalam ±15°) atau mendekat dibuang. Tujuan dalam 100 m dari warga tidak dinilai arahnya. Arah tidak pernah dilonggarkan.
    - TES dan TEA dinilai per pasangan warga–fasilitas.
-   - Zona aman: `tb_safe_routes_v2` + `tb_safe_next_v2` menilai syarat per pasangan warga–titik zona aman, sehingga semua 11.418 simpul merah punya rute; aplikasi memakainya untuk navigasi zona aman. Tabel kontrak lama `tb_safe_routes` / `tb_safe_next` (satu pohon global) hanya memberi rute kepada simpul merah yang tujuannya lolos syarat (10.444 dari 11.418).
+   - Zona aman: `tb_safe_routes_v2` + `tb_safe_next_v2` menilai syarat per pasangan warga–titik zona aman, sehingga semua 11.438 simpul merah punya rute; aplikasi memakainya untuk navigasi zona aman. Tabel kontrak lama `tb_safe_routes` / `tb_safe_next` (satu pohon global) hanya memberi rute kepada simpul merah yang tujuannya lolos syarat (10.463 dari 11.438).
    - Hasil: skrip audit tim (`siagapadang/docs/audit/analisis_masukan_bpbd.py`) mencatat 0% tujuan utama mendekat dan 0% sejajar; verifikasi engine juga 0% untuk TES rank 1–3, TEA, dan zona aman.
 3. **Kantong aman kecil bukan tujuan.** Bagian zona aman yang dikelilingi zona merah dan < 50 ha (84 kantong, 123 ha) tidak dijadikan tujuan.
 4. **Bobot jalur (penalti), dua lapis**, supaya jalur menuju tujuan yang sudah lolos syarat tidak memutar mendekati laut:
@@ -129,7 +129,7 @@ Implementasi (asumsi kerja K-B2):
 - **Yang dihindari adalah jembatan ≥ 20 m** (`tb_bridge_edges`). Jembatan kecil di atas saluran diperlakukan sebagai jalan biasa (lihat 5.2.2).
 - **Rute dicari dulu pada graf tanpa jembatan ≥ 20 m.** Hanya bila sebuah tujuan tidak terjangkau tanpa jembatan, rute lewat jembatan dipakai sebagai cadangan (berpenalti, agar jembatan sesedikit mungkin), dan selalu kalah dari tujuan mana pun yang tanpa jembatan. Aplikasi memberi keterangan "lewat jembatan".
 - Edge jembatan tidak dihapus total: tanpa cadangan, node di seberang tidak punya rute sama sekali.
-- Panjang badan jembatan diambil dari data jembatan OSM (`data_osm/jembatan_osm.json`): 176 ruas. Bila berkas itu tidak ada, diperkirakan dari lebar sungai BPBD yang dipotong ruas.
+- Panjang badan jembatan diambil dari data jembatan OSM (`data_osm/jembatan_osm.json`): 174 ruas. Bila berkas itu tidak ada, diperkirakan dari lebar sungai BPBD yang dipotong ruas.
 - Node yang hanya bisa mencapai TES lewat jembatan dicatat (`tb_node_info.rute_tes_lewat_jembatan`) sebagai **kantong terisolasi**, kandidat lokasi TES vertikal baru.
 
 #### 5.2.2 Menilai risiko jembatan
@@ -327,7 +327,7 @@ Prinsip penulisan: **singkat**, karena orang hanya bisa mengingat ±3 hal. Pakai
 
 ## 16. Kesesuaian dengan Engine Saat Ini
 
-Status per 18 Oktober 2026 (DB versi 2026.10.16). Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `hasil_build/ranah_siaga_v4.db`), mengikuti aturan di dokumen ini dan kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
+Status per 21 Oktober 2026 (DB versi 2026.10.17). Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `hasil_build/ranah_siaga_v4.db`), mengikuti aturan di dokumen ini dan kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
 
 | Aturan BPBD | Kondisi engine (`build_db.py`) | Status |
 |---|---|---|

@@ -1381,6 +1381,8 @@ metadata = {
     "sumber_penduduk": "BPBD - KRB Kota Padang 2023-2027, penduduk terpapar tsunami per kelurahan",
     "sumber_verifikasi_gedung": "BPBD - Daftar Shelter OK.xlsx (verifikasi 2019: lantai & kapasitas)",
     "sumber_jalur_resmi": "BPBD - Jalur_evakuasi_Padang.shp (jalur per RT/RW Kelurahan Tangguh)",
+    "sumber_jaringan_jalan": "OpenStreetMap, graf pejalan kaki OSMnx (network_type walk) Kota Padang: "
+                             + G.graph.get("sumber_data", "graph_from_place lewat Overpass, 8 Agustus 2026"),
     "sumber_sebaran_penduduk": "BPBD - Basemap.gdb Bangunan_AR (jejak bangunan RTRW di zona merah)",
     "jalur_resmi_faktor": str(JALUR_RESMI_FAKTOR),
     "m2_per_orang_estimasi_kapasitas": str(M2_PER_ORANG),

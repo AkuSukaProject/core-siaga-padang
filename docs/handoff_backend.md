@@ -1,6 +1,6 @@
-# Handoff Backend: Dataset Siaga Padang 2026.10.16
+# Handoff Backend: Dataset Siaga Padang 2026.10.17
 
-**Untuk:** Sheva (backend) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 18 Oktober 2026
+**Untuk:** Sheva (backend) · **Dari:** Habib (engine DB, repo `core-siaga-padang`) · **Tanggal:** 21 Oktober 2026
 **Acuan:** kontrak DB `siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1 dan tugas S-6; alur rilis di `backend/DATASET_V4_ROLLOUT.md`. Sisi aplikasi: [handoff_android.md](handoff_android.md) (Mikail).
 
 Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit `fcf0926`, 10 Oktober).
@@ -11,33 +11,35 @@ Kode yang dirujuk berasal dari branch `feat/final-keselamatan-navigasi` (commit 
 
 | | |
 |---|---|
-| Versi dataset | **2026.10.16** |
-| `.db` | 34.197.504 byte, SHA-256 `3c0d982860dad047295a66635a8a2d69d17332fad536804b24d7d4c2f810b054` |
-| `.zip` | 6.992.036 byte, SHA-256 `9c393feb99fbb28fc8c5f9cd0ab14675d89cfb52fe95af6c075e794762fb2b55` |
+| Versi dataset | **2026.10.17** |
+| `.db` | 34.439.168 byte, SHA-256 `0e99e49832881e178ed57587d3215c78fb794b7cf59dc20975cfbef79343bb48` |
+| `.zip` | 7.008.568 byte, SHA-256 `1377d3be6b643f8371bb746fc08fc5fdda43de2def01f35d7cbd31056c9a2ad9` |
 | `schema_version` | `android-v1` (sama dengan `SUPPORTED_SCHEMA_VERSION` aplikasi) |
 | `minimum_app_version` | **0.2.0** (aplikasi 0.1.0 tidak bisa membuka DB ini, lihat §4) |
 
-> **Versi ini menggantikan 2026.10.15** (juga 2026.10.12 dan paket 2026.10.10 `e0fc52de…`; 2026.10.11, 2026.10.13, dan 2026.10.14 tidak dirilis). Bila 2026.10.15 atau 2026.10.12 sudah di-*stage*, biarkan tidak aktif dan *stage* versi ini. Mohon perbarui `backend/DATASET_V4_ROLLOUT.md` serta bagian "Dataset baru" di `docs/backend_documentation.md` ke versi, checksum, dan ukuran di atas.
+> **Versi ini menggantikan 2026.10.16 dan 2026.10.15** (juga 2026.10.12 dan paket 2026.10.10 `e0fc52de…`; 2026.10.11, 2026.10.13, dan 2026.10.14 tidak dirilis). Bila salah satunya sudah di-*stage*, biarkan tidak aktif dan *stage* versi ini. Mohon perbarui `backend/DATASET_V4_ROLLOUT.md` serta bagian "Dataset baru" di `docs/backend_documentation.md` ke versi, checksum, dan ukuran di atas.
 >
-> **Yang berubah dari 2026.10.15:** hanya isi rute zona aman v2 dan penugasan, mengikuti aturan K-B6 tanggal 12 Oktober (batas sempat 15 menit, zona hijau dulu; handoff Android §0). Zona, fasilitas, ID, nama, kapasitas, dan skema sama.
+> **Yang berubah dari 2026.10.16:** **Jaringan jalan diperbarui ke OpenStreetMap per 20 Oktober 2026** (sebelumnya unduhan 8 Agustus 2026). Graf dibangun dengan cara yang sama seperti `ox.graph_from_place` (penyaring `walk` OSMnx), dari ekstrak Geofabrik karena Overpass sedang tidak bisa dipakai (`graf_dari_geofabrik.py`). Hasilnya 31.859 simpul (31.774 di antaranya sama dengan graf lama; 85 baru, 39 hilang) dan 39.267 ruas (sebelumnya 31.813 dan 39.216). `node_id` tetap ID simpul OSM, sedangkan `edge_id` diberi nomor ulang (§5.4). Zona, fasilitas, ID fasilitas, kapasitas, dan skema sama.
+>
+> **Yang berubah dari 2026.10.15:** isi rute zona aman v2 dan penugasan, mengikuti aturan K-B6 tanggal 12 Oktober (batas sempat 15 menit, zona hijau dulu; handoff Android §0). Zona, fasilitas, ID, nama, kapasitas, dan skema sama.
 >
 > **Yang berubah dari 2026.10.12:**
 > 1. Isi rute, mengikuti aturan pilihan tujuan K-B6 (handoff Android §0).
 > 2. **Zona merah kini gabungan raster KRB dan zona rawan tsunami peta evakuasi BPBD (Blue Line)**, dan bentuknya lebih presisi (§5.3).
 > 3. **3 TEA tidak aktif lagi** karena kini berada di zona merah (§5.1).
 >
-> Skema tabel kontrak, TES, ID, nama, dan kapasitas sama, jadi langkah backend tidak berubah. `tb_safe_routes_v2` kini 11.418 baris dan dipakai aplikasi untuk navigasi zona aman.
+> Skema tabel kontrak, TES, ID, nama, dan kapasitas sama, jadi langkah backend tidak berubah. `tb_safe_routes_v2` kini 11.438 baris dan dipakai aplikasi untuk navigasi zona aman.
 
 ---
 
 ## 2. Berkas
 
-Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.16`, atau paket `kirim_siaga_padang_2026.10.16.zip`:
+Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.17`, atau paket `kirim_siaga_padang_2026.10.17.zip`:
 
 | Berkas | Untuk |
 |---|---|
 | `ranah_siaga_v4.db` | Paket yang dilayani `/api/v1/sync/network` (SQLite mentah), masukan `stage_dataset_package.py` dan `bootstrap_from_android_db.py` |
-| `dataset_manifest_android.json` | Argumen `--manifest`: `{"version": "2026.10.16", "checksum": "3c0d9828…", "size_bytes": 34197504}` |
+| `dataset_manifest_android.json` | Argumen `--manifest`: `{"version": "2026.10.17", "checksum": "0e99e498…", "size_bytes": 34439168}` |
 | `ranah_siaga_v4.db.zip` | Hanya bila unduhan awal saat startup (`app/main.py`) tetap memakai zip; isinya bernama `ranah_siaga_v4.db` |
 
 `hasil_build/dataset_manifest.json` (tanpa `_android`) adalah catatan engine (checksum zip dan `.db`); jangan dipakai sebagai manifest.
@@ -58,11 +60,11 @@ Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.16`, 
    python scripts/bootstrap_from_android_db.py data/ranah_siaga_v4.db \
      --manifest data/dataset_manifest_android_v4.json \
      --minimum-app-version 0.2.0 \
-     --download-url '/api/v1/sync/network?version=2026.10.16'
+     --download-url '/api/v1/sync/network?version=2026.10.17'
    ```
 5. **Periksa:**
-   *   `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.16`, checksum `3c0d9828…`, `size_bytes` 34197504, `minimum_app_version` 0.2.0.
-   *   `/api/v1/sync/network?version=2026.10.16`: SHA-256 hasil unduhan sama.
+   *   `/api/v1/sync/check`: `network` dan `shelters` versi `2026.10.17`, checksum `0e99e498…`, `size_bytes` 34439168, `minimum_app_version` 0.2.0.
+   *   `/api/v1/sync/network?version=2026.10.17`: SHA-256 hasil unduhan sama.
    *   Dropdown TES/TEA operator berisi **266** titik aktif (244 TES + 22 TEA).
    *   Lapor selamat ke salah satu TES baru (misalnya TES_246 Hotel Ibis) diterima.
 6. **Kabari Mikail** bila versi sudah aktif, supaya pembaruan lewat jaringan diuji dari HP.
@@ -73,15 +75,15 @@ Ambil dari `hasil_build/` repo engine, lampiran GitHub Release `db-2026.10.16`, 
 
 Dicek dari kode sumber (belum dijalankan ke PostGIS):
 
-| Pemeriksaan backend | DB 2026.10.16 |
+| Pemeriksaan backend | DB 2026.10.17 |
 |---|---|
-| `validate_v4_schema`: `tb_safe_routes` (`origin_node_id`, `safe_node_id`, `safe_eta`, `safe_zone_id`) dan `tb_safe_routes_v2` (+ `kelompok`), tidak kosong | Lolos (30.839 dan 11.418 baris) |
+| `validate_v4_schema`: `tb_safe_routes` (`origin_node_id`, `safe_node_id`, `safe_eta`, `safe_zone_id`) dan `tb_safe_routes_v2` (+ `kelompok`), tidak kosong | Lolos (30.884 dan 11.438 baris) |
 | `validate_v4_minimum_app_version` menolak `0.1.0` | Gunakan `0.2.0` |
 | Bootstrap `tb_tes`: `tes_id`, `nama_tes`, `kapasitas`, `lat`, `lon`, opsional `zona`, `lantai`, `sumber` | Semua ada. `lantai` dan `sumber` kini terisi |
 | Bootstrap `tb_tea`: `tea_id`, `nama_tea`, `kapasitas`, `lat`, `lon`, opsional `kelurahan`, `kecamatan`, `sumber` | Semua ada |
 | ID fasilitas unik | Ya (bootstrap menolak ID ganda) |
 | `tb_inundation_zones` / `tb_safe_zones`: `nama_zona`, `geometry_wkt`, `tingkat_bahaya` | Ada; WKT `MULTIPOLYGON` 2D 7 desimal |
-| `tb_nodes` (`node_id`, `lon`, `lat`) dan `tb_edges` (`edge_id`, `u`, `v`, `geometry`) untuk `RouteEdge` | Ada (31.813 simpul, 39.216 ruas) |
+| `tb_nodes` (`node_id`, `lon`, `lat`) dan `tb_edges` (`edge_id`, `u`, `v`, `geometry`) untuk `RouteEdge` | Ada (31.859 simpul, 39.267 ruas) |
 | `verify_package` (ukuran + SHA-256) | Cocok dengan manifest |
 
 Kolom baru `tb_nodes.jarak_pantai_m` (kontrak §2.1) membuat `NodeEntity` aplikasi 0.1.0 menolak DB ini (validasi Room). Karena itu `minimum_app_version` **wajib** 0.2.0, bukan sekadar disarankan. Alasannya kolom ini. Tabel `tb_safe_routes_v2` sudah ada sejak versi sebelumnya, jadi `validate_v4_schema` tetap lolos.
@@ -115,15 +117,15 @@ ID lain tidak berubah. Bila ada sesi latihan atau data uji yang memakai ID yang 
 Sejak 2026.10.14 poligonnya lebih presisi: tepi mengikuti raster tanpa tangga 30 m, dipotong ke daratan menurut garis pantai OSM (sebelumnya 329 ha zona merah dan 55 ha zona hijau berada di laut), dan pita pantai yang di luar batas kelurahan BPBD (59 ha) kini ikut zona merah. Olo dan Air Tawar Barat tidak lagi punya zona hijau, karena seluruh daratannya masuk landaan; "zona hijau" lamanya hanya serpihan 0,5 ha dan 0,15 ha. Sejak 2026.10.15 zona merah = landaan raster KRB 2023–2027 **ditambah** zona rawan tsunami di peta evakuasi BPBD ("Peta Tempat Evakuasi Sementara dan Lokasi Potensial Shelter", 1:15.000, dengan Blue Line), hasil digitasi kami dengan ketelitian ±20–40 m. Zona merah naik dari 6.164 ha menjadi 7.272 ha dan dari 56 menjadi 68 kelurahan; misalnya kawasan Masjid Raya Syekh Ahmad Khatib sampai Blue Line Ampang kini merah. Bila operator melihat peta zona di dasbor, bentuknya berbeda cukup jelas dari versi sebelumnya.
 
 ### 5.4 Jaringan jalan
-Graf tetap 31.813 simpul dan 39.216 ruas (sama dengan versi lama), jadi `RouteEdge` hanya dibuat ulang untuk `dataset_version` baru. Ruas jembatan ≥ 20 m ada di `tb_bridge_edges` (176) bila nanti dibutuhkan untuk laporan jalan terhalang.
+Graf diperbarui ke OpenStreetMap per 20 Oktober 2026: 31.859 simpul dan 39.267 ruas (sebelumnya 31.813 dan 39.216). `node_id` tetap ID simpul OSM (31.774 sama dengan versi lama), tetapi `edge_id` diberi nomor ulang. `RouteEdge` dibuat ulang untuk `dataset_version` baru oleh bootstrap, dan laporan jalan terhalang lama tetap mengacu `edge_id` versi lamanya. Ruas jembatan ≥ 20 m ada di `tb_bridge_edges` (174).
 
 ---
 
 ## 6. Hal lain di sisi backend
 
-1. **Unduhan awal saat startup** (`app/main.py`): URL Google Drive masih menunjuk ke DB lama. Ganti ke paket 2026.10.16 (Release `db-2026.10.16` atau Drive baru). Isi zip bernama `ranah_siaga_v4.db`, jadi ganti nama setelah ekstraksi atau atur `DATASET_PACKAGE_PATH`. Karena paket kini disimpan di database server, langkah ini hanya cadangan.
+1. **Unduhan awal saat startup** (`app/main.py`): URL Google Drive masih menunjuk ke DB lama. Ganti ke paket 2026.10.17 (Release `db-2026.10.17` atau Drive baru). Isi zip bernama `ranah_siaga_v4.db`, jadi ganti nama setelah ekstraksi atau atur `DATASET_PACKAGE_PATH`. Karena paket kini disimpan di database server, langkah ini hanya cadangan.
 2. **Rollback:** bila versi baru bermasalah, aktifkan kembali `DataVersion` sebelumnya. Aplikasi 0.2.0 menolak dataset lama tanpa kolom baru bila `DatasetPackageInstaller` sudah diperketat (handoff Android §4.5).
-3. **Dokumen:** perbarui `backend/DATASET_V4_ROLLOUT.md` dan `docs/backend_documentation.md` (bagian "Dataset baru") ke 2026.10.16.
+3. **Dokumen:** perbarui `backend/DATASET_V4_ROLLOUT.md` dan `docs/backend_documentation.md` (bagian "Dataset baru") ke 2026.10.17.
 
 ---
 
@@ -132,7 +134,7 @@ Graf tetap 31.813 simpul dan 39.216 ruas (sama dengan versi lama), jadi `RouteEd
 | Data | Nilai |
 |---|---|
 | TES / TEA aktif | 244 / 22 |
-| Simpang / ruas / ruas jembatan ≥ 20 m | 31.813 (11.418 di zona merah) / 39.216 / 176 |
+| Simpang / ruas / ruas jembatan ≥ 20 m | 31.859 (11.438 di zona merah) / 39.267 / 174 |
 | Zona merah / zona hijau | 68 / 81 poligon (7.272 ha zona merah) |
 | Penduduk di zona merah | 313.943 jiwa: 242.750 jiwa terpapar KRB di 56 kelurahan + perkiraan 71.193 jiwa di zona tambahan peta evakuasi |
 | Laju & batas waktu (engine) | 0,894 m/s, 20 menit; kolom ETA di DB pada 1,2 m/s |

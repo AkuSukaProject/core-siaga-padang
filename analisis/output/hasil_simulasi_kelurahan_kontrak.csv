@@ -1,68 +1,67 @@
 ﻿kelurahan,agen,selamat_baseline,selamat_siaga,persen_baseline,persen_siaga
-Batang Kabung,773,12,4,1.6,0.5
-Pasir Nan Tigo,770,135,136,17.5,17.7
-Air Tawar Timur,178,61,45,34.3,25.3
-Padang Sarai,1077,0,365,0.0,33.9
-Parupuk Tabing,925,375,321,40.5,34.7
-Koto Pulai,164,0,59,0.0,36.0
-Bungo Pasang,1028,234,390,22.8,37.9
-Kampung Olo,429,68,182,15.9,42.4
-Batipuh Panjang,300,4,131,1.3,43.7
-Pasa Gadang,388,177,174,45.6,44.8
-Koto Baru Nan XX,118,90,53,76.3,44.9
-Bungus Selatan,108,58,50,53.7,46.3
-Ranah Parak Rumbio,172,58,84,33.7,48.8
-Bungus Barat,153,121,79,79.1,51.6
-Dadok Tunggul Hitam,878,0,498,0.0,56.7
-Bungus Timur,54,24,32,44.4,59.3
-Air Manis,48,41,29,85.4,60.4
-Kurao Pagang,289,0,175,0.0,60.6
-Berok Nipah,297,144,180,48.5,60.6
-Ulak Karang Selatan,597,217,369,36.3,61.8
-Gurun Laweh,50,19,31,38.0,62.0
-Kampung Lapai,626,75,406,12.0,64.9
-Rawang,50,49,34,98.0,68.0
-Teluk Kabung Tengah,40,29,29,72.5,72.5
-Rimbo Kaluang,235,45,171,19.1,72.8
-Teluk Kabung Utara,66,45,49,68.2,74.2
-Banuaran Nan XX,101,0,76,0.0,75.2
-Kampung Pondok,254,98,195,38.6,76.8
-Lolong Belanti,681,508,528,74.6,77.5
-Jati,244,76,191,31.1,78.3
-Ujung Gurun,279,161,220,57.7,78.9
-Air Tawar Barat,589,484,469,82.2,79.6
-Ulak Karang Utara,253,109,203,43.1,80.2
-Koto Panjang Ikua Koto,535,155,436,29.0,81.5
-Belakang Pondok,71,63,58,88.7,81.7
-Parak Laweh Pulau Air Nan XX,37,0,31,0.0,83.8
-Flamboyan Baru,258,151,220,58.5,85.3
-Lubuk Buaya,895,6,772,0.7,86.3
-Parak Gadang Timur,164,32,142,19.5,86.6
-Teluk Kabung Selatan,31,31,27,100.0,87.1
-Tanjuang Aur Nan XX,48,0,42,0.0,87.5
-Purus,472,284,414,60.2,87.7
-Belakang Tangsi,187,149,166,79.7,88.8
-Taluak Bayua,83,74,74,89.2,89.2
-Padang Pasir,239,160,214,66.9,89.5
-Seberang Padang,353,220,320,62.3,90.7
-Tabiang Banda Gadang,44,35,41,79.5,93.2
-Batang Arau,161,117,151,72.7,93.8
-Alang Laweh,232,109,218,47.0,94.0
-Olo,327,235,309,71.9,94.5
-Ganting Parak Gadang,206,97,197,47.1,95.6
-Gates Nan XX,81,77,79,95.1,97.5
-Gunung Pangilun,318,161,310,50.6,97.5
-Surau Gadang,704,276,688,39.2,97.7
-Alai Parak Kopi,744,476,743,64.0,99.9
-Balai Gadang,14,0,14,0.0,100.0
-Jati Baru,643,419,643,65.2,100.0
-Kampung Jao,262,181,262,69.1,100.0
-Gurun Laweh Nan XX,175,0,175,0.0,100.0
-Mato Aie,4,4,4,100.0,100.0
-Pampangan Nan XX,7,7,7,100.0,100.0
-Andalas,69,0,69,0.0,100.0
-Ampang,1,1,1,100.0,100.0
-Bukik Gado Gado,11,11,11,100.0,100.0
-Seberang Palinggam,101,101,101,100.0,100.0
-Sawahan Timur,80,6,80,7.5,100.0
-Sawahan,229,186,229,81.2,100.0
+Batang Kabung,751,7,2,0.9,0.3
+Pasir Nan Tigo,769,146,139,19.0,18.1
+Air Tawar Timur,173,61,47,35.3,27.2
+Padang Sarai,1071,0,348,0.0,32.5
+Parupuk Tabing,920,379,331,41.2,36.0
+Bungo Pasang,980,232,356,23.7,36.3
+Koto Baru Nan XX,136,100,56,73.5,41.2
+Koto Pulai,164,0,68,0.0,41.5
+Pasa Gadang,373,176,159,47.2,42.6
+Kampung Olo,418,62,180,14.8,43.1
+Batipuh Panjang,331,3,145,0.9,43.8
+Bungus Selatan,101,65,53,64.4,52.5
+Ranah Parak Rumbio,158,64,86,40.5,54.4
+Kurao Pagang,281,0,156,0.0,55.5
+Dadok Tunggul Hitam,938,0,562,0.0,59.9
+Berok Nipah,295,151,181,51.2,61.4
+Bungus Barat,160,126,99,78.8,61.9
+Gurun Laweh,54,15,34,27.8,63.0
+Ulak Karang Selatan,641,229,405,35.7,63.2
+Kampung Lapai,633,76,410,12.0,64.8
+Air Manis,46,42,30,91.3,65.2
+Banuaran Nan XX,100,0,69,0.0,69.0
+Rimbo Kaluang,253,45,175,17.8,69.2
+Bungus Timur,49,24,34,49.0,69.4
+Teluk Kabung Utara,53,32,37,60.4,69.8
+Teluk Kabung Tengah,43,30,30,69.8,69.8
+Lolong Belanti,648,510,500,78.7,77.2
+Ulak Karang Utara,259,108,201,41.7,77.6
+Jati,229,73,180,31.9,78.6
+Air Tawar Barat,605,498,479,82.3,79.2
+Belakang Pondok,69,57,55,82.6,79.7
+Koto Panjang Ikua Koto,546,148,438,27.1,80.2
+Ujung Gurun,277,155,225,56.0,81.2
+Kampung Pondok,220,84,179,38.2,81.4
+Lubuk Buaya,929,0,776,0.0,83.5
+Taluak Bayua,92,77,77,83.7,83.7
+Rawang,46,45,39,97.8,84.8
+Padang Pasir,221,136,189,61.5,85.5
+Parak Laweh Pulau Air Nan XX,42,0,36,0.0,85.7
+Seberang Padang,360,209,314,58.1,87.2
+Parak Gadang Timur,186,29,163,15.6,87.6
+Flamboyan Baru,281,149,247,53.0,87.9
+Tabiang Banda Gadang,52,36,46,69.2,88.5
+Purus,452,298,410,65.9,90.7
+Olo,341,258,313,75.7,91.8
+Teluk Kabung Selatan,25,25,23,100.0,92.0
+Alang Laweh,228,118,213,51.8,93.4
+Gunung Pangilun,284,175,267,61.6,94.0
+Ganting Parak Gadang,221,95,209,43.0,94.6
+Gates Nan XX,92,90,87,97.8,94.6
+Tanjuang Aur Nan XX,43,0,41,0.0,95.3
+Belakang Tangsi,160,135,154,84.4,96.2
+Batang Arau,144,121,140,84.0,97.2
+Surau Gadang,711,280,694,39.4,97.6
+Gurun Laweh Nan XX,179,0,177,0.0,98.9
+Kampung Jao,279,191,276,68.5,98.9
+Alai Parak Kopi,790,469,786,59.4,99.5
+Andalas,64,0,64,0.0,100.0
+Jati Baru,596,416,596,69.8,100.0
+Mato Aie,10,10,10,100.0,100.0
+Pampangan Nan XX,16,16,16,100.0,100.0
+Seberang Palinggam,97,97,97,100.0,100.0
+Balai Gadang,19,0,19,0.0,100.0
+Bukik Gado Gado,10,10,10,100.0,100.0
+Sawahan Timur,57,2,57,3.5,100.0
+Sawahan,229,180,229,78.6,100.0
