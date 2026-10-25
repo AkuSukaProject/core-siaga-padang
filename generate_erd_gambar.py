@@ -10,8 +10,10 @@ Jumlah baris dan kardinalitas tiap relasi dihitung dari isi DB, bukan ditulis ta
 (SQLite tidak memakai foreign key). Tanda "dibaca aplikasi" dicek dengan git grep di branch aplikasi.
 PNG dibuat dengan Chrome/Edge headless (skala 2x).
 
-Pemakaian: env\\Scripts\\python.exe generate_erd_gambar.py
+Pemakaian: env\\Scripts\\python.exe generate_erd_gambar.py [--db <ranah_siaga_v4.db>] [--keluaran <folder>]
+  Tanpa argumen: DB hasil build, keluaran docs/erd/. Untuk versi lain (mis. DB dari Release), beri path absolut.
 """
+import argparse
 import html
 import json
 import math
@@ -24,8 +26,11 @@ from collections import Counter
 sys.stdout.reconfigure(encoding="utf-8")
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-DB_PATH = os.path.join("hasil_build", "ranah_siaga_v4.db")
-OUT_DIR = os.path.join("docs", "erd")
+_arg = argparse.ArgumentParser()
+_arg.add_argument("--db", default=os.path.join("hasil_build", "ranah_siaga_v4.db"))
+_arg.add_argument("--keluaran", default=os.path.join("docs", "erd"))
+_ARG = _arg.parse_args()
+DB_PATH, OUT_DIR = _ARG.db, _ARG.keluaran
 REPO_APLIKASI, BRANCH_APLIKASI = "C:/siagapadang", "origin/feat/final-keselamatan-navigasi"
 BROWSER = [r"C:\Program Files\Google\Chrome\Application\chrome.exe",
            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"]
@@ -232,7 +237,8 @@ def luas_ha(t):
 
 
 stat = dict(
-    sumber_jalan="OSM per " + meta["sumber_jaringan_jalan"].split("data OSM per ")[-1][:10],
+    sumber_jalan=("OSM per " + meta["sumber_jaringan_jalan"].split("data OSM per ")[-1][:10]
+                  if "sumber_jaringan_jalan" in meta else "OSM"),
     merah=ribu(q("select count(*) from tb_nodes where is_safe = 0")[0][0]),
     hijau=ribu(q("select count(*) from tb_nodes where is_safe = 1")[0][0]),
     ruas_ganda=ribu(q("select count(*) from (select 1 from tb_edges group by min(u, v), max(u, v) having count(*) > 1)")[0][0]),
@@ -499,7 +505,7 @@ def gambar(mode):
 
     out.append(legenda(TEPI, Y_LEG, W))
     out.append(f'<text x="{W - TEPI:.0f}" y="{H - 14:.0f}" font-size="11" fill="#94a3b8" text-anchor="end">'
-               f'Dibangkitkan oleh generate_erd_gambar.py dari {e(DB_PATH.replace(os.sep, "/"))}; '
+               f'Dibangkitkan oleh generate_erd_gambar.py dari ranah_siaga_v4.db versi {e(VERSI)}; '
                f'APP = dibaca aplikasi Android (branch feat/final-keselamatan-navigasi, commit {e(COMMIT_APLIKASI)}).</text>')
     out.append("</svg>")
     return "\n".join(out), W, H
@@ -622,7 +628,7 @@ def main():
         metadata=q("select kunci, nilai from tb_metadata"),
         indeks=q("select name, tbl_name, sql from sqlite_master where type = 'index' and sql is not null order by tbl_name"),
     )
-    with open(os.path.join(OUT_DIR, "templat_erd.html"), encoding="utf-8") as f:
+    with open(os.path.join("docs", "erd", "templat_erd.html"), encoding="utf-8") as f:
         halaman = f.read()
     for kunci, isi in (("__SVG_LENGKAP__", keluaran["lengkap"]), ("__SVG_RINGKAS__", keluaran["ringkas"]),
                        ("__DATA__", json.dumps(data, ensure_ascii=False).replace("</", "<\\/"))):

@@ -1,16 +1,19 @@
 """
 GAMBAR LAPORAN AKHIR SIAGA PADANG (Gambar 1.1, 3.1, 5.4) DARI DATABASE
 
-Semua gambar dibuat dari hasil_build/ranah_siaga_v4.db (versi tercatat di tb_metadata) dan Basemap BPBD,
-sehingga angka di gambar sama dengan angka di DB dan dapat dibuat ulang.
+Semua gambar dibuat dari basis data Siaga Padang (default hasil_build/ranah_siaga_v4.db; versi tercatat di
+tb_metadata) dan Basemap BPBD, sehingga angka di gambar sama dengan angka di basis data dan dapat dibuat ulang.
 
-Keluaran (analisis/output/gambar_laporan/, PNG 300 dpi):
+Keluaran (analisis/output/gambar_laporan/<versi>/, PNG 300 dpi):
   - gambar_1_1_zona_dan_penduduk.png : (a) zona merah & zona hijau + TES/TEA, (b) jiwa terpapar KRB per kelurahan
   - gambar_3_1_cakupan_wilayah.png    : zona merah, zona penyangga 2 km, zona hijau, dan titik evakuasi
   - gambar_5_4_jaringan_jalan.png     : jaringan jalan pejalan kaki dan sebaran TES/TEA
 
-Pemakaian: env\\Scripts\\python.exe analisis\\gambar_laporan.py
+Pemakaian: env\\Scripts\\python.exe analisis\\gambar_laporan.py [--db <ranah_siaga_v4.db>] [--graf <padang_full.graphml>]
+  --graf harus graf sumber basis data itu (dipakai untuk jenis jalan Gambar 5.4). Untuk versi lama, ambil keduanya dari
+  riwayatnya, mis. 2026.10.16: berkas DB dari Release db-2026.10.16 dan `git show 23854a4:padang_full.graphml`.
 """
+import argparse
 import json
 import os
 import sqlite3
@@ -35,10 +38,12 @@ import matplotlib.patheffects as pe_
 sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
-DB = os.path.join("hasil_build", "ranah_siaga_v4.db")
+_arg = argparse.ArgumentParser()
+_arg.add_argument("--db", default=os.path.join("hasil_build", "ranah_siaga_v4.db"))
+_arg.add_argument("--graf", default="padang_full.graphml")
+ARG = _arg.parse_args()
+DB = ARG.db
 BASEMAP = os.path.join("Data BPBD", "KRB Padang [2023-2027]", "02_BASEMAP", "Basemap.gdb")
-OUT = os.path.join("analisis", "output", "gambar_laporan")
-os.makedirs(OUT, exist_ok=True)
 M = "EPSG:32747"
 
 # Palet (dipakai di ketiga gambar agar seragam).
@@ -67,6 +72,8 @@ def simpan(fig, nama):
 c = sqlite3.connect(DB)
 meta = dict(c.execute("select kunci, nilai from tb_metadata"))
 VERSI = meta["versi"]
+OUT = os.path.join("analisis", "output", "gambar_laporan", VERSI)
+os.makedirs(OUT, exist_ok=True)
 
 
 def baca_zona(tabel):
@@ -164,7 +171,7 @@ def titik_evakuasi(ax, ukuran=1.0):
 
 bx0, by0, bx1, by1 = kota.bounds
 BATAS = (bx0 - 1500, by0 - 1500, bx1 + 1500, by1 + 1500)
-SUMBER = (f"Sumber: DB Siaga Padang {VERSI}; zona merah dari raster bahaya tsunami KRB 2023–2027 BPBD dan zona rawan "
+SUMBER = (f"Sumber: basis data Siaga Padang versi {VERSI}; zona merah dari raster bahaya tsunami KRB 2023–2027 BPBD dan zona rawan "
           "peta evakuasi BPBD (Blue Line), dipotong garis pantai OpenStreetMap; batas administrasi Basemap BPBD.")
 
 # ==============================================================================
@@ -267,7 +274,9 @@ from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from matplotlib.ticker import FuncFormatter
 
 # Jenis jalan tiap ruas dari graf sumber DB (tb_edges tidak menyimpan tag highway).
-G = nx.read_graphml(os.path.join(ROOT, "padang_full.graphml"))
+G = nx.read_graphml(ARG.graf)
+assert G.number_of_nodes() == c.execute("select count(*) from tb_nodes").fetchone()[0], \
+    f"{ARG.graf} bukan graf sumber basis data {VERSI}"
 KELAS = {"utama": {"trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link"},
          "setapak": {"footway", "path", "pedestrian", "steps", "track", "bridleway", "corridor"}}
 jenis = {}
@@ -287,9 +296,11 @@ LABEL = {"utama": "Jalan utama", "lingkungan": "Jalan lingkungan", "setapak": "J
 km_kelas = {k: sum(np.hypot(*(np.diff(a, axis=0) * [111.32 * np.cos(np.radians(0.95)), 110.57]).T).sum() for a in v)
             for k, v in seg.items()}
 sumber_jalan = meta.get("sumber_jaringan_jalan", "OpenStreetMap")
-tanggal = _re.search(r"per (\d{4})-(\d{2})-(\d{2})", sumber_jalan)
+# Tanggal data OSM: dari tb_metadata (sejak 2026.10.17), atau tanggal unduh graf OSMnx untuk versi sebelumnya.
+tanggal = (_re.search(r"per (\d{4})-(\d{2})-(\d{2})", sumber_jalan)
+           or _re.match(r"(\d{4})-(\d{2})-(\d{2})", G.graph.get("created_date", "")))
 BULAN = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
-per = f"{int(tanggal.group(3))} {BULAN[int(tanggal.group(2))]} {tanggal.group(1)}" if tanggal else "8 Agustus 2026"
+per = f"{int(tanggal.group(3))} {BULAN[int(tanggal.group(2))]} {tanggal.group(1)}" if tanggal else "(tanggal tidak tercatat)"
 
 
 def gambar_jalan(ax, skala=1.0):
@@ -335,7 +346,7 @@ ax.legend(handles=[Line2D([], [], color=GAYA[k]["colors"], lw=1.6 if k == "utama
              Line2D([], [], marker="o", ls="", color="#13804f", markeredgecolor="white", markersize=7, label=f"TEA ({len(tea)})")],
           loc="lower right", fontsize=8.5, frameon=True, framealpha=0.95)
 titik = lambda n: f"{n:,}".replace(",", ".")
-fig.text(0.01, 0.01, f"Sumber: DB Siaga Padang {VERSI} ({titik(len(nd))} simpul; {titik(n_ruas)} ruas). Jalan: OpenStreetMap per {per} "
+fig.text(0.01, 0.01, f"Sumber: basis data Siaga Padang versi {VERSI} ({titik(len(nd))} simpul; {titik(n_ruas)} ruas). Jalan: OpenStreetMap per {per} "
          "(graf pejalan kaki OSMnx);\ngaris mengikuti geometri asli tiap ruas.", fontsize=7, color="#5d6670")
 fig.tight_layout(rect=(0, 0.04, 1, 1))
 simpan(fig, "gambar_5_4_jaringan_jalan.png")
@@ -343,5 +354,5 @@ plt.close(fig)
 print("Gambar 5.4: " + ", ".join(f"{LABEL[k]} {len(seg[k]):,} ruas / {km_kelas[k]:,.0f} km" for k in seg) + f" | jalan per {per}")
 
 n_simpul, n_merah = c.execute("select count(*), sum(is_safe = 0) from tb_nodes").fetchone()
-print(f"DB {VERSI}: zona merah {ha_merah:,.0f} ha, zona hijau {ha_hijau:,.0f} ha, simpul merah {n_merah:,}/{n_simpul:,}, "
+print(f"Basis data {VERSI}: zona merah {ha_merah:,.0f} ha, zona hijau {ha_hijau:,.0f} ha, simpul merah {n_merah:,}/{n_simpul:,}, "
       f"TES {len(tes)}, TEA {len(tea)}, ruas {n_ruas:,}, jiwa terpapar KRB {total:,} | keluaran: {OUT}")

@@ -12,7 +12,7 @@ Pembangun database rute evakuasi tsunami Kota Padang untuk aplikasi Android Siag
 | `salin_db_ke_android.py` | Menyalin DB hasil build ke `android/app/src/main/assets/` repo aplikasi, beserta manifest berformat aplikasi |
 | `download_peta_full.py` | Mengunduh graf jalan pejalan kaki Kota Padang dari OSM lewat Overpass (`padang_full.graphml`) |
 | `graf_dari_geofabrik.py` | Membangun `padang_full.graphml` yang setara dari ekstrak Geofabrik (`.osm.pbf`), bila Overpass tidak bisa dipakai. Graf sekarang: OSM per 20 Oktober 2026 |
-| `analisis/gambar_laporan.py` | Gambar laporan akhir (Gambar 1.1, 3.1, 5.4) langsung dari DB |
+| `analisis/gambar_laporan.py` | Gambar laporan akhir (Gambar 1.1, 3.1, 5.4) langsung dari DB, ke `analisis/output/gambar_laporan/<versi>/`; `--db`/`--graf` untuk versi lama |
 | `hasil_build/` | Keluaran build: `ranah_siaga_v4.db` (database terbaru), `ranah_siaga_v4.db.zip` (paket untuk aplikasi, tidak di-commit), `dataset_manifest.json` (versi & checksum zip dan .db), `dataset_manifest_android.json` (manifest berformat aset aplikasi) |
 | `data_osm/` | Garis pantai (dan jembatan) OpenStreetMap yang dipakai build, ODbL |
 | `data_bpbd_digitasi/` | Zona rawan tsunami hasil digitasi peta evakuasi BPBD (Blue Line) dan skrip pembuatnya; dipakai build untuk zona merah |
