@@ -2,6 +2,7 @@
 
 Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (rilis 2026.10.17): tabel, primary key, dan keterkaitan logis antartabel. Database dibangun oleh [`build_db.py`](../build_db.py) dari data BPBD (lihat [build_db_v4.md](build_db_v4.md)) dan mengikuti kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md` §2.1).
 
+- **Gambar ERD** (dibangkitkan dari DB oleh [`generate_erd_gambar.py`](../generate_erd_gambar.py)): [lengkap](erd/erd_siaga_padang_lengkap.png) (semua 153 kolom + keterangan, juga [SVG](erd/erd_siaga_padang_lengkap.svg)), [ringkas](erd/erd_siaga_padang_ringkas.png) (kunci dan kolom utama, untuk Gambar 5.3 laporan; [SVG](erd/erd_siaga_padang_ringkas.svg)), dan [halaman interaktif](erd/erd_siaga_padang.html) berisi diagram, kamus data (% NULL, jumlah nilai berbeda, rentang/contoh tiap kolom), daftar relasi beserta kardinalitas, indeks, dan isi `tb_metadata`. Kardinalitas dihitung dari isi DB; tanda APP = tabel yang dibaca aplikasi Android.
 - **DBML lengkap** (impor ke dbdiagram.io): [`siaga_padang_erd.dbml`](siaga_padang_erd.dbml). Berkas ini dibangkitkan otomatis oleh [`generate_dbml_file.py`](../generate_dbml_file.py) dari DB.
 - Semua relasi adalah **keterkaitan logis** yang dipakai aplikasi, bukan *foreign key constraint* SQLite.
 - Room memvalidasi `tb_nodes` lewat `NodeEntity`; tabel lain dibaca dengan kueri `@SkipQueryVerification`.
@@ -19,8 +20,8 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (
 
 | Tabel | Primary key | Isi | Relasi logis |
 |---|---|---|---|
-| `tb_nodes` | `node_id` | Simpul jalan (lat, lon). `is_safe`: 0 = zona merah (area landaan raster KRB), 1 = zona aman. `jarak_pantai_m` (bulat, dari garis pantai OSM) | – |
-| `tb_edges` | `edge_id` | Ruas jalan: `u`, `v`, `length` (m), `geometry` (WKT LineString lon lat; kosong untuk ruas lurus) | `u`, `v` → `tb_nodes.node_id` |
+| `tb_nodes` | `node_id` | Simpul jalan (lat, lon). `is_safe`: 0 = zona merah (landaan KRB + zona rawan peta evakuasi BPBD), 1 = zona aman. `jarak_pantai_m` (bulat, dari garis pantai OSM) | – |
+| `tb_edges` | `edge_id` | Ruas jalan: `u`, `v`, `length` (m), `geometry` (WKT LineString lon lat, terisi untuk semua ruas). Satu baris per ruas tak berarah; 390 pasangan u-v punya lebih dari satu ruas (jalan sejajar) | `u`, `v` → `tb_nodes.node_id` |
 | `tb_tes` | `tes_id` (`TES_001`…) | TES yang dipakai routing: `nama_tes` (unik), `zona` (kelurahan), `kapasitas` (jiwa, data BPBD; kosong bila tidak ada), lat, lon, `sumber` (BPBD/WARGA), `jarak_pantai_m`, `lantai` | – |
 | `tb_routes` | `origin_node_id` | Hingga 3 TES per node **zona merah** yang lolos syarat arah: `rank_X_tes` (nama), `rank_X_path` (ID node dipisah koma), `rank_X_eta`. Urutan: yang sempat ≤ 20 menit urut jarak pantai (terjauh = rank 1), lalu yang tidak sempat urut waktu. Rank 2 dan 3 boleh kosong | `origin_node_id` → `tb_nodes` (1:1); `rank_X_tes` → `tb_tes.nama_tes` |
 | `tb_tea` | `tea_id` (`TEA_001`…) | TEA di luar area landaan: nama, kelurahan, kecamatan (`sektor`), kapasitas (0 = tidak ada data), lat, lon, `jarak_pantai_m`, `sumber` | `nearest_node_id` → `tb_nodes` |
@@ -39,7 +40,7 @@ Dokumen ini menjelaskan struktur basis data lokal Android Siaga Padang versi 4 (
 | Tabel | Primary key | Isi |
 |---|---|---|
 | `tb_safe_routes_v2` | `origin_node_id` | **Navigasi zona aman (K-B6, 12 Oktober).** Per node **zona merah** (11.438, semuanya): titik zona hijau terjauh dari pantai yang sempat ≤ 15 menit (`safe_eta` ≤ 11,175) dan lolos syarat arah, atau batas zona hijau yang tercepat dicapai bila tidak ada yang sempat. Kolom: `kelompok` (nomor titik tujuan), `safe_node_id`, `safe_zone_nama`, `safe_eta`, `safe_d_pantai_m`, `mendekat_pantai_maks_m`, `safe_zone_id` |
-| `tb_safe_next_v2` | (`kelompok`, `node_id`) | Next-hop menuju zona aman per titik tujuan (945 kelompok); dirangkai seperti `tb_tea_next` |
+| `tb_safe_next_v2` | (`kelompok`, `node_id`) | Next-hop menuju zona aman per titik tujuan (862 kelompok); dirangkai seperti `tb_tea_next` |
 | `tb_fasilitas_info` | `facility_id` | Semua TES/TEA sumber, termasuk yang tidak dipakai: `dipakai`, `alasan_tidak_dipakai`, `kapasitas` (termasuk estimasi internal), `kapasitas_sumber`, `d_pantai_m`, `indeks_bahaya`, data 2019, `nama_bpbd` (nama asli), `sumber`, `nama_daftar_resmi_bpbd`, `lantai` |
 | `tb_node_info` | `node_id` | Kelurahan, `d_pantai_m`, `indeks_bahaya`, `demand_jiwa`, flag rute TES/zona aman lewat jembatan ≥ 20 m, `kantong_aman`, `rute_tes_mendekat_pantai_m`, `rute_aman_mendekat_pantai_m` |
 | `tb_kelurahan_info` | – (`kelurahan` unik) | Profil tsunami 56 kelurahan dari tabel KRB, ditambah `jiwa_rute_aman_mendekat_pantai`, `jiwa_tanpa_rute_aman`, dan `jiwa_tambahan_peta_evakuasi` (perkiraan penduduk di zona merah tambahan peta evakuasi) |

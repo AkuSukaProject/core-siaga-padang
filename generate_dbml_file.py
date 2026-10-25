@@ -28,7 +28,7 @@ KELOMPOK = {
 }
 
 CATATAN_TABEL = {
-    "tb_nodes": "Simpul persimpangan jalan (OSM). is_safe dari raster bahaya tsunami KRB 2023-2027; jarak_pantai_m dari garis pantai OSM.",
+    "tb_nodes": "Simpul persimpangan jalan (OSM). is_safe dari poligon zona merah (landaan KRB 2023-2027 + zona rawan peta evakuasi BPBD); jarak_pantai_m dari garis pantai OSM.",
     "tb_edges": "Ruas jalan untuk menggambar rute di peta.",
     "tb_tes": "TES yang dipakai routing; sumber BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025). Nama unik.",
     "tb_routes": "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. Yang sempat <= 20 menit urut jarak pantai (terjauh = rank 1), lalu tercepat. rank 2/3 boleh kosong. ETA pada 1,2 m/s.",
@@ -39,8 +39,8 @@ CATATAN_TABEL = {
     "tb_safe_next_v2": "Next-hop menuju zona aman per titik tujuan (kelompok milik node asal).",
     "tb_safe_routes": "Kontrak lama: batas zona hijau terdekat per node dari satu pohon global; simpul merah hanya bila tujuan lolos syarat arah. safe_eta = 0 = tujuan zona hijau (status tiba).",
     "tb_safe_next": "Kontrak: next-hop pohon global menuju zona aman.",
-    "tb_inundation_zones": "Zona merah per kelurahan dari raster bahaya tsunami. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau).",
-    "tb_safe_zones": "Bagian kelurahan di luar area landaan (zona hijau).",
+    "tb_inundation_zones": "Zona merah per kelurahan: landaan KRB + zona rawan peta evakuasi BPBD, dipotong ke daratan. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau).",
+    "tb_safe_zones": "Bagian darat kelurahan di luar zona merah (zona hijau).",
     "tb_route_shares": "Porsi penugasan warga per node ke TES/TEA/zona aman (greedy berkapasitas).",
     "tb_fasilitas_info": "Semua TES/TEA sumber BPBD termasuk yang tidak dipakai, beserta alasan & sumber kapasitas.",
     "tb_node_info": "Atribut tambahan node: kelurahan, jarak ke pantai, indeks bahaya, demand, ketergantungan jembatan.",
@@ -67,7 +67,7 @@ CATATAN_KOLOM = {
     ("tb_fasilitas_info", "dipakai"): "1 = dipakai routing",
     ("tb_fasilitas_info", "d_pantai_m"): "Jarak ke garis pantai (batimetri BPBD)",
     ("tb_fasilitas_info", "indeks_bahaya"): "Indeks bahaya tsunami; NULL = di luar landaan",
-    ("tb_node_info", "demand_jiwa"): "Jiwa terpapar KRB, disebar menurut jejak bangunan",
+    ("tb_node_info", "demand_jiwa"): "Jiwa terpapar KRB disebar menurut jejak bangunan, ditambah perkiraan penduduk zona merah peta evakuasi",
 }
 
 # Relasi logis (bukan foreign key SQLite): (tabel, kolom) -> "tabel.kolom".

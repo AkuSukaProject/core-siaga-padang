@@ -19,7 +19,7 @@ Selamat datang di direktori dokumentasi `core-siaga-padang`. Proyek ini merupaka
    Alur `build_db.py` dari data BPBD sampai SQLite, cara routing dihitung, dan cara aplikasi memakai tiap tabel.
 5. **[Pembangun Database V4](build_db_v4.md)**
    Inventaris data `Data BPBD/` (dipakai dan tidak), parameter, hasil build terbaru, dan hal yang perlu dikonfirmasi ke BPBD.
-6. **[Spesifikasi ERD](erd_siaga_padang.md)** dan **[DBML](siaga_padang_erd.dbml)**
+6. **[Spesifikasi ERD](erd_siaga_padang.md)**, **[gambar ERD](erd/erd_siaga_padang_lengkap.png)**, **[ERD interaktif + kamus data](erd/erd_siaga_padang.html)**, dan **[DBML](siaga_padang_erd.dbml)**
    Struktur tabel `ranah_siaga_v4.db`. DBML dibangkitkan otomatis dari DB.
 7. **[Simulasi Kanonis](simulasi_kanonis.md)**
    Metodologi, parameter, dan hasil resmi simulasi Baseline vs Siaga Padang (`analisis/simulasi_resmi_padang.py`).
