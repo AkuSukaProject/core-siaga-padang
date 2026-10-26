@@ -5,6 +5,8 @@ Keluaran di docs/erd/:
   erd_siaga_padang_lengkap.svg / .png  semua kolom + keterangan singkat (lampiran, layar)
   erd_siaga_padang_ringkas.svg / .png  kunci dan kolom utama saja (Gambar 5.3 laporan)
   erd_siaga_padang.html                ERD interaktif + kamus data (semua kolom, % NULL, contoh nilai)
+  erd_siaga_padang.drawio              berkas draw.io (halaman Lengkap dan Ringkas)
+  erd_siaga_padang_{lengkap,ringkas}.puml  kode PlantUML
 
 Jumlah baris dan kardinalitas tiap relasi dihitung dari isi DB, bukan ditulis tangan. Relasinya logis
 (SQLite tidak memakai foreign key). Tanda "dibaca aplikasi" dicek dengan git grep di branch aplikasi.
@@ -692,8 +694,84 @@ def halaman_drawio(nama, tata):
             + "".join(sel) + "</root></mxGraphModel></diagram>")
 
 
+UJUNG_KIRI = {"01": "|o", "11": "||", "0N": "}o", "1N": "}|"}
+UJUNG_KANAN = {"01": "o|", "11": "||", "0N": "o{", "1N": "|{"}
+
+
+def teks_puml(s):
+    """Tanda < dan > di teks bebas bisa dibaca PlantUML sebagai tag Creole; ganti dengan simbol yang setara."""
+    return s.replace("<=", "≤").replace(">=", "≥").replace("<", "‹").replace(">", "›")
+
+
+def plantuml(mode):
+    """Kode PlantUML (notasi IE / crow's foot). Lengkap = semua kolom + keterangan; ringkas = kunci dan kolom utama."""
+    lengkap = mode == "lengkap"
+    b = ["@startuml", f"' ERD basis data lokal Siaga Padang, ranah_siaga_v4.db versi {VERSI} ({mode}).",
+         "' Dibangkitkan oleh generate_erd_gambar.py dari DB; jangan diedit manual.",
+         "' Relasi logis (SQLite tanpa foreign key); kardinalitas dihitung dari isi DB.",
+         "' * = PK atau NOT NULL. Garis utuh = kunci ID, putus-putus = lewat nama / kunci kelompok / sumber VIEW.",
+         "hide circle", "hide stereotype", "skinparam linetype ortho", "skinparam shadowing false",
+         "skinparam defaultFontName Consolas", "skinparam nodesep 40", "skinparam ranksep 60",
+         "skinparam entity {", "  FontStyle bold", "  FontSize 13", "  AttributeFontSize 11", "}",
+         "skinparam package {", "  FontStyle bold", "  BorderColor #CBD5E1", "}"]
+    for g, (_, warna) in GRUP.items():
+        b += [f"skinparam entity {{", f"  BackgroundColor<<{g}>> {campur(warna, 0.93)}", f"  BorderColor<<{g}>> {warna}",
+              f"  FontColor<<{g}>> {warna}", "}"]
+    b += ["", f'title Basis Data Lokal Siaga Padang (ranah_siaga_v4.db versi {VERSI})' + ("" if lengkap else " - ringkas"), ""]
+    for g, (nama_grup, _) in GRUP.items():
+        anggota = [t for kol in TATA_LETAK for t in kol if TABEL[t]["grup"] == g]
+        if not anggota:
+            continue
+        b.append(f'package "{nama_grup}" {{')
+        for t in anggota:
+            d = TABEL[t]
+            kolom = KOLOM[t] if lengkap else [k for k in KOLOM[t] if k["pk"] or (t, k["nama"]) in FK | TARGET
+                                              or k["nama"] in d.get("ringkas", [])]
+            sisa = len(KOLOM[t]) - len(kolom)
+            tanda = (" · VIEW" if objek[t] == "view" else "") + (" · APP" if APLIKASI[t] else "")
+            b.append(f'  entity "{t}\\n<size:10><color:#64748b>{ribu(BARIS[t])} baris{tanda}</color></size>" as {t} <<{g}>> {{')
+            if lengkap:
+                for baris in bungkus(teks_puml(d["uraian"]), 60):
+                    b.append(f"    <size:10><i>{baris}</i></size>")
+                b.append("    ..")
+            pk = [k for k in kolom if k["pk"]]
+            lain = [k for k in kolom if not k["pk"]]
+            for k in pk + ([None] if pk and (lain or sisa) else []) + lain:
+                if k is None:
+                    b.append("    --")
+                    continue
+                st = [s for s, ya in (("PK", k["pk"]), ("FK", (t, k["nama"]) in FK), ("UK", (t, k["nama"]) in UK)) if ya]
+                ket = teks_puml(d["ket"].get(k["nama"], "")) if lengkap else ""
+                b.append(f'    {"* " if k["pk"] or k["nn"] else ""}{k["nama"]} : {k["tipe"]}'
+                         + (f' <<{",".join(st)}>>' if st else "")
+                         + (f" <color:#64748b><size:10>{ket}</size></color>" if ket else ""))
+            if sisa:
+                b.append(f"    <i>... +{sisa} kolom lain</i>")
+            b.append("  }")
+        b.append("}")
+        b.append("")
+    for r in REL:
+        if r["jenis"] == "turunan":
+            b.append(f'{r["tujuan"]} ..> {r["asal"]} : "UNION ALL"')
+            continue
+        garis = "--" if r["jenis"] == "id" else ".."
+        b.append(f'{r["asal"]} {UJUNG_KIRI[r["sa"]]}{garis}{UJUNG_KANAN[r["st"]]} {r["tujuan"]} : '
+                 f'"{", ".join(r["kols"])} → {r["kol_t"]}"')
+    b += ["", "legend right",
+          "  Warna = kelompok tabel. APP = tabel dibaca aplikasi Android.",
+          "  PK primary key, FK merujuk tabel lain, UK unik (target rujukan nama), * = PK/NOT NULL.",
+          "  Garis utuh = kunci ID; putus-putus = lewat nama, kunci kelompok, atau sumber VIEW.",
+          "endlegend", "@enduml", ""]
+    return "\n".join(b)
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
+    for mode in ("lengkap", "ringkas"):
+        p = os.path.join(OUT_DIR, f"erd_siaga_padang_{mode}.puml")
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(plantuml(mode))
+        print(f"PlantUML: {p}")
     keluaran, halaman_dio = {}, []
     for mode in ("lengkap", "ringkas"):
         svg, W, H, tata = gambar(mode)
