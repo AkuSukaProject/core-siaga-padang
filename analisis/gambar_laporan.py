@@ -8,6 +8,8 @@ Keluaran (analisis/output/gambar_laporan/<versi>/, PNG 300 dpi):
   - gambar_1_1_zona_dan_penduduk.png : (a) zona merah & zona hijau + TES/TEA, (b) jiwa terpapar KRB per kelurahan
   - gambar_3_1_cakupan_wilayah.png    : zona merah, zona penyangga 2 km, zona hijau, dan titik evakuasi
   - gambar_5_4_jaringan_jalan.png     : jaringan jalan pejalan kaki dan sebaran TES/TEA
+  - gambar_pemodelan_kolektif_beban_tes.png : (sejak 2026.10.18) beban model tiap TES terhadap kapasitas dan
+                                       kelompok porsi tujuan penduduk (tb_route_shares)
 
 Pemakaian: env\\Scripts\\python.exe analisis\\gambar_laporan.py [--db <ranah_siaga_v4.db>] [--graf <padang_full.graphml>]
   --graf harus graf sumber basis data itu (dipakai untuk jenis jalan Gambar 5.4). Untuk versi lama, ambil keduanya dari
@@ -356,3 +358,102 @@ print("Gambar 5.4: " + ", ".join(f"{LABEL[k]} {len(seg[k]):,} ruas / {km_kelas[k
 n_simpul, n_merah = c.execute("select count(*), sum(is_safe = 0) from tb_nodes").fetchone()
 print(f"Basis data {VERSI}: zona merah {ha_merah:,.0f} ha, zona hijau {ha_hijau:,.0f} ha, simpul merah {n_merah:,}/{n_simpul:,}, "
       f"TES {len(tes)}, TEA {len(tea)}, ruas {n_ruas:,}, jiwa terpapar KRB {total:,} | keluaran: {OUT}")
+
+# ==============================================================================
+# GAMBAR BARU (sejak 2026.10.18): hasil pemodelan pergerakan kolektif -- beban TES dan kelompok porsi
+# ==============================================================================
+# Dibuat hanya bila tb_route_shares memakai kontrak porsi (docs/kontrak_porsi_tujuan.md). Semua angka dari DB:
+# beban TES = jumlah demand_jiwa x porsi pada baris kelompok "beban" (bukan cadangan, TES berkapasitas, sempat).
+kol_porsi = {r[1] for r in c.execute("pragma table_info(tb_route_shares)")}
+if "facility_id" in kol_porsi:
+    ttk = lambda v: f"{v:,.0f}".replace(",", ".")
+    sr = pd.read_sql("select r.*, i.demand_jiwa from tb_route_shares r join tb_node_info i on i.node_id = r.origin_node_id", c)
+    pos = sr[sr.porsi > 0]
+    per_simpang = pos.groupby("origin_node_id").agg(cad=("cadangan", "max"), kap=("kapasitas_tercatat", "min"),
+                                                   sempat=("sempat_15", "min"), jiwa=("demand_jiwa", "first"))
+    def kelompok(r):
+        if r.cad: return "cadangan"
+        if not r.sempat: return "tidak_sempat"
+        return "beban" if r.kap else "tanpa_kapasitas"
+    per_simpang["kel"] = per_simpang.apply(kelompok, axis=1)
+    beban_ids = set(per_simpang.index[per_simpang.kel == "beban"])
+    b_rows = pos[pos.origin_node_id.isin(beban_ids)]
+    beban = (b_rows.demand_jiwa * b_rows.porsi).groupby(b_rows.facility_id).sum()
+    tk = pd.read_sql("select tes_id, nama_tes, kapasitas, lat, lon from tb_tes", c).set_index("tes_id")
+    tk["x"], tk["y"] = ke_m.transform(tk.lon.to_numpy(), tk.lat.to_numpy())
+    tk["beban"] = beban.reindex(tk.index).fillna(0.0)
+    tk["rasio"] = tk.beban / tk.kapasitas
+    berkap_t = tk[tk.kapasitas.notna()]
+    tanpa_kap = tk[tk.kapasitas.isna()]
+    STATUS = [("≤ 100% kapasitas", "#0ca30c", lambda r: (r > 0) & (r <= 1.0005)),
+              ("100–200% kapasitas", "#fab219", lambda r: (r > 1.0005) & (r <= 2)),
+              ("> 200% kapasitas", "#d03b3b", lambda r: r > 2)]
+    merah_n = int(c.execute("select count(*) from tb_nodes where is_safe = 0").fetchone()[0])
+    jiwa_merah = float(c.execute("select sum(i.demand_jiwa) from tb_node_info i join tb_nodes n using(node_id) "
+                                 "where n.is_safe = 0").fetchone()[0])
+    tanpa_tes = c.execute("select count(*), sum(i.demand_jiwa) from tb_nodes n join tb_node_info i using(node_id) where n.is_safe = 0 "
+                          "and n.node_id not in (select origin_node_id from tb_route_shares)").fetchone()
+
+    fig = plt.figure(figsize=(12.5, 7.4))
+    ax = fig.add_axes([0.01, 0.07, 0.52, 0.86])
+    xs_, ys_ = berkap_t.x, berkap_t.y
+    bx = (xs_.min() - 2500, ys_.min() - 2500, xs_.max() + 2500, ys_.max() + 2500)
+    kerangka(ax, bx, "(a) Beban model tiap TES berkapasitas")
+    merah.plot(ax=ax, color="#f3d9d3", edgecolor="#d9a79c", linewidth=0.3, zorder=1)
+    batas_kec(ax, label=False)
+    ukuran = lambda kap: 12 + 110 * np.sqrt(kap / berkap_t.kapasitas.max())
+    ax.scatter(tanpa_kap.x, tanpa_kap.y, s=10, marker="x", color="#8a8f96", linewidth=0.7, zorder=4)
+    tanpa_beban = berkap_t[berkap_t.beban < 0.5]
+    ax.scatter(tanpa_beban.x, tanpa_beban.y, s=ukuran(tanpa_beban.kapasitas), facecolor="white", edgecolor="#8a8f96",
+               linewidth=0.8, zorder=5)
+    for lbl, warna, syarat in STATUS:
+        d = berkap_t[syarat(berkap_t.rasio) & (berkap_t.beban >= 0.5)]
+        ax.scatter(d.x, d.y, s=ukuran(d.kapasitas), color=warna, edgecolor="white", linewidth=0.8, zorder=6)
+    skala_utara(ax, 2)
+    n_stat = [int((syarat(berkap_t.rasio) & (berkap_t.beban >= 0.5)).sum()) for _, _, syarat in STATUS]
+    fig.legend(handles=[Line2D([], [], marker="o", ls="", color=w, markeredgecolor="white", markersize=8,
+                               label=f"{l} ({n} TES)") for (l, w, _), n in zip(STATUS, n_stat)]
+               + [Line2D([], [], marker="o", ls="", markerfacecolor="white", markeredgecolor="#8a8f96", markersize=8,
+                         label=f"Tidak menerima beban ({len(tanpa_beban)} TES)"),
+                  Line2D([], [], marker="x", ls="", color="#8a8f96", markersize=6,
+                         label=f"Tanpa kapasitas, hanya cadangan ({len(tanpa_kap)} TES)"),
+                  Patch(facecolor="#f3d9d3", edgecolor="#d9a79c", label="Zona merah")],
+               title="Peta (a): beban model terhadap kapasitas TES (ukuran titik = kapasitas)", loc="lower left",
+               bbox_to_anchor=(0.51, 0.12), ncol=2, fontsize=8.5, title_fontsize=8.5, frameon=True, framealpha=0.95,
+               edgecolor="#c9cdd2")
+
+    ax2 = fig.add_axes([0.70, 0.43, 0.27, 0.47])
+    urutan_kel = [("beban", "Ke TES berkapasitas (dibagi model)"), ("cadangan", "Keluar zona (TEA/zona hijau)"),
+                  ("tidak_sempat", "Tidak ada TES yang sempat"), ("tanpa_kapasitas", "Hanya TES tanpa kapasitas"),
+                  ("tanpa_tes", "Tanpa TES lolos syarat arah")]
+    nilai = {k: (per_simpang[per_simpang.kel == k].jiwa.sum(), int((per_simpang.kel == k).sum())) for k, _ in urutan_kel[:4]}
+    nilai["tanpa_tes"] = (float(tanpa_tes[1] or 0), int(tanpa_tes[0]))
+    yy = np.arange(len(urutan_kel))[::-1]
+    jiwa_k = [nilai[k][0] for k, _ in urutan_kel]
+    ribu = np.array(jiwa_k) / 1000
+    ax2.barh(yy, ribu, height=0.62, color="#2a78d6", edgecolor="white", linewidth=2)
+    for y_, (k, lbl) in zip(yy, urutan_kel):
+        j, s = nilai[k]
+        persen = f"{j / jiwa_merah * 100:.1f}".replace(".", ",")
+        ax2.text(j / 1000 + ribu.max() * 0.03, y_, f"{ttk(j)} jiwa ({persen}%)\n{ttk(s)} simpang",
+                 va="center", fontsize=8, color="#2a3037", linespacing=1.25)
+    ax2.set_yticks(yy, [lbl for _, lbl in urutan_kel], fontsize=9)
+    ax2.set_xlim(0, ribu.max() * 1.6)
+    ax2.set_xticks([0, 25, 50, 75, 100])
+    ax2.set_xlabel("Ribu jiwa (t = 0, batas 15 menit)", fontsize=9)
+    for s_ in ("top", "right"):
+        ax2.spines[s_].set_visible(False)
+    ax2.spines["left"].set_color("#c3c2b7"); ax2.spines["bottom"].set_color("#c3c2b7")
+    ax2.grid(axis="x", color="#e1e0d9", linewidth=0.6); ax2.set_axisbelow(True)
+    ax2.set_title("(b) Tujuan penduduk menurut kelompok porsi", loc="right")
+    lebih = (berkap_t.beban - berkap_t.kapasitas).clip(lower=0).sum()
+    fig.text(0.51, 0.05, f"Kapasitas 167 TES: {ttk(berkap_t.kapasitas.sum())} jiwa. Beban model {ttk(berkap_t.beban.sum())} jiwa ke "
+             f"{int((berkap_t.beban >= 0.5).sum())} TES; kelebihan {ttk(lebih)} jiwa di {n_stat[1] + n_stat[2]} TES.\n"
+             f"Persentase (b) terhadap {ttk(jiwa_merah)} jiwa di {ttk(merah_n)} simpang zona merah.", fontsize=8, color="#5d6670")
+    fig.text(0.01, 0.012, f"Sumber: basis data Siaga Padang versi {VERSI} (tb_route_shares, tb_node_info, tb_tes); program linear "
+             "minimum jiwa × menit dengan batas kapasitas, laju 0,894 m/s; kapasitas: perkiraan kesepakatan warga (BPBD 2025) "
+             "dan daftar BPBD 2019.", fontsize=7, color="#5d6670")
+    simpan(fig, "gambar_pemodelan_kolektif_beban_tes.png")
+    plt.close(fig)
+    print(f"Gambar pemodelan kolektif: beban {ttk(berkap_t.beban.sum())} jiwa, {int((berkap_t.beban >= 0.5).sum())} TES, "
+          f"melebihi {n_stat[1] + n_stat[2]} TES (kelebihan {ttk(lebih)} jiwa)")

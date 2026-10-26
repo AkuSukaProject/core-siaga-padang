@@ -95,7 +95,7 @@ sudah ada.
 
 ## Hasil 2026.10.18 (t = 0, dari simpang, 0,894 m/s)
 
-Penyebut: 313.863 jiwa di 11.418 simpang zona merah.
+Penyebut: 313.862 jiwa di 11.418 simpang zona merah.
 
 | Kelompok | Simpang | Jiwa |
 |---|---|---|
