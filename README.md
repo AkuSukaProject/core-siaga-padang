@@ -8,7 +8,7 @@ Pembangun database rute evakuasi tsunami Kota Padang untuk aplikasi Android Siag
 |---|---|
 | `build_db.py` | Engine: membangun isi `hasil_build/` dari data BPBD |
 | `generate_dbml_file.py` | Membangkitkan ERD `docs/siaga_padang_erd.dbml` dari DB |
-| `generate_erd_gambar.py` | Menggambar ERD dari DB: `docs/erd/` (PNG/SVG lengkap dan ringkas, halaman interaktif + kamus data) |
+| `generate_erd_gambar.py` | Menggambar ERD dari DB: `docs/erd/` (PNG/SVG lengkap dan ringkas, berkas draw.io, halaman interaktif + kamus data) |
 | `salin_db_ke_android.py` | Menyalin DB hasil build ke `android/app/src/main/assets/` repo aplikasi, beserta manifest berformat aplikasi |
 | `download_peta_full.py` | Mengunduh graf jalan pejalan kaki Kota Padang dari OSM lewat Overpass (`padang_full.graphml`) |
 | `graf_dari_geofabrik.py` | Membangun `padang_full.graphml` yang setara dari ekstrak Geofabrik (`.osm.pbf`), bila Overpass tidak bisa dipakai. Graf sekarang: OSM per 20 Oktober 2026 |

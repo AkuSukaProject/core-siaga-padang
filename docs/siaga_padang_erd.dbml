@@ -63,9 +63,25 @@ Table tb_routes {
   Note: "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. Yang sempat <= 20 menit urut jarak pantai (terjauh = rank 1), lalu tercepat. rank 2/3 boleh kosong. ETA pada 1,2 m/s."
 }
 
+Table v_fasilitas_evakuasi {
+  facility_id TEXT
+  kode TEXT
+  nama TEXT
+  jenis TEXT
+  tipe_evakuasi TEXT
+  zona_sektor TEXT
+  kapasitas REAL
+  lat REAL
+  lon REAL
+  sumber TEXT
+
+  Note: "VIEW (bukan tabel): tb_tes UNION ALL tb_tea, untuk daftar dan peta fasilitas."
+}
+
 TableGroup Rute_TES_Vertikal {
   tb_tes
   tb_routes
+  v_fasilitas_evakuasi
 }
 
 Table tb_tea {
@@ -308,3 +324,13 @@ TableGroup Info_V4_Tambahan {
   tb_jalur_resmi
   tb_metadata
 }
+
+// Relasi tambahan (logis)
+Ref: tb_safe_routes_v2.kelompok <> tb_safe_next_v2.kelompok // kunci kelompok pohon next-hop v2
+Ref: tb_route_shares.nama_tujuan > tb_tes.nama_tes // bila jenis = 'TES'
+Ref: tb_route_shares.nama_tujuan > tb_tea.nama_tea // bila jenis = 'TEA'
+Ref: tb_tes.tes_id - tb_fasilitas_info.facility_id // TES yang dipakai routing
+Ref: tb_tea.tea_id - tb_fasilitas_info.facility_id // TEA yang dipakai routing
+Ref: tb_node_info.kelurahan > tb_kelurahan_info.kelurahan // lewat nama; hanya 56 kelurahan terpapar
+Ref: tb_inundation_zones.nama_zona - tb_kelurahan_info.kelurahan // lewat nama
+Ref: tb_safe_zones.nama_zona - tb_kelurahan_info.kelurahan // lewat nama

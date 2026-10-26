@@ -508,7 +508,9 @@ def gambar(mode):
                f'Dibangkitkan oleh generate_erd_gambar.py dari ranah_siaga_v4.db versi {e(VERSI)}; '
                f'APP = dibaca aplikasi Android (branch feat/final-keselamatan-navigasi, commit {e(COMMIT_APLIKASI)}).</text>')
     out.append("</svg>")
-    return "\n".join(out), W, H
+    tata = dict(kotak=kotak, kepala=TINGGI_KEPALA, baris=TINGGI_BARIS, uraian=TINGGI_URAIAN, W=W, H=H, Y_LEG=Y_LEG,
+                tepi=TEPI, judul=judul, sub=sub, lengkap=lengkap)
+    return "\n".join(out), W, H, tata
 
 
 def penanda(x, y, d, kode, warna):
@@ -607,17 +609,105 @@ def kamus_data():
     return hasil
 
 
+PANAH_DRAWIO = {"11": "ERmandOne", "01": "ERzeroToOne", "1N": "ERoneToMany", "0N": "ERzeroToMany"}
+
+
+def halaman_drawio(nama, tata):
+    """Satu halaman diagram draw.io (mxGraphModel) dengan tata letak yang sama seperti gambar SVG.
+    Tabel = swimlane bertumpuk (bisa digeser/diubah di draw.io), relasi = garis ER yang menempel ke baris kolom."""
+    lengkap, kotak = tata["lengkap"], tata["kotak"]
+    sel = []
+    a = lambda s: html.escape(s, quote=True)
+    sp = lambda s, n: html.escape(s.ljust(n)).replace(" ", "&nbsp;")  # rata kolom dengan huruf monospace
+    pid = nama.lower()
+    sel.append(f'<mxCell id="{pid}-judul" value="{a("<b>" + html.escape(tata["judul"]) + "</b><br>" + html.escape(tata["sub"]))}" '
+               f'style="text;html=1;fontSize=18;fontFamily=Segoe UI;align=left;verticalAlign=top;whiteSpace=wrap;" vertex="1" parent="1">'
+               f'<mxGeometry x="{tata["tepi"]}" y="20" width="{tata["W"] - 2 * tata["tepi"]:.0f}" height="70" as="geometry"/></mxCell>')
+    for t, d in TABEL.items():
+        b = kotak[t]
+        warna = GRUP[d["grup"]][1]
+        app = " · APP" if APLIKASI[t] else ""
+        judul = (f'<b>{html.escape(t)}</b>&nbsp;&nbsp;<span style="font-size:10px;font-weight:normal">'
+                 f'{ribu(BARIS[t])} baris{app}{" · VIEW" if objek[t] == "view" else ""}</span>')
+        gaya = (f"swimlane;html=1;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize={tata['kepala']};horizontalStack=0;"
+                f"resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;rounded=1;arcSize=3;"
+                f"fillColor={warna};strokeColor={warna};fontColor=#ffffff;swimlaneFillColor=#ffffff;align=left;spacingLeft=8;"
+                f"fontFamily=Consolas;fontSize=14;" + ("dashed=1;" if objek[t] == "view" else ""))
+        sel.append(f'<mxCell id="{pid}-{t}" value="{a(judul)}" style="{gaya}" vertex="1" parent="1">'
+                   f'<mxGeometry x="{b["x"]:.0f}" y="{b["y"]:.0f}" width="{b["w"]:.0f}" height="{b["h"]:.0f}" as="geometry"/></mxCell>')
+        h_ur = len(b["uraian"]) * tata["uraian"] + 8
+        sel.append(f'<mxCell id="{pid}-{t}-uraian" value="{a("<br>".join(html.escape(s) for s in b["uraian"]))}" '
+                   f'style="text;html=1;fillColor={campur(warna, 0.9)};strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;'
+                   f'fontSize=10;fontFamily=Segoe UI;fontColor=#1e293b;whiteSpace=wrap;" vertex="1" parent="{pid}-{t}">'
+                   f'<mxGeometry y="{tata["kepala"]}" width="{b["w"]:.0f}" height="{h_ur}" as="geometry"/></mxCell>')
+        n_nama = max(len(k["nama"]) for k in b["tampil"])
+        n_tipe = max(len(k["tipe"]) + (3 if k["nn"] and not k["pk"] else 0) for k in b["tampil"])
+        y = tata["kepala"] + h_ur
+        for i, k in enumerate(b["tampil"]):
+            kunci = ("PK" if k["pk"] else "") + ("," if k["pk"] and (t, k["nama"]) in FK else "") + ("FK" if (t, k["nama"]) in FK else "")
+            if not kunci and (t, k["nama"]) in UK:
+                kunci = "UK"
+            tipe = k["tipe"] + (" NN" if k["nn"] and not k["pk"] else "")
+            teks = (f'<font color="#a16207"><b>{sp(kunci, 6)}</b></font>'
+                    + (f'<b>{sp(k["nama"], n_nama + 2)}</b>' if k["pk"] else sp(k["nama"], n_nama + 2))
+                    + f'<font color="#64748b">{sp(tipe, n_tipe + 2)}</font>')
+            if lengkap and d["ket"].get(k["nama"]):
+                teks += f'<i><font color="#475569" face="Segoe UI">{html.escape(d["ket"][k["nama"]])}</font></i>'
+            isi = "#f8fafc" if i % 2 else "none"
+            sel.append(f'<mxCell id="{pid}-{t}-{k["nama"]}" value="{a(teks)}" style="text;html=1;strokeColor=none;fillColor={isi};'
+                       f'align=left;verticalAlign=middle;spacingLeft=6;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];'
+                       f'portConstraint=eastwest;fontFamily=Consolas;fontSize=12;whiteSpace=nowrap;" vertex="1" parent="{pid}-{t}">'
+                       f'<mxGeometry y="{y}" width="{b["w"]:.0f}" height="{tata["baris"]}" as="geometry"/></mxCell>')
+            y += tata["baris"]
+        if b["sembunyi"]:
+            sel.append(f'<mxCell id="{pid}-{t}-lain" value="... +{b["sembunyi"]} kolom lain" style="text;html=1;strokeColor=none;'
+                       f'fillColor=none;align=left;verticalAlign=middle;spacingLeft=56;fontStyle=2;fontSize=11;fontColor=#64748b;" '
+                       f'vertex="1" parent="{pid}-{t}"><mxGeometry y="{y}" width="{b["w"]:.0f}" height="{tata["baris"]}" as="geometry"/></mxCell>')
+    for i, r in enumerate(REL):
+        warna = GRUP[TABEL[r["asal"]]["grup"]][1]
+        if r["jenis"] == "turunan":
+            gaya = f"endArrow=open;startArrow=none;dashed=1;dashPattern=1 3;strokeColor={warna};"
+        else:
+            gaya = (f"startArrow={PANAH_DRAWIO[r['sa']]};endArrow={PANAH_DRAWIO[r['st']]};startFill=0;endFill=0;"
+                    f"strokeColor={warna};strokeWidth=1.3;"
+                    + {"id": "", "nama": "dashed=1;dashPattern=8 4;", "grup": "dashed=1;dashPattern=12 3 2 3;"}[r["jenis"]])
+        label = ", ".join(r["kols"]) if len(r["kols"]) > 1 else ""
+        sel.append(f'<mxCell id="{pid}-rel{i}" value="{a(label)}" style="edgeStyle=entityRelationEdgeStyle;html=1;rounded=0;'
+                   f'fontSize=9;fontColor=#64748b;{gaya}" edge="1" parent="1" source="{pid}-{r["asal"]}-{r["kols"][0]}" '
+                   f'target="{pid}-{r["tujuan"]}-{r["kol_t"]}"><mxGeometry relative="1" as="geometry"/></mxCell>')
+    ket = ("<b>Keterangan</b><br>Warna kepala = kelompok tabel: " + ", ".join(
+        f'<font color="{w}"><b>{html.escape(n)}</b></font>' for n, w in GRUP.values())
+        + "<br>Garis utuh = kunci ID; putus-putus = dicocokkan lewat nama; titik-titik = sumber VIEW. "
+          "Ujung garis memakai notasi crow's foot (kardinalitas dihitung dari isi DB). "
+          "Semua relasi logis: SQLite tidak memakai foreign key.<br>PK = primary key, FK = merujuk tabel lain, "
+          "UK = unik (target rujukan nama), NN = NOT NULL, APP = tabel dibaca aplikasi Android "
+          f"(commit {html.escape(COMMIT_APLIKASI)}).")
+    sel.append(f'<mxCell id="{pid}-ket" value="{a(ket)}" style="text;html=1;fontSize=12;fontFamily=Segoe UI;align=left;'
+               f'verticalAlign=top;whiteSpace=wrap;fillColor=#f8fafc;strokeColor=#e2e8f0;rounded=1;arcSize=4;spacing=10;" '
+               f'vertex="1" parent="1"><mxGeometry x="{tata["tepi"]}" y="{tata["Y_LEG"]:.0f}" '
+               f'width="{tata["W"] - 2 * tata["tepi"]:.0f}" height="90" as="geometry"/></mxCell>')
+    return (f'<diagram id="{pid}" name="{a(nama)}"><mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" '
+            f'tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="{tata["W"]:.0f}" '
+            f'pageHeight="{tata["H"]:.0f}" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>'
+            + "".join(sel) + "</root></mxGraphModel></diagram>")
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    keluaran = {}
+    keluaran, halaman_dio = {}, []
     for mode in ("lengkap", "ringkas"):
-        svg, W, H = gambar(mode)
+        svg, W, H, tata = gambar(mode)
+        halaman_dio.append(halaman_drawio("Lengkap" if mode == "lengkap" else "Ringkas", tata))
         p = os.path.join(OUT_DIR, f"erd_siaga_padang_{mode}.svg")
         with open(p, "w", encoding="utf-8") as f:
             f.write(svg)
         ke_png(p, p[:-4] + ".png", W, H)
         keluaran[mode] = svg
         print(f"{mode}: {p} ({W:.0f} x {H:.0f} px; PNG 2x)")
+    p = os.path.join(OUT_DIR, "erd_siaga_padang.drawio")
+    with open(p, "w", encoding="utf-8") as f:
+        f.write('<mxfile host="app.diagrams.net" type="device">' + "".join(halaman_dio) + "</mxfile>\n")
+    print(f"draw.io: {p} (halaman Lengkap dan Ringkas)")
     data = dict(
         versi=VERSI, commit_aplikasi=COMMIT_APLIKASI, grup={k: list(v) for k, v in GRUP.items()},
         tabel=[dict(nama=t, jenis=objek[t], grup=TABEL[t]["grup"], uraian=TABEL[t]["uraian"], baris=ribu(BARIS[t]),

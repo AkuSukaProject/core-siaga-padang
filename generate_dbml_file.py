@@ -18,7 +18,7 @@ OUTPUT_PATH = os.path.join("docs", "siaga_padang_erd.dbml")
 # Kelompok tabel (urutan = urutan di berkas DBML).
 KELOMPOK = {
     "Graf_Jalan": ["tb_nodes", "tb_edges"],
-    "Rute_TES_Vertikal": ["tb_tes", "tb_routes"],
+    "Rute_TES_Vertikal": ["tb_tes", "tb_routes", "v_fasilitas_evakuasi"],
     "Rute_TEA_Horizontal": ["tb_tea", "tb_tea_routes", "tb_tea_next"],
     "Rute_Zona_Aman": ["tb_safe_routes_v2", "tb_safe_next_v2", "tb_safe_routes", "tb_safe_next"],
     "Zona_Spasial": ["tb_inundation_zones", "tb_safe_zones"],
@@ -48,6 +48,7 @@ CATATAN_TABEL = {
     "tb_bridge_edges": "edge_id tb_edges yang memuat jembatan >= 20 m (kontrak H-4).",
     "tb_jalur_resmi": "Ruas graf yang mengikuti jalur evakuasi resmi BPBD.",
     "tb_metadata": "Versi, sumber data, dan parameter build.",
+    "v_fasilitas_evakuasi": "VIEW (bukan tabel): tb_tes UNION ALL tb_tea, untuk daftar dan peta fasilitas.",
 }
 
 CATATAN_KOLOM = {
@@ -106,6 +107,18 @@ RELASI = {
 SATU_SATU = {("tb_routes", "origin_node_id"), ("tb_tea_routes", "origin_node_id"),
              ("tb_safe_routes", "origin_node_id"), ("tb_safe_routes_v2", "origin_node_id"),
              ("tb_node_info", "node_id")}
+# Relasi yang tidak bisa ditulis sebagai ref satu kolom (satu kolom ke dua tabel, kunci kelompok, atau lewat nama),
+# ditulis sebagai blok Ref terpisah. Sama dengan RELASI di generate_erd_gambar.py.
+REF_TAMBAHAN = [
+    ("tb_safe_routes_v2.kelompok", "<>", "tb_safe_next_v2.kelompok", "kunci kelompok pohon next-hop v2"),
+    ("tb_route_shares.nama_tujuan", ">", "tb_tes.nama_tes", "bila jenis = 'TES'"),
+    ("tb_route_shares.nama_tujuan", ">", "tb_tea.nama_tea", "bila jenis = 'TEA'"),
+    ("tb_tes.tes_id", "-", "tb_fasilitas_info.facility_id", "TES yang dipakai routing"),
+    ("tb_tea.tea_id", "-", "tb_fasilitas_info.facility_id", "TEA yang dipakai routing"),
+    ("tb_node_info.kelurahan", ">", "tb_kelurahan_info.kelurahan", "lewat nama; hanya 56 kelurahan terpapar"),
+    ("tb_inundation_zones.nama_zona", "-", "tb_kelurahan_info.kelurahan", "lewat nama"),
+    ("tb_safe_zones.nama_zona", "-", "tb_kelurahan_info.kelurahan", "lewat nama"),
+]
 
 
 def esc(teks):
@@ -116,7 +129,8 @@ def main():
     if not os.path.exists(DB_PATH):
         sys.exit(f"[ERROR] {DB_PATH} tidak ditemukan. Jalankan build_db.py terlebih dahulu.")
     conn = sqlite3.connect(DB_PATH)
-    tabel_db = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+    tabel_db = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'")}
     versi = dict(conn.execute("SELECT kunci, nilai FROM tb_metadata")).get("versi", "?") if "tb_metadata" in tabel_db else "?"
 
     out = [
@@ -162,6 +176,12 @@ def main():
         anggota = [t for t in daftar if t in tabel_db]
         if anggota:
             out += [f"TableGroup {grup} {{"] + [f"  {t}" for t in anggota] + ["}", ""]
+
+    out.append("// Relasi tambahan (logis)")
+    for asal, jenis, tujuan, cat in REF_TAMBAHAN:
+        assert asal.split(".")[0] in tertulis and tujuan.split(".")[0] in tertulis, (asal, tujuan)
+        out.append(f"Ref: {asal} {jenis} {tujuan} // {cat}")
+    out.append("")
 
     lain = sorted(tabel_db - set(tertulis))
     if lain:
