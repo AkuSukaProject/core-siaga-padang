@@ -1,7 +1,9 @@
-# Kontrak Tabel Porsi Tujuan (DRAF untuk disepakati)
+# Kontrak Tabel Porsi Tujuan
 
-Status: **draf, belum dibangun**. Disusun untuk butir 4 pesan Mikail. Isi DB baru dibuat setelah butir 1–4 disepakati.
-Versi pembanding: 2026.10.16 (tidak diubah).
+Status: **dibangun di DB 2026.10.18** (keputusan tim 26 Oktober: pilihan A, 2b terjauh dari pantai, LP minimal jiwa × menit,
+porsi cadangan dari sisa kapasitas, 77 TES tanpa kapasitas hanya cadangan).
+Dasar data: graf, zona, fasilitas, dan penduduk sama persis dengan 2026.10.16 (pembanding); yang berubah hanya
+`tb_route_shares`, `tb_tes_next`, kolom baru di `tb_tes`/`tb_tea`, dan metadata.
 
 ## Tujuan
 
@@ -22,8 +24,25 @@ Isi lama (nama tujuan, tanpa jalur) tidak dibaca Android, jadi tabel ini diganti
 | `sempat_15` | INTEGER NOT NULL | 1 bila waktu riil ≤ 15 menit saat t = 0 (dari simpang, tanpa jalan ke simpang) |
 | `eta_tabel` | REAL NOT NULL | Menit pada 1,2 m/s, **sudah termasuk** jalan lurus simpul ujung → titik TES (sama dengan `rank_k_eta`) |
 | `sumber_jalur` | TEXT NOT NULL | `tb_tes_next` |
+| `kapasitas_tercatat` | INTEGER NOT NULL | 1 = TES berkapasitas tercatat (167). 0 = TES tanpa kapasitas, hanya cadangan; tampilkan "kapasitas belum tercatat" |
+| `cadangan` | INTEGER NOT NULL | 1 = simpang yang pada t = 0 keluar zona (TEA/zona hijau sempat); porsinya dari sisa kapasitas dan tidak ikut beban model |
 
-`PRIMARY KEY (origin_node_id, urutan)`, `UNIQUE (origin_node_id, facility_id)`, indeks pada `origin_node_id`.
+`PRIMARY KEY (origin_node_id, urutan)`, `UNIQUE (origin_node_id, facility_id)` (WITHOUT ROWID).
+Hanya simpang zona merah yang punya minimal satu TES lolos syarat arah (10.688 simpang); simpang lain memakai TEA/zona hijau.
+Paling banyak 10 baris per simpang (median 3).
+
+### Cara porsi diisi (per simpang, pada t = 0 dari simpang)
+
+| Kelompok | Syarat | Porsi |
+|---|---|---|
+| beban | Tidak ada TEA/zona hijau sempat ≤ 15 menit; ada TES berkapasitas sempat | Program linear serentak: minimum Σ jiwa × menit tempuh, beban TES ≤ kapasitas. Kelebihan → TES sempat tercepat (dicatat) |
+| cadangan (`cadangan` = 1) | TEA/zona hijau sempat ≤ 15 menit | Sebanding sisa kapasitas TES berkapasitas yang sempat (bila sisa habis: sebanding kapasitas). Tanpa TES berkapasitas sempat: seperti dua baris di bawah |
+| tanpa kapasitas (`kapasitas_tercatat` = 0) | Tidak ada TES berkapasitas, TEA, atau zona hijau yang sempat; ada TES tanpa kapasitas yang sempat | Porsi 1 ke yang tercepat |
+| tidak sempat | Tidak ada TES yang sempat | Porsi 1 ke TES tercepat |
+
+Kandidat lewat jembatan ≥ 20 m hanya dipakai bila tidak ada kandidat tanpa jembatan di kelompok yang sama.
+Simpang tanpa penduduk dihitung 0,001 jiwa supaya tetap mendapat porsi yang deterministik. Tanpa bilangan acak;
+solusi seri dipecah dengan biaya 1e-6 menit per nomor urut TES. Build ulang menghasilkan SHA-256 yang sama.
 
 ## Tabel 2: `tb_tes_next` (baru)
 
@@ -51,20 +70,15 @@ puluh sampai ratusan ribu baris (± 3–8 MB); DB tetap di bawah 75 MB. Angka pa
 
 `tb_routes`, `tb_tea_routes`, `tb_safe_routes_v2` tidak berubah (kompatibilitas).
 
-## Pilihan A/B (perlu diputuskan)
-
-- **A (usul Habib): tabel hanya berisi TES.** TEA dan zona hijau dipilih Android menurut aturan 2b dari tabel yang sudah
-  ada; porsi hanya dipakai bila tidak ada TEA/zona hijau yang sempat. Satu jumlah porsi per simpang.
-- **B (usul Mikail): TES, TEA, dan ZONA_AMAN dalam satu tabel.** TEA/zona hijau tidak berkapasitas dan dipilih
-  deterministik, sehingga barisnya selalu porsi 1. Akibatnya simpang yang di t = 0 ke zona hijau juga butuh porsi TES
-  terpisah untuk saat waktu sudah lewat, dan "jumlah porsi = 1" harus dihitung per kelompok jenis.
+Diputuskan **pilihan A**: tabel hanya berisi TES. TEA dan zona hijau dipilih Android menurut aturan 3 dari tabel yang
+sudah ada.
 
 ## Aturan pemakaian (sama untuk Android dan simulator)
 
 1. Anggaran = 15 menit − waktu sejak gempa − jalan lurus posisi → simpang awal (0,894 m/s).
 2. Waktu riil kandidat = `eta_tabel` × 1,2 / 0,894. TEA: panjang rantai `tb_tea_next` / 0,894 + `tb_tea.snap_dist_m` / 0,894.
    Zona hijau: `safe_eta` × 1,2 / 0,894 (tujuannya simpul, tanpa jalan tambahan).
-3. Ada TEA/titik zona hijau yang sempat → pilih yang [**tercepat** / **terjauh dari pantai**] (belum diputuskan).
+3. Ada TEA (utama/alternatif) atau titik zona hijau v2 yang sempat → pilih yang **terjauh dari pantai**.
 4. Tidak ada → TES dari porsi di antara baris dengan waktu riil ≤ anggaran; porsi dinormalkan ulang di antara yang sempat.
    Nilai undian dari kode keluarga, sekali di simpang awal, tujuan dikunci.
 5. Tidak ada yang sempat → baris dengan waktu tercepat.
@@ -77,4 +91,22 @@ puluh sampai ratusan ribu baris (± 3–8 MB); DB tetap di bawah 75 MB. Angka pa
   rantai / 1,2 m/s + snap = `eta_tabel` (selisih ≤ 0,01 menit).
 - Semua kandidat lolos syarat arah (menjauh > 15°, ≤ 100 m tidak dinilai); kandidat lewat jembatan ≥ 20 m hanya bila tidak ada
   yang tanpa jembatan.
-- `facility_id` hanya dari 167 TES berkapasitas tercatat.
+- Porsi > 0 ke TES tanpa kapasitas hanya bila simpang itu tidak punya TES berkapasitas yang sempat.
+
+## Hasil 2026.10.18 (t = 0, dari simpang, 0,894 m/s)
+
+Penyebut: 313.863 jiwa di 11.418 simpang zona merah.
+
+| Kelompok | Simpang | Jiwa |
+|---|---|---|
+| beban (LP) | 3.039 | 89.158 |
+| cadangan (keluar zona) | 3.275 | 95.094 |
+| tanpa kapasitas (cadangan TES tanpa kapasitas) | 616 | 15.976 |
+| tidak sempat (TES tercepat) | 3.758 | 95.184 |
+| tanpa TES lolos arah (hanya TEA/zona hijau) | 730 | 18.451 |
+
+- Jiwa dengan tujuan sempat ≤ 15 menit (TEA, zona hijau, atau TES): 216.561 (69,0%).
+- Beban model: 89.158 jiwa ke 122 dari 167 TES berkapasitas (kapasitas total 155.980). 37 TES melebihi kapasitas,
+  dengan total kelebihan 23.443 jiwa, karena bagi simpang tersebut hanya TES itu yang sempat. Rincian di
+  `hasil_build/beban_tes.csv`.
+- `tb_route_shares` 32.201 baris, `tb_tes_next` 40.677 baris; DB 35,26 MB.

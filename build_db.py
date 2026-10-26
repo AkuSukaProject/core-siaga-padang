@@ -32,6 +32,7 @@ import math
 import argparse
 import zipfile
 import difflib
+from collections import Counter
 from datetime import datetime
 
 import numpy as np
@@ -56,6 +57,8 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 _arg = argparse.ArgumentParser(description="Bangun hasil_build/ranah_siaga_v4.db dari data BPBD")
 _arg.add_argument("--versi", help="Label versi dataset (angka bertingkat, mis. 2026.10.12). Bawaan: tanggal build.")
+_arg.add_argument("--graf", default="padang_full.graphml",
+                  help="Graf jalan OSMnx (.graphml). Mis. graf data 2026.10.16: git show 23854a4:padang_full.graphml")
 ARGS = _arg.parse_args()
 
 # ==============================================================================
@@ -134,7 +137,7 @@ FILE_BASEMAP = os.path.join(DIR_KRB, "02_BASEMAP", "Basemap.gdb")
 RASTER_TSUNAMI = "OpenFileGDB:" + os.path.join(DIR_KRB, "03_TEMATIK", "Bahaya.gdb") + ":Peta_Bahaya_Tsunami"
 FILE_KRB_TABEL = os.path.join(DIR_KRB, "04_TABEL", "FINAL MATRIKS KRB KOTA PADANG - DOKUMEN.xlsx")
 FILE_SHELTER_2019 = os.path.join(DIR_BPBD, "Daftar Shelter OK.xlsx")
-FILE_GRAF = "padang_full.graphml"
+FILE_GRAF = ARGS.graf
 # Data OpenStreetMap pendukung (c) kontributor OSM, ODbL: garis pantai (natural=coastline) untuk
 # jarak_pantai_m (kontrak H-3) dan, bila ada, ruas jembatan dengan panjang badannya (H-4).
 FILE_PANTAI_OSM = os.path.join("data_osm", "pantai_osm.json")
@@ -1099,61 +1102,155 @@ print(f"      Penduduk terpapar KRB: {sum(jiwa_kel.values()):,.0f} jiwa di {len(
       f"peta evakuasi (perkiraan): {sum(jiwa_tambahan.values()):,.0f} jiwa di {len(jiwa_tambahan)} kelurahan | "
       f"terdistribusi: {demand.sum():,.0f} | bangunan di zona merah: {len(gdf_bm):,} | node berpenghuni: {(demand > 0).sum():,}")
 
-# Kandidat per node asal: 3 TES (berkapasitas), 2 TEA & zona aman (tak terbatas), masing-masing dengan
-# jarak pantai tujuan dan penanda rute lewat jembatan >= 20 m.
-kand = []
-d_tes, d_tea = tes["d_pantai_m"].to_numpy(), tea["d_pantai_m"].to_numpy()
-for n, daftar in rank_tes.items():
-    for k, eta in daftar:
-        kand.append((n, "TES", tes.at[k, "facility_id"], eta, d_tes[k], jemb_tes[inv_tes[k], n]))
-for n in np.flatnonzero(tea_r1 >= 0):
-    for k in (tea_r1[n], tea_r2[n]):
-        kand.append((n, "TEA", tea.at[k, "facility_id"], float(eta_tea[k, n]), d_tea[k], jemb_tea[inv_tea[k], n]))
-# Zona aman: node merah memakai rute v2 (patuh aturan pantai); node aman berdemand memakai pohon global.
-eta_aman_alok = np.where(is_safe == 0, eta_aman2, np.where(np.isfinite(biaya_aman), eta_aman, np.nan))
-tujuan_aman_node = np.full(N, -1)
-tujuan_aman_node[merah_idx] = tujuan_v2
-tujuan_aman_node[is_safe == 1] = np.where(np.isfinite(biaya_aman), asal_aman, -1)[is_safe == 1]
-jemb_aman_alok = np.where(is_safe == 0, jemb_aman2, jemb_aman.astype(bool))
-for n in np.flatnonzero(~np.isnan(eta_aman_alok)):
-    kand.append((n, "ZONA_AMAN", "Zona Aman", float(eta_aman_alok[n]), d_pantai[tujuan_aman_node[n]], jemb_aman_alok[n]))
-df_k = pd.DataFrame(kand, columns=["n", "jenis", "tujuan", "eta", "d_tujuan", "jembatan"]).drop_duplicates(["n", "jenis", "tujuan"])
-df_k = df_k[demand[df_k["n"]] > 0]
-# Greedy dua tahap mengikuti aturan aplikasi (K-B6, 12 Oktober): kandidat yang sempat <= BATAS_SEMPAT_MENIT
-# dialokasikan dulu. Di antaranya keluar zona (TEA / zona aman) didahulukan, lalu TES; di dalam tiap kelompok
-# yang paling jauh dari pantai lebih dulu, rute tanpa jembatan >= 20 m lebih dulu. Kandidat yang tidak sempat
-# menyusul, urut ETA (tercepat yang menjauh). TES penuh dilewati; TEA/zona aman selalu menampung sisa.
-df_k["layak"] = df_k["eta"] <= BATAS_SEMPAT_MENIT
-df_k["tes_layak"] = df_k["layak"] & (df_k["jenis"] == "TES")
-df_k["jembatan_layak"] = df_k["layak"] & df_k["jembatan"].astype(bool)
-df_k["kunci"] = np.where(df_k["layak"], -df_k["d_tujuan"], df_k["eta"])
-df_k = df_k.sort_values(["layak", "tes_layak", "jembatan_layak", "kunci", "n", "tujuan"],
-                        ascending=[False, True, True, True, True, True])
+# Porsi tujuan TES (model pergerakan kolektif berkapasitas; kontrak docs/kontrak_porsi_tujuan.md, pilihan A).
+# Aturan yang sama dipakai aplikasi: pada t = 0 (dari simpang), bila TEA utama/alternatif atau titik zona hijau v2
+# sempat <= BATAS_SEMPAT_MENIT, warga keluar zona (tanpa batas kapasitas, tidak membebani TES). Selain itu TES
+# dipilih dari porsi di antara TES BERKAPASITAS TERCATAT yang sempat. Porsi dihitung serentak untuk seluruh simpang
+# dengan program linear: minimum total jiwa x menit tempuh, beban tiap TES <= kapasitasnya. Jadi di antara TES
+# yang sempat, pembagian mengutamakan waktu. Jiwa yang tidak tertampung ditaruh di TES sempat tercepat dan
+# dicatat sebagai kelebihan (aplikasi tidak tahu keterisian). Hasil deterministik: tanpa bilangan acak; solusi
+# seri dipecah dengan biaya 1e-6 menit per nomor urut TES.
+#   - Simpang yang keluar zona pada t = 0 tetap diberi porsi TES CADANGAN (dari sisa kapasitas, sebanding sisa)
+#     untuk saat waktu sudah berjalan; porsi ini tidak ikut beban model.
+#   - TES tanpa kapasitas tercatat tidak diberi porsi, kecuali sebagai cadangan bagi simpang yang tidak punya TES
+#     berkapasitas, TEA, atau zona hijau yang sempat (porsi 1 ke yang tercepat, kapasitas_tercatat = 0).
+#   - Tidak ada TES yang sempat: porsi 1 ke TES tercepat.
+#   - Rute lewat jembatan >= 20 m hanya dipakai bila tidak ada kandidat tanpa jembatan di kelompok yang sama.
+# Baris berporsi 0 = kandidat cadangan bila tujuan terhalang (urutan: porsi, lalu waktu).
+from scipy.optimize import linprog
+from scipy.sparse import coo_matrix
 
-kap_tes = dict(zip(tes["facility_id"], tes["kapasitas"]))
-beban = {k: 0.0 for k in kap_tes}
-sisa = demand.copy()
-alokasi = {}
-for n, jenis, tujuan, eta in df_k[["n", "jenis", "tujuan", "eta"]].itertuples(index=False):
-    if sisa[n] <= 1e-9:
+MAKS_BARIS_PORSI = 10
+kap_tes_rec = tes["kapasitas_data"].to_numpy(dtype=float)
+berkap = ~np.isnan(kap_tes_rec)
+eta_keluar = np.full(N, INF)
+_ada = np.flatnonzero(tea_r1 >= 0)
+eta_keluar[_ada] = np.minimum(eta_tea[tea_r1[_ada], _ada], eta_tea[tea_r2[_ada], _ada])
+eta_keluar = np.fmin(eta_keluar, np.where(np.isnan(eta_aman2), INF, eta_aman2))
+
+
+def pilih_tanpa_jembatan(idx_k, n):
+    """Kandidat tanpa jembatan >= 20 m bila ada; selain itu kandidat lewat jembatan (cadangan)."""
+    tanpa = idx_k[biaya_tes[idx_k, n] < BIAYA_CADANGAN_JEMBATAN]
+    return tanpa if len(tanpa) else idx_k
+
+
+kelompok_porsi, lp_pasangan = {}, []   # n -> (kelompok, kandidat_utama); pasangan LP (n, k)
+for n in merah_idx:
+    fin = np.flatnonzero(np.isfinite(biaya_tes[:, n]))
+    if len(fin) == 0:
         continue
-    jatah = min(sisa[n], max(0.0, kap_tes[tujuan] - beban[tujuan])) if jenis == "TES" else sisa[n]
-    if jatah > 0:
-        if jenis == "TES":
-            beban[tujuan] += jatah
-        sisa[n] -= jatah
-        alokasi.setdefault(n, {}).setdefault((jenis, tujuan, eta), 0.0)
-        alokasi[n][(jenis, tujuan, eta)] += jatah
+    sempat = fin[eta_tes[fin, n] <= BATAS_SEMPAT_MENIT]
+    cap_s = pilih_tanpa_jembatan(sempat[berkap[sempat]], n) if berkap[sempat].any() else sempat[:0]
+    if eta_keluar[n] <= BATAS_SEMPAT_MENIT:
+        kelompok_porsi[n] = ("cadangan_keluar", cap_s)
+    elif len(cap_s):
+        kelompok_porsi[n] = ("beban", cap_s)
+        lp_pasangan += [(n, k) for k in cap_s]
+    elif len(sempat):
+        kelompok_porsi[n] = ("tanpa_kapasitas", pilih_tanpa_jembatan(sempat, n))
+    else:
+        kelompok_porsi[n] = ("tidak_sempat", pilih_tanpa_jembatan(fin, n))
 
-nama_fas = dict(zip(fas["facility_id"], fas["Nama_Fasum"]))
-share_rows = []
-for n, d in alokasi.items():
-    total = sum(d.values())
-    for (jenis, tujuan, _), j in d.items():
-        share_rows.append((int(node_ids[n]), jenis, nama_fas.get(tujuan, tujuan), j / total))
+# Program linear untuk kelompok "beban". Variabel: x[n,k] (jiwa) + kelebihan[n]. Simpang tanpa penduduk diberi
+# permintaan 0,001 jiwa supaya tetap mendapat porsi yang deterministik.
+lp_n = np.array([p[0] for p in lp_pasangan], dtype=int)
+lp_k = np.array([p[1] for p in lp_pasangan], dtype=int)
+simpang_beban = np.unique(lp_n)
+baris_simpang = {n: i for i, n in enumerate(simpang_beban)}
+perlu = np.maximum(demand[simpang_beban], 1e-3)
+nv, ns = len(lp_pasangan), len(simpang_beban)
+BIAYA_KELEBIHAN = 1e4
+c_lp = np.concatenate([eta_tes[lp_k, lp_n] + 1e-6 * lp_k, np.full(ns, BIAYA_KELEBIHAN)])
+A_eq = coo_matrix((np.ones(nv + ns), (np.concatenate([[baris_simpang[n] for n in lp_n], np.arange(ns)]),
+                                      np.arange(nv + ns))), shape=(ns, nv + ns))
+tes_lp = np.unique(lp_k)
+baris_tes = {k: i for i, k in enumerate(tes_lp)}
+A_ub = coo_matrix((np.ones(nv), ([baris_tes[k] for k in lp_k], np.arange(nv))), shape=(len(tes_lp), nv + ns))
+lp = linprog(c_lp, A_ub=A_ub.tocsr(), b_ub=kap_tes_rec[tes_lp], A_eq=A_eq.tocsr(), b_eq=perlu,
+             bounds=(0, None), method="highs")
+assert lp.status == 0, lp.message
+x_lp, kelebihan = lp.x[:nv], lp.x[nv:]
+beban_tes = np.bincount(lp_k, weights=x_lp, minlength=len(tes))
+alok = {}
+for (n, k), v in zip(lp_pasangan, x_lp):
+    if v > 1e-9:
+        alok.setdefault(n, {})[k] = alok.get(n, {}).get(k, 0.0) + v
+for i, n in enumerate(simpang_beban):
+    if kelebihan[i] > 1e-9:  # tidak tertampung -> TES sempat tercepat (dicatat sebagai kelebihan kapasitas)
+        k = min(kelompok_porsi[n][1], key=lambda k: (eta_tes[k, n], k))
+        alok.setdefault(n, {})[k] = alok.get(n, {}).get(k, 0.0) + kelebihan[i]
+        beban_tes[k] += kelebihan[i]
+sisa_kap = np.where(berkap, np.maximum(np.nan_to_num(kap_tes_rec) - beban_tes, 0.0), 0.0)
 
-jiwa_selamat_20 = sum(j for d in alokasi.values() for (_, _, eta), j in d.items() if eta <= BATAS_WAKTU_MENIT)
-jiwa_tanpa_tujuan = sisa.sum()
+share_rows, porsi_ringkas = [], Counter()
+for n, (kel, utama) in kelompok_porsi.items():
+    porsi = {}
+    if kel == "beban":
+        tot = sum(alok[n].values())
+        porsi = {k: v / tot for k, v in alok[n].items()}
+    elif kel == "cadangan_keluar" and len(utama):
+        bobot = sisa_kap[utama] if sisa_kap[utama].sum() > 0 else kap_tes_rec[utama]
+        porsi = {k: b / bobot.sum() for k, b in zip(utama, bobot) if b > 0}
+    else:
+        if kel == "cadangan_keluar":   # keluar zona sempat, tetapi tidak ada TES berkapasitas yang sempat
+            fin = np.flatnonzero(np.isfinite(biaya_tes[:, n]))
+            sempat = fin[eta_tes[fin, n] <= BATAS_SEMPAT_MENIT]
+            utama = pilih_tanpa_jembatan(sempat if len(sempat) else fin, n)
+        porsi = {min(utama, key=lambda k: (eta_tes[k, n], k)): 1.0}
+    porsi_ringkas[kel] += 1
+    # Baris: berporsi dulu, lalu cadangan yang sempat (berkapasitas dulu), lalu (bila tak ada yang sempat) yang tercepat.
+    fin = np.flatnonzero(np.isfinite(biaya_tes[:, n]))
+    sempat = fin[eta_tes[fin, n] <= BATAS_SEMPAT_MENIT]
+    lain = [k for k in sorted(sempat, key=lambda k: (not berkap[k], biaya_tes[k, n] >= BIAYA_CADANGAN_JEMBATAN, eta_tes[k, n], k))
+            if k not in porsi]
+    if not len(sempat):
+        lain = [k for k in sorted(fin, key=lambda k: (biaya_tes[k, n] >= BIAYA_CADANGAN_JEMBATAN, eta_tes[k, n], k)) if k not in porsi][:2]
+    urut = sorted(porsi, key=lambda k: (-porsi[k], eta_tes[k, n], k)) + lain
+    for u, k in enumerate(urut[:max(MAKS_BARIS_PORSI, len(porsi))], start=1):
+        share_rows.append((int(node_ids[n]), u, "TES", tes.at[k, "facility_id"], float(round(porsi.get(k, 0.0), 6)),
+                           int(eta_tes[k, n] <= BATAS_SEMPAT_MENIT), round(float(eta_tabel(eta_tes[k, n])), 2),
+                           "tb_tes_next", int(berkap[k]), int(kel == "cadangan_keluar"), k, n))
+# Pembulatan 6 desimal: geser selisihnya ke baris porsi terbesar agar jumlah per simpang tepat 1.
+_df_sr = pd.DataFrame(share_rows, columns=["o", "u", "j", "f", "p", "s", "e", "sj", "kc", "cd", "k", "n"])
+_selisih = 1.0 - _df_sr.groupby("o")["p"].transform("sum")
+_df_sr.loc[_df_sr["u"] == 1, "p"] = (_df_sr["p"] + _selisih)[_df_sr["u"] == 1].round(6)
+# Susun ulang urutan setelah pembulatan (porsi seri bisa bertukar): berporsi menurut porsi, waktu, TES;
+# baris berporsi 0 tetap dengan urutan cadangannya.
+_df_sr["_nol"] = _df_sr["p"] <= 0
+_df_sr["_kunci"] = np.where(_df_sr["_nol"], _df_sr["u"], 0)
+_df_sr = _df_sr.sort_values(["o", "_nol", "_kunci", "p", "e", "f"], ascending=[True, True, True, False, True, True])
+_df_sr["u"] = _df_sr.groupby("o").cumcount() + 1
+_df_sr = _df_sr.drop(columns=["_nol", "_kunci"])
+share_rows = list(_df_sr.itertuples(index=False, name=None))
+
+# tb_tes_next: rantai simpul untuk setiap (simpang, TES) di tb_route_shares, satu pohon per TES.
+tes_next_rows = []
+for k, grp in _df_sr.groupby("k"):
+    nh = pred_tes[inv_tes[k]]
+    asal = np.zeros(N, dtype=bool)
+    asal[grp["n"].to_numpy()] = True
+    tanda = tandai_rantai(nh, asal)
+    for n in np.flatnonzero(tanda & (nh >= 0)):
+        tes_next_rows.append((tes.at[k, "facility_id"], int(node_ids[n]), int(node_ids[nh[n]])))
+share_rows = [r[:10] for r in share_rows]
+
+# Ringkasan model (pada t = 0, dari simpang, BATAS_SEMPAT_MENIT).
+jiwa_beban = demand[simpang_beban].sum()
+jiwa_kelebihan = kelebihan.sum()
+beban_rasio = np.where(berkap, beban_tes / np.where(berkap, kap_tes_rec, 1.0), np.nan)
+tes_lebih = int(np.sum(berkap & (beban_tes > np.nan_to_num(kap_tes_rec) + 0.5)))  # > 0,5 jiwa di atas kapasitas
+jiwa_kel = {kel: demand[[n for n, (g, _) in kelompok_porsi.items() if g == kel]].sum() for kel in porsi_ringkas}
+tujuan_sempat = np.zeros(N, dtype=bool)
+tujuan_sempat[merah_idx] = eta_keluar[merah_idx] <= BATAS_SEMPAT_MENIT
+for n, (kel, _) in kelompok_porsi.items():
+    if kel in ("beban", "tanpa_kapasitas"):
+        tujuan_sempat[n] = True
+beban_tes_df = pd.DataFrame({"tes_id": tes["facility_id"], "nama": tes["Nama_Fasum"], "kelurahan": tes["KEL"].map(judul),
+                             "kapasitas": kap_tes_rec, "beban_model_jiwa": beban_tes.round(1),
+                             "rasio_beban": np.round(beban_rasio, 3),
+                             "simpang_berporsi": [int(((_df_sr["k"] == k) & (_df_sr["p"] > 0) & (_df_sr["cd"] == 0)).sum())
+                                                  for k in range(len(tes))]})
 
 # ==============================================================================
 # 8. POLIGON ZONA MERAH & ZONA AMAN (DARI RASTER BAHAYA TSUNAMI)
@@ -1212,10 +1309,12 @@ cur.execute("CREATE INDEX idx_tb_nodes_lat_lon ON tb_nodes(lat, lon)")
 
 # kapasitas: daya tampung dari data BPBD (2025 / daftar resmi 2019 / verifikasi 2019), KOSONG bila tidak ada.
 cur.execute("CREATE TABLE tb_tes (tes_id TEXT PRIMARY KEY, nama_tes TEXT, zona TEXT, kapasitas REAL, lat REAL, lon REAL, "
-            "sumber TEXT, jarak_pantai_m INTEGER, lantai INTEGER)")
-cur.executemany("INSERT INTO tb_tes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "sumber TEXT, jarak_pantai_m INTEGER, lantai INTEGER, nearest_node_id INTEGER, snap_dist_m REAL)")
+# nearest_node_id = ujung rantai tb_tes_next; snap_dist_m = jalan lurus simpul -> titik TES (sudah di eta_tabel).
+cur.executemany("INSERT INTO tb_tes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [(r.facility_id, r.Nama_Fasum, judul(r.KEL), None if pd.isna(r.kapasitas_data) else float(r.kapasitas_data),
-                  float(r.lat), float(r.lon), r.sumber, int(round(r.d_pantai_m)), None if pd.isna(r.lantai) else int(r.lantai))
+                  float(r.lat), float(r.lon), r.sumber, int(round(r.d_pantai_m)), None if pd.isna(r.lantai) else int(r.lantai),
+                  int(node_ids[r.node_idx]), round(float(r.snap_dist_m), 1))
                  for r in tes.itertuples()])
 
 cur.execute("CREATE TABLE tb_routes (origin_node_id INTEGER PRIMARY KEY, rank_1_tes TEXT, rank_1_path TEXT, rank_1_eta REAL, "
@@ -1244,12 +1343,15 @@ cur.execute("""CREATE TABLE tb_tea (
     nearest_node_id INTEGER,
     rute_evakuasi TEXT,
     jarak_pantai_m INTEGER,
-    sumber TEXT
+    sumber TEXT,
+    snap_dist_m REAL
 )""")
-cur.executemany("INSERT INTO tb_tea VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+# snap_dist_m: jalan lurus nearest_node_id -> titik TEA; tambahkan ke waktu rantai tb_tea_next.
+cur.executemany("INSERT INTO tb_tea VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [(r.facility_id, r.facility_id.replace("_", " "), judul(r.KEC), r.Nama_Fasum, judul(r.KEL),
                   judul(r.KEC), "TEA", float(r.kapasitas), float(r.lat), float(r.lon),
-                  int(node_ids[r.node_idx]), None, int(round(r.d_pantai_m)), r.sumber) for r in tea.itertuples()])
+                  int(node_ids[r.node_idx]), None, int(round(r.d_pantai_m)), r.sumber, round(float(r.snap_dist_m), 1))
+                 for r in tea.itertuples()])
 cur.execute("CREATE INDEX idx_tea_sektor ON tb_tea(sektor)")
 
 cur.execute("CREATE TABLE tb_tea_routes (origin_node_id INTEGER PRIMARY KEY, nearest_tea_id TEXT, alt_tea_id TEXT)")
@@ -1279,9 +1381,29 @@ cur.executemany("INSERT INTO tb_safe_routes VALUES (?, ?, ?, ?, ?)", [r + (id_zo
 cur.execute("CREATE TABLE tb_safe_next (node_id INTEGER, next_node_id INTEGER, PRIMARY KEY (node_id, next_node_id))")
 cur.executemany("INSERT INTO tb_safe_next VALUES (?, ?)", safe_next_rows)
 
-cur.execute("CREATE TABLE tb_route_shares (origin_node_id INTEGER, jenis TEXT, nama_tujuan TEXT, porsi REAL)")
-cur.executemany("INSERT INTO tb_route_shares VALUES (?, ?, ?, ?)", share_rows)
-cur.execute("CREATE INDEX idx_shares_origin ON tb_route_shares(origin_node_id)")
+# Porsi tujuan TES (docs/kontrak_porsi_tujuan.md). Jumlah porsi per origin_node_id = 1; porsi 0 = kandidat cadangan.
+cur.execute("""CREATE TABLE tb_route_shares (
+    origin_node_id     INTEGER NOT NULL,
+    urutan             INTEGER NOT NULL,
+    jenis              TEXT    NOT NULL,
+    facility_id        TEXT    NOT NULL,
+    porsi              REAL    NOT NULL,
+    sempat_15          INTEGER NOT NULL,
+    eta_tabel          REAL    NOT NULL,
+    sumber_jalur       TEXT    NOT NULL,
+    kapasitas_tercatat INTEGER NOT NULL,
+    cadangan           INTEGER NOT NULL,
+    PRIMARY KEY (origin_node_id, urutan),
+    UNIQUE (origin_node_id, facility_id)
+) WITHOUT ROWID""")
+cur.executemany("INSERT INTO tb_route_shares VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", share_rows)
+cur.execute("""CREATE TABLE tb_tes_next (
+    tes_id       TEXT    NOT NULL,
+    node_id      INTEGER NOT NULL,
+    next_node_id INTEGER NOT NULL,
+    PRIMARY KEY (tes_id, node_id)
+) WITHOUT ROWID""")
+cur.executemany("INSERT INTO tb_tes_next VALUES (?, ?, ?)", tes_next_rows)
 
 cur.execute("""CREATE VIEW v_fasilitas_evakuasi AS
 SELECT tes_id AS facility_id, tes_id AS kode, nama_tes AS nama, 'TES' AS jenis, 'Vertikal' AS tipe_evakuasi,
@@ -1401,11 +1523,24 @@ metadata = {
     "penalti_jembatan": str(PENALTI_JEMBATAN),
     "gabung_jarak_m": str(GABUNG_JARAK_M),
     "luas_min_zona_aman_ha": str(LUAS_MIN_ZONA_AMAN_HA),
-    "aturan_tujuan": "K-B6 (12 Oktober): bila TEA atau zona hijau sempat <= 15 menit riil (eta tabel <= 11,175), itu "
-                     "dipilih; bila tidak, TES terjauh dari pantai; bila tidak ada yang sempat, yang tercepat. "
+    "aturan_tujuan": "K-B6 (12 Oktober): bila TEA atau zona hijau sempat <= 15 menit riil (eta tabel <= 11,175), yang "
+                     "terjauh dari pantai dipilih; bila tidak, TES dari porsi tb_route_shares di antara yang sempat; bila tidak "
+                     "ada yang sempat, yang tercepat. "
                      "tb_safe_routes_v2 = titik zona hijau terjauh dari pantai yang sempat <= 15 menit, atau batas zona hijau "
                      "termurah. Urutan rank_1..3 TES dan nearest/alt TEA = terjauh dari pantai di antara yang <= 20 menit "
                      "(eta tabel <= 14,9), lalu tercepat. Semua tujuan lolos syarat arah; rute tanpa jembatan >= 20 m didahulukan.",
+    "skenario_porsi": f"Porsi TES hanya ke {int(berkap.sum())} TES berkapasitas tercatat (data BPBD); "
+                      f"{int((~berkap).sum())} TES tanpa kapasitas hanya cadangan (kapasitas_tercatat = 0) bagi simpang tanpa "
+                      "TES berkapasitas, TEA, atau zona hijau yang sempat <= 15 menit. Kapasitas tidak diestimasi.",
+    "metode_porsi": "Program linear serentak untuk semua simpang zona merah yang pada t = 0 tidak punya TEA/zona hijau "
+                    "sempat <= 15 menit: minimum total jiwa x menit tempuh riil (0,894 m/s, dari simpang, termasuk jalan "
+                    "lurus ke titik TES), beban tiap TES <= kapasitas, kandidat = TES berkapasitas yang lolos arah dan sempat "
+                    "(tanpa jembatan >= 20 m bila ada). Kelebihan -> TES sempat tercepat (dicatat). Deterministik, tanpa "
+                    "bilangan acak; seri dipecah 1e-6 menit per nomor TES. Simpang yang keluar zona diberi porsi cadangan "
+                    "(cadangan = 1) sebanding sisa kapasitas. Penduduk: tb_node_info.demand_jiwa (simpang tanpa penduduk "
+                    "dihitung 0,001 jiwa). Solver: scipy.optimize.linprog (HiGHS).",
+    "sumber_kapasitas_tes": "Kolom Kapasitas 2_TES_TEA_Padang.shp (BPBD 2025: perkiraan kesepakatan warga Kelurahan "
+                            "Tangguh, tanpa standar luas per orang), lalu daftar resmi dan verifikasi BPBD 2019.",
     "catatan_rute_aman": "Navigasi zona aman: tb_safe_routes_v2 + tb_safe_next_v2 (kelompok milik node asal), tujuan = titik "
                          "zona hijau terjauh dari pantai yang sempat <= 15 menit. tb_safe_routes (pohon global ke batas "
                          "zona hijau terdekat, safe_eta = 0 di zona hijau) untuk status tiba dan kompatibilitas; baris "
@@ -1492,6 +1627,8 @@ for kel in list(krb["KEL"]) + sorted(set(kel_node[merah]) - set(krb["KEL"]) - {"
                        "jiwa_tidak_sempat_30_mnt": round(float(demand[m & (eta_min > 30)].sum()))})
 celah = pd.DataFrame(celah_rows).sort_values("jiwa_tidak_sempat_20_mnt", ascending=False)
 celah.to_csv(os.path.join(DIR_HASIL, "peta_celah_kelurahan.csv"), index=False, encoding="utf-8")
+beban_tes_df.sort_values("rasio_beban", ascending=False).to_csv(os.path.join(DIR_HASIL, "beban_tes.csv"), index=False,
+                                                                 encoding="utf-8")
 
 # ==============================================================================
 # LAPORAN
@@ -1510,8 +1647,14 @@ print(f"Node zona merah tanpa tujuan apa pun yang lolos syarat arah: {(merah & ~
 for w in (20, 30):
     print(f"Tidak sempat {w} menit (0,894 m/s): {(merah & (eta_min > w)).sum() / merah.sum() * 100:.1f}% node zona merah, "
           f"{demand[merah & (eta_min > w)].sum():,.0f} jiwa ({demand[merah & (eta_min > w)].sum() / total_jiwa * 100:.1f}%)")
-print(f"Jiwa dengan tujuan <= {BATAS_WAKTU_MENIT:.0f} menit (penugasan): {jiwa_selamat_20:,.0f} dari {total_jiwa:,.0f} "
-      f"({jiwa_selamat_20 / max(total_jiwa, 1) * 100:.1f}%) | belum teralokasi: {jiwa_tanpa_tujuan:,.0f}")
+jiwa_merah = demand[merah].sum()
+print(f"Porsi TES (t = 0, <= {BATAS_SEMPAT_MENIT:.0f} menit): " + ", ".join(
+    f"{k} {v:,} simpang / {jiwa_kel[k]:,.0f} jiwa" for k, v in sorted(porsi_ringkas.items())))
+print(f"  Beban model: {jiwa_beban:,.0f} jiwa ke {int((beban_tes >= 0.5).sum())} TES | kelebihan tak tertampung {jiwa_kelebihan:,.0f} jiwa | "
+      f"TES melebihi kapasitas: {tes_lebih}")
+print(f"  Jiwa dengan tujuan sempat <= {BATAS_SEMPAT_MENIT:.0f} menit: {demand[tujuan_sempat & merah].sum():,.0f} dari {jiwa_merah:,.0f} "
+      f"({demand[tujuan_sempat & merah].sum() / jiwa_merah * 100:.1f}%; penyebut = jiwa di simpang zona merah) | "
+      f"tb_route_shares {len(share_rows):,} baris, tb_tes_next {len(tes_next_rows):,} baris")
 print(f"Rute cadangan lewat jembatan >= {JEMBATAN_MIN_M:.0f} m: TES rank-1 {rank1_jembatan[merah].sum():,} node "
       f"({demand[rank1_jembatan & merah].sum():,.0f} jiwa) | zona aman v2 {jemb_aman2[merah].sum():,} node")
 v2_ada = merah & ~np.isnan(mendekat_aman2)

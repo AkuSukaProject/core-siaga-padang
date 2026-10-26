@@ -1,5 +1,5 @@
 @startuml
-' ERD basis data lokal Siaga Padang, ranah_siaga_v4.db versi 2026.10.17 (ringkas).
+' ERD basis data lokal Siaga Padang, ranah_siaga_v4.db versi 2026.10.18 (ringkas).
 ' Dibangkitkan oleh generate_erd_gambar.py dari DB; jangan diedit manual.
 ' Relasi logis (SQLite tanpa foreign key); kardinalitas dihitung dari isi DB.
 ' * = PK atau NOT NULL. Garis utuh = kunci ID, putus-putus = lewat nama / kunci kelompok / sumber VIEW.
@@ -50,10 +50,10 @@ skinparam entity {
   FontColor<<info>> #6d28d9
 }
 
-title Basis Data Lokal Siaga Padang (ranah_siaga_v4.db versi 2026.10.17) - ringkas
+title Basis Data Lokal Siaga Padang (ranah_siaga_v4.db versi 2026.10.18) - ringkas
 
 package "Graf jalan" {
-  entity "tb_edges\n<size:10><color:#64748b>39.267 baris · APP</color></size>" as tb_edges <<graf>> {
+  entity "tb_edges\n<size:10><color:#64748b>39.216 baris · APP</color></size>" as tb_edges <<graf>> {
     * edge_id : INTEGER <<PK>>
     --
     u : INTEGER <<FK>>
@@ -61,14 +61,14 @@ package "Graf jalan" {
     length : REAL
     geometry : TEXT
   }
-  entity "tb_bridge_edges\n<size:10><color:#64748b>174 baris · APP</color></size>" as tb_bridge_edges <<graf>> {
+  entity "tb_bridge_edges\n<size:10><color:#64748b>176 baris · APP</color></size>" as tb_bridge_edges <<graf>> {
     * edge_id : INTEGER <<PK,FK>>
   }
-  entity "tb_jalur_resmi\n<size:10><color:#64748b>4.984 baris</color></size>" as tb_jalur_resmi <<graf>> {
+  entity "tb_jalur_resmi\n<size:10><color:#64748b>4.980 baris</color></size>" as tb_jalur_resmi <<graf>> {
     * u : INTEGER <<PK,FK>>
     * v : INTEGER <<PK,FK>>
   }
-  entity "tb_nodes\n<size:10><color:#64748b>31.859 baris · APP</color></size>" as tb_nodes <<graf>> {
+  entity "tb_nodes\n<size:10><color:#64748b>31.813 baris · APP</color></size>" as tb_nodes <<graf>> {
     * node_id : INTEGER <<PK>>
     --
     lat : REAL
@@ -85,9 +85,10 @@ package "Rute TES (vertikal)" {
     nama_tes : TEXT <<UK>>
     kapasitas : REAL
     lantai : INTEGER
-    <i>... +5 kolom lain</i>
+    nearest_node_id : INTEGER <<FK>>
+    <i>... +6 kolom lain</i>
   }
-  entity "tb_routes\n<size:10><color:#64748b>10.708 baris · APP</color></size>" as tb_routes <<tes>> {
+  entity "tb_routes\n<size:10><color:#64748b>10.688 baris · APP</color></size>" as tb_routes <<tes>> {
     * origin_node_id : INTEGER <<PK,FK>>
     --
     rank_1_tes : TEXT <<FK>>
@@ -96,6 +97,12 @@ package "Rute TES (vertikal)" {
     rank_2_tes : TEXT <<FK>>
     rank_3_tes : TEXT <<FK>>
     <i>... +4 kolom lain</i>
+  }
+  entity "tb_tes_next\n<size:10><color:#64748b>40.677 baris</color></size>" as tb_tes_next <<tes>> {
+    * tes_id : TEXT <<PK,FK>>
+    * node_id : INTEGER <<PK,FK>>
+    --
+    * next_node_id : INTEGER <<FK>>
   }
   entity "v_fasilitas_evakuasi\n<size:10><color:#64748b>266 baris · VIEW · APP</color></size>" as v_fasilitas_evakuasi <<tes>> {
     facility_id : TEXT
@@ -109,18 +116,18 @@ package "Rute TEA (horizontal)" {
   entity "tb_tea\n<size:10><color:#64748b>22 baris · APP</color></size>" as tb_tea <<tea>> {
     * tea_id : TEXT <<PK,FK>>
     --
-    * nama_tea : TEXT <<UK>>
+    * nama_tea : TEXT
     * kapasitas : REAL
     nearest_node_id : INTEGER <<FK>>
-    <i>... +10 kolom lain</i>
+    <i>... +11 kolom lain</i>
   }
-  entity "tb_tea_routes\n<size:10><color:#64748b>22.125 baris · APP</color></size>" as tb_tea_routes <<tea>> {
+  entity "tb_tea_routes\n<size:10><color:#64748b>22.084 baris · APP</color></size>" as tb_tea_routes <<tea>> {
     * origin_node_id : INTEGER <<PK,FK>>
     --
     nearest_tea_id : TEXT <<FK>>
     alt_tea_id : TEXT <<FK>>
   }
-  entity "tb_tea_next\n<size:10><color:#64748b>47.131 baris · APP</color></size>" as tb_tea_next <<tea>> {
+  entity "tb_tea_next\n<size:10><color:#64748b>47.031 baris · APP</color></size>" as tb_tea_next <<tea>> {
     * tea_id : TEXT <<PK,FK>>
     * node_id : INTEGER <<PK,FK>>
     --
@@ -129,7 +136,7 @@ package "Rute TEA (horizontal)" {
 }
 
 package "Rute zona aman" {
-  entity "tb_safe_routes_v2\n<size:10><color:#64748b>11.438 baris · APP</color></size>" as tb_safe_routes_v2 <<aman>> {
+  entity "tb_safe_routes_v2\n<size:10><color:#64748b>11.418 baris · APP</color></size>" as tb_safe_routes_v2 <<aman>> {
     * origin_node_id : INTEGER <<PK,FK>>
     --
     * kelompok : INTEGER <<FK>>
@@ -138,13 +145,13 @@ package "Rute zona aman" {
     safe_zone_id : INTEGER <<FK>>
     <i>... +3 kolom lain</i>
   }
-  entity "tb_safe_next_v2\n<size:10><color:#64748b>28.985 baris · APP</color></size>" as tb_safe_next_v2 <<aman>> {
+  entity "tb_safe_next_v2\n<size:10><color:#64748b>28.894 baris · APP</color></size>" as tb_safe_next_v2 <<aman>> {
     * kelompok : INTEGER <<PK>>
     * node_id : INTEGER <<PK,FK>>
     --
     * next_node_id : INTEGER <<FK>>
   }
-  entity "tb_safe_routes\n<size:10><color:#64748b>30.884 baris · APP</color></size>" as tb_safe_routes <<aman>> {
+  entity "tb_safe_routes\n<size:10><color:#64748b>30.839 baris · APP</color></size>" as tb_safe_routes <<aman>> {
     * origin_node_id : INTEGER <<PK,FK>>
     --
     safe_node_id : INTEGER <<FK>>
@@ -152,7 +159,7 @@ package "Rute zona aman" {
     safe_zone_id : INTEGER <<FK>>
     <i>... +1 kolom lain</i>
   }
-  entity "tb_safe_next\n<size:10><color:#64748b>10.631 baris · APP</color></size>" as tb_safe_next <<aman>> {
+  entity "tb_safe_next\n<size:10><color:#64748b>10.612 baris · APP</color></size>" as tb_safe_next <<aman>> {
     * node_id : INTEGER <<PK,FK>>
     * next_node_id : INTEGER <<PK,FK>>
   }
@@ -186,13 +193,16 @@ package "Penugasan dan info engine" {
     nearest_node_id : INTEGER <<FK>>
     <i>... +19 kolom lain</i>
   }
-  entity "tb_route_shares\n<size:10><color:#64748b>9.937 baris</color></size>" as tb_route_shares <<info>> {
-    origin_node_id : INTEGER <<FK>>
-    jenis : TEXT
-    nama_tujuan : TEXT <<FK>>
-    porsi : REAL
+  entity "tb_route_shares\n<size:10><color:#64748b>32.201 baris</color></size>" as tb_route_shares <<info>> {
+    * origin_node_id : INTEGER <<PK,FK>>
+    * urutan : INTEGER <<PK>>
+    --
+    * facility_id : TEXT <<FK>>
+    * porsi : REAL
+    * eta_tabel : REAL
+    <i>... +5 kolom lain</i>
   }
-  entity "tb_node_info\n<size:10><color:#64748b>31.859 baris</color></size>" as tb_node_info <<info>> {
+  entity "tb_node_info\n<size:10><color:#64748b>31.813 baris</color></size>" as tb_node_info <<info>> {
     * node_id : INTEGER <<PK,FK>>
     --
     kelurahan : TEXT <<FK>>
@@ -205,7 +215,7 @@ package "Penugasan dan info engine" {
     kelas_risiko : TEXT
     <i>... +21 kolom lain</i>
   }
-  entity "tb_metadata\n<size:10><color:#64748b>31 baris · APP</color></size>" as tb_metadata <<info>> {
+  entity "tb_metadata\n<size:10><color:#64748b>34 baris · APP</color></size>" as tb_metadata <<info>> {
     * kunci : TEXT <<PK>>
     --
     nilai : TEXT
@@ -224,8 +234,10 @@ tb_tea_routes }|--|| tb_tea : "nearest_tea_id, alt_tea_id → tea_id"
 tb_tea_next }|--|| tb_tea : "tea_id → tea_id"
 tb_tea_next }o--|| tb_nodes : "node_id, next_node_id → node_id"
 tb_route_shares }o--|| tb_nodes : "origin_node_id → node_id"
-tb_route_shares }o..|| tb_tes : "nama_tujuan → nama_tes"
-tb_route_shares }o..|| tb_tea : "nama_tujuan → nama_tea"
+tb_route_shares }|--|| tb_tes : "facility_id → tes_id"
+tb_tes_next }|--|| tb_tes : "tes_id → tes_id"
+tb_tes_next }o--|| tb_nodes : "node_id, next_node_id → node_id"
+tb_tes }o--|| tb_nodes : "nearest_node_id → node_id"
 tb_safe_routes_v2 |o--|| tb_nodes : "origin_node_id → node_id"
 tb_safe_routes_v2 }o--|| tb_nodes : "safe_node_id → node_id"
 tb_safe_routes_v2 }|..|{ tb_safe_next_v2 : "kelompok → kelompok"

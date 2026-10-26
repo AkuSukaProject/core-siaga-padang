@@ -51,7 +51,7 @@ Yang berubah dari 2026.10.16:
 
 Yang berubah dari 2026.10.15:
 1. **`tb_safe_routes_v2`**: titik terdalam dengan batas 15 menit; cadangan = batas zona hijau tercepat (§0). 862 kelompok, `tb_safe_next_v2` 28.985 baris.
-2. **Penugasan `tb_route_shares`**: urutan K-B6 (sempat ≤ 15 menit, keluar zona dulu, lalu TES terjauh dari pantai).
+2. **Porsi TES `tb_route_shares` (sejak 2026.10.18)**: porsi TES per simpang dari program linear berkapasitas (167 TES berkapasitas), jalurnya di `tb_tes_next`. Kontrak lengkap, aturan pemakaian, dan pemeriksaan: [kontrak_porsi_tujuan.md](kontrak_porsi_tujuan.md).
 3. **`tb_metadata`**: kunci baru `batas_sempat_menit`; `aturan_tujuan` dan `catatan_rute_aman` diperbarui.
 4. **`tb_fasilitas_info.alasan_tidak_dipakai`** untuk TEA kini membedakan "landaan tsunami (raster KRB)" dan "zona merah (peta evakuasi BPBD)".
 5. Zona, fasilitas, TES rank 1–3, TEA, dan skema sama dengan 2026.10.15.
@@ -274,7 +274,7 @@ Tidak berubah dari 2026.10.12.
 |---|---|---|
 | `tb_safe_routes_v2`, `tb_safe_next_v2` | Rute zona aman ke titik terdalam yang sempat | Navigasi zona aman (§4.7) |
 | `tb_bridge_edges` | `edge_id` jembatan ≥ 20 m | Keterangan "lewat jembatan" (M-8) |
-| `tb_route_shares` | Porsi tujuan per simpul (opsi A), urut aturan terjauh | Pemilihan tujuan berbasis daya tampung (RENCANA_KERJA §2.4) |
+| `tb_route_shares` + `tb_tes_next` | Porsi TES per simpang (LP berkapasitas, 2026.10.18) dan rantai jalurnya; lihat [kontrak_porsi_tujuan.md](kontrak_porsi_tujuan.md) | Pemilihan TES dari porsi, undian dari kode keluarga (butir 5) |
 | `tb_fasilitas_info` | Semua TES/TEA termasuk yang dikeluarkan, alasan, sumber kapasitas, `koordinat_sumber`, nama asli BPBD | Halaman direktori / data wilayah |
 | `tb_node_info` | Kelurahan, jarak pantai, jiwa, flag rute lewat jembatan | Analisis |
 | `tb_kelurahan_info` | Profil tsunami per kelurahan dari KRB | Data wilayah (masa tenang) |

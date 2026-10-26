@@ -1,5 +1,5 @@
 // DBML Schema Definition for dbdiagram.io
-// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.17). Jangan diedit manual.
+// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.18). Jangan diedit manual.
 
 Project SiagaPadangERD {
   database_type: 'SQLite'
@@ -44,6 +44,8 @@ Table tb_tes {
   sumber TEXT [note: "BPBD atau WARGA"]
   jarak_pantai_m INTEGER
   lantai INTEGER
+  nearest_node_id INTEGER [ref: > tb_nodes.node_id]
+  snap_dist_m REAL
 
   Note: "TES yang dipakai routing; sumber BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025). Nama unik."
 }
@@ -61,6 +63,18 @@ Table tb_routes {
   rank_3_eta REAL
 
   Note: "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. Yang sempat <= 20 menit urut jarak pantai (terjauh = rank 1), lalu tercepat. rank 2/3 boleh kosong. ETA pada 1,2 m/s."
+}
+
+Table tb_tes_next {
+  tes_id TEXT [ref: > tb_tes.tes_id]
+  node_id INTEGER [ref: > tb_nodes.node_id]
+  next_node_id INTEGER [not null, ref: > tb_nodes.node_id]
+
+  indexes {
+    (tes_id, node_id) [pk]
+  }
+
+  Note: "Tabel next-hop menuju tiap TES untuk kandidat tb_route_shares (rangkai seperti tb_tea_next)."
 }
 
 Table v_fasilitas_evakuasi {
@@ -81,6 +95,7 @@ Table v_fasilitas_evakuasi {
 TableGroup Rute_TES_Vertikal {
   tb_tes
   tb_routes
+  tb_tes_next
   v_fasilitas_evakuasi
 }
 
@@ -99,6 +114,7 @@ Table tb_tea {
   rute_evakuasi TEXT
   jarak_pantai_m INTEGER
   sumber TEXT
+  snap_dist_m REAL
 
   Note: "TEA yang dipakai routing (di luar area landaan)."
 }
@@ -207,11 +223,21 @@ TableGroup Zona_Spasial {
 
 Table tb_route_shares {
   origin_node_id INTEGER [ref: > tb_nodes.node_id]
-  jenis TEXT [note: "TES / TEA / ZONA_AMAN"]
-  nama_tujuan TEXT
-  porsi REAL
+  urutan INTEGER
+  jenis TEXT [not null, note: "'TES' (pilihan A kontrak porsi)"]
+  facility_id TEXT [not null, ref: > tb_tes.tes_id]
+  porsi REAL [not null]
+  sempat_15 INTEGER [not null]
+  eta_tabel REAL [not null, note: "Menit pada 1,2 m/s, termasuk jalan lurus simpul -> titik TES"]
+  sumber_jalur TEXT [not null]
+  kapasitas_tercatat INTEGER [not null, note: "0 = TES tanpa kapasitas, hanya cadangan"]
+  cadangan INTEGER [not null, note: "1 = simpul yang keluar zona pada t = 0 (porsi dari sisa kapasitas)"]
 
-  Note: "Porsi penugasan warga per node ke TES/TEA/zona aman (greedy berkapasitas)."
+  indexes {
+    (origin_node_id, urutan) [pk]
+  }
+
+  Note: "Porsi TES per simpul zona merah dari program linear berkapasitas (docs/kontrak_porsi_tujuan.md). Jumlah porsi per simpul = 1; porsi 0 = kandidat cadangan."
 }
 
 TableGroup Penugasan {
@@ -327,8 +353,6 @@ TableGroup Info_V4_Tambahan {
 
 // Relasi tambahan (logis)
 Ref: tb_safe_routes_v2.kelompok <> tb_safe_next_v2.kelompok // kunci kelompok pohon next-hop v2
-Ref: tb_route_shares.nama_tujuan > tb_tes.nama_tes // bila jenis = 'TES'
-Ref: tb_route_shares.nama_tujuan > tb_tea.nama_tea // bila jenis = 'TEA'
 Ref: tb_tes.tes_id - tb_fasilitas_info.facility_id // TES yang dipakai routing
 Ref: tb_tea.tea_id - tb_fasilitas_info.facility_id // TEA yang dipakai routing
 Ref: tb_node_info.kelurahan > tb_kelurahan_info.kelurahan // lewat nama; hanya 56 kelurahan terpapar
