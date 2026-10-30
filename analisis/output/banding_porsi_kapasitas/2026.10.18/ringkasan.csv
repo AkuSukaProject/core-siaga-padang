@@ -1,0 +1,17 @@
+,tercatat_167,estimasi_244
+TES dengan kapasitas,167.0,244.0
+kapasitas total (jiwa),155980.0,325249.0
+beban: simpang,3039.0,3655.0
+beban: jiwa,89157.8,105134.2
+cadangan_keluar: simpang,3275.0,3275.0
+cadangan_keluar: jiwa,95093.9,95093.9
+tanpa_kapasitas: simpang,616.0,0.0
+tanpa_kapasitas: jiwa,15976.4,0.0
+tidak_sempat: simpang,3758.0,3758.0
+tidak_sempat: jiwa,95183.5,95183.5
+tanpa_tes_lolos_arah: simpang,730.0,730.0
+tanpa_tes_lolos_arah: jiwa,18450.9,18450.9
+TES menerima beban model,122.0,174.0
+TES melebihi kapasitas,37.0,32.0
+jiwa di atas kapasitas,23442.6,17366.6
+jiwa ke TES tanpa kapasitas (tanpa batas),40450.1,0.0

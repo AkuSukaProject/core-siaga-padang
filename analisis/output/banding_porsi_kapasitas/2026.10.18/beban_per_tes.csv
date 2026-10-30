@@ -1,0 +1,245 @@
+tes_id,nama,kelurahan,kapasitas_tercatat,kapasitas_estimasi,sumber_kapasitas,beban_tercatat_167,rasio_tercatat_167,beban_estimasi_244,rasio_estimasi_244
+TES_001,Bukit Kacik,Bungus Barat,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_002,Bukit Kacik Tanah Sirah,Bungus Barat,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_003,Bukit Lampu (Bungus Barat),Bungus Barat,400.0,400.0,BPBD 2025,212.2,0.531,212.2,0.531
+TES_004,Bukit Parak Batung,Bungus Barat,700.0,700.0,BPBD 2025,215.0,0.307,215.0,0.307
+TES_005,Bukit Tanah Sirah,Bungus Barat,800.0,800.0,BPBD 2025,41.1,0.051,41.1,0.051
+TES_006,Bukit Tanah Sirah Kayu Aro,Bungus Barat,2000.0,2000.0,BPBD 2025,106.3,0.053,106.3,0.053
+TES_007,Bukit Simpang Rawang (Bungus Selatan) 1,Bungus Selatan,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_008,Bukit Simpang Rawang (Bungus Selatan) 2,Bungus Selatan,1000.0,1000.0,BPBD 2025,146.8,0.147,146.8,0.147
+TES_009,Sarang Walet,Bungus Selatan,2500.0,2500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_010,Jembatan Baru,Bungus Timur,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_011,Koto Gadang,Bungus Timur,,311.0,estimasi (jejak bangunan RTRW),598.9,,398.7,1.282
+TES_012,Koto Lalang,Bungus Timur,,500.0,estimasi (median TES BPBD),13.1,,0.0,0.0
+TES_013,Masjid Nurul Istiqomah,Bungus Timur,,169.0,estimasi (jejak bangunan RTRW),414.5,,0.0,0.0
+TES_014,RW 10,Bungus Timur,,500.0,estimasi (median TES BPBD),42.2,,0.0,0.0
+TES_015,Simpang Tabek,Bungus Timur,,64.0,estimasi (jejak bangunan RTRW),185.7,,185.7,2.902
+TES_016,Bukit Belakang SDN 13 Sungai Pisang,Teluk Kabung Selatan,,500.0,estimasi (median TES BPBD),179.8,,131.7,0.263
+TES_017,Bukit Nila,Teluk Kabung Selatan,,500.0,estimasi (median TES BPBD),13.4,,13.4,0.027
+TES_018,Ladang Halimatus Sadiyah,Teluk Kabung Selatan,,500.0,estimasi (median TES BPBD),0.2,,0.0,0.0
+TES_019,TPU,Teluk Kabung Selatan,,500.0,estimasi (median TES BPBD),256.4,,34.8,0.07
+TES_020,Bukit Belakang Mushola Al-Kautsar,Teluk Kabung Tengah,1200.0,1200.0,BPBD 2025,107.7,0.09,107.7,0.09
+TES_021,SDN 10 Koto,Teluk Kabung Tengah,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_022,SMPN 36 Padang,Teluk Kabung Tengah,700.0,700.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_023,Bukit Belakang Perumnas Cendakir,Teluk Kabung Utara,800.0,800.0,BPBD 2025,264.7,0.331,264.7,0.331
+TES_024,Bukit Lubuk Hitam,Teluk Kabung Utara,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_025,Kuburan Cina,Teluk Kabung Utara,1500.0,1500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_026,ATIP,Bungo Pasang,1000.0,1000.0,BPBD 2025,2238.3,2.238,2238.3,2.238
+TES_027,Masjid Al Muhajirin,Bungo Pasang,1400.0,1400.0,BPBD 2025,890.8,0.636,890.8,0.636
+TES_028,Hotel Rasaki,Koto Panjang Ikua Koto,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_029,Masjid Raya Ikua Koto,Koto Panjang Ikua Koto,1900.0,1900.0,BPBD 2025,180.8,0.095,180.8,0.095
+TES_030,Puskesmas KPIK,Koto Panjang Ikua Koto,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_031,Asrama UNP,Parupuk Tabing,1000.0,1000.0,BPBD 2025,408.4,0.408,408.4,0.408
+TES_032,Bandara Tabing,Parupuk Tabing,,5950.0,estimasi (jejak bangunan RTRW),6480.3,,1486.2,0.25
+TES_033,Shelter Mesjid Darussalam,Parupuk Tabing,1800.0,1800.0,BPBD 2025,1845.8,1.025,1845.8,1.025
+TES_034,Shelter Nurul Haq,Parupuk Tabing,2000.0,2000.0,BPBD 2025,108.9,0.054,108.9,0.054
+TES_035,Shelter PU,Parupuk Tabing,600.0,600.0,BPBD 2025,1972.3,3.287,1972.3,3.287
+TES_036,Kantor Lurah Pasir Nan Tigo,Pasir Nan Tigo,300.0,300.0,BPBD 2025,1069.9,3.566,1069.9,3.566
+TES_037,Masjid Darul Muttaqin,Pasir Nan Tigo,300.0,300.0,BPBD 2025,1272.0,4.24,1272.0,4.24
+TES_038,Rusunawa Pasir Nan Tigo,Pasir Nan Tigo,800.0,800.0,BPBD 2025,709.9,0.887,709.9,0.887
+TES_039,UMSB,Pasir Nan Tigo,1000.0,1000.0,BPBD 2025,2413.1,2.413,2413.1,2.413
+TES_040,Belakang SDN 21 Teluk Nibung,Gates Nan XX,500.0,500.0,BPBD 2025,56.7,0.113,56.7,0.113
+TES_041,Bukit Karan (Gates Nan XX),Gates Nan XX,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_042,Bukit Kuburan,Gates Nan XX,500.0,500.0,BPBD 2025,164.6,0.329,164.6,0.329
+TES_043,Bukit Lampu (Gates Nan XX),Gates Nan XX,500.0,500.0,BPBD 2025,17.8,0.036,17.8,0.036
+TES_044,Bukit SDN 13 Sungai Baremas,Gates Nan XX,300.0,300.0,BPBD 2025,119.1,0.397,119.1,0.397
+TES_045,Gang Masjid Nurul Falah,Gates Nan XX,300.0,300.0,BPBD 2025,58.1,0.194,58.1,0.194
+TES_046,Gang Pusara,Gates Nan XX,300.0,300.0,BPBD 2025,44.1,0.147,44.1,0.147
+TES_047,Ladang Warga RT 02,Gates Nan XX,200.0,200.0,BPBD 2025,200.0,1.0,200.0,1.0
+TES_048,Pulau Sawah,Gates Nan XX,500.0,500.0,BPBD 2025,209.7,0.419,209.7,0.419
+TES_049,TPU Baru,Gates Nan XX,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_050,KAMPUS 3 BUNG HATTA,Kampung Olo,,1625.0,estimasi (jejak bangunan RTRW),7233.7,,0.0,0.0
+TES_051,STIKES POLITEKNIK NEGERI PADANG,Surau Gadang,,4625.0,estimasi (jejak bangunan RTRW),5057.1,,0.0,0.0
+TES_052,Budha Tzu chi,Belakang Tangsi,200.0,200.0,BPBD 2025,234.0,1.17,200.0,1.0
+TES_053,Bunda Hotel,Belakang Tangsi,200.0,200.0,BPBD 2025,259.1,1.295,88.8,0.444
+TES_054,Daya Motor,Belakang Tangsi,300.0,300.0,BPBD 2025,615.7,2.052,300.0,1.0
+TES_055,Gedung Alumni Don Bosco,Belakang Tangsi,500.0,500.0,BPBD 2025,419.0,0.838,93.3,0.187
+TES_056,Gedung Kebudayaan,Belakang Tangsi,1200.0,1200.0,BPBD 2025,54.0,0.045,54.0,0.045
+TES_057,Hotel HW,Belakang Tangsi,200.0,200.0,BPBD 2025,200.0,1.0,200.0,1.0
+TES_058,Hotel Rang Kayo Basa,Belakang Tangsi,100.0,100.0,BPBD 2025,100.0,1.0,100.0,1.0
+TES_059,Hotel Truntum,Belakang Tangsi,2000.0,2000.0,BPBD 2025,574.1,0.287,77.8,0.039
+TES_060,Incasi Raya,Belakang Tangsi,1200.0,1200.0,BPBD 2025,1038.9,0.866,322.3,0.269
+TES_062,Masjid Muhamadiyah,Belakang Tangsi,1000.0,1000.0,BPBD 2025,1000.0,1.0,394.1,0.394
+TES_063,Ocean Beach Hotel,Belakang Tangsi,500.0,500.0,BPBD 2025,113.8,0.228,113.8,0.228
+TES_064,Perpustakaan Provinsi Sumbar,Belakang Tangsi,300.0,300.0,BPBD 2025,300.0,1.0,300.0,1.0
+TES_065,Ruko Depan Kelurahan,Belakang Tangsi,700.0,700.0,BPBD 2025,623.0,0.89,248.2,0.355
+TES_066,SMA Don Bosco,Belakang Tangsi,400.0,400.0,BPBD 2025,147.6,0.369,101.2,0.253
+TES_067,SMA Pertiwi,Belakang Tangsi,300.0,300.0,BPBD 2025,300.0,1.0,98.0,0.327
+TES_068,SMP 2 Padang,Belakang Tangsi,200.0,200.0,BPBD 2025,200.0,1.0,29.6,0.148
+TES_069,SMP Frater,Belakang Tangsi,400.0,400.0,BPBD 2025,5.3,0.013,0.0,0.0
+TES_070,SMP Maria,Belakang Tangsi,,515.0,estimasi (jejak bangunan RTRW),0.0,,387.1,0.752
+TES_071,TK Mariana,Belakang Tangsi,,672.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_072,Bangunan Hotel Baru,Berok Nipah,400.0,400.0,BPBD 2025,415.5,1.039,400.0,1.0
+TES_073,Buddha Warman Buddhist Temple,Berok Nipah,500.0,500.0,BPBD 2025,225.8,0.452,225.8,0.452
+TES_074,Gedung Bukit Asam,Berok Nipah,200.0,200.0,BPBD 2025,200.0,1.0,200.0,1.0
+TES_075,Hotel Bintang Padang,Berok Nipah,400.0,400.0,BPBD 2025,742.4,1.856,442.1,1.105
+TES_076,Hotel Jorisa,Berok Nipah,400.0,400.0,BPBD 2025,588.6,1.471,400.0,1.0
+TES_077,Hotel d'Ox Ville,Berok Nipah,300.0,300.0,BPBD 2025,318.1,1.06,300.0,1.0
+TES_078,Kantor PT. Sumber Harapan,Berok Nipah,600.0,600.0,BPBD 2025,600.0,1.0,600.0,1.0
+TES_079,"TK,SD,SMP, SMA Murni",Berok Nipah,500.0,500.0,BPBD 2025,810.8,1.622,734.6,1.469
+TES_080,ASPOL Rimbo Kaluang,Flamboyan Baru,250.0,250.0,BPBD 2025,962.9,3.852,962.9,3.852
+TES_081,Gedung Pertemuan Polda Rangkayo Basa,Flamboyan Baru,400.0,400.0,BPBD 2025,267.6,0.669,267.6,0.669
+TES_082,Hotel Pangeran Beach,Flamboyan Baru,500.0,500.0,BPBD 2025,242.7,0.485,242.7,0.485
+TES_083,Kantor Bappeda Sumatera Barat,Flamboyan Baru,500.0,500.0,BPBD 2025,396.8,0.794,396.8,0.794
+TES_084,Kantor Lurah Flamboyan Baru,Flamboyan Baru,200.0,200.0,BPBD 2025,387.5,1.938,387.5,1.938
+TES_085,Kejaksaan Tinggi Sumatera Barat,Flamboyan Baru,2500.0,2500.0,BPBD 2025,1818.6,0.727,1818.6,0.727
+TES_086,Komplek RRI,Flamboyan Baru,150.0,150.0,BPBD 2025,150.0,1.0,150.0,1.0
+TES_087,Masjid Nurul Ihsan,Flamboyan Baru,250.0,250.0,BPBD 2025,932.9,3.732,932.9,3.732
+TES_088,Polder Asrama Polda,Flamboyan Baru,500.0,500.0,BPBD 2025,541.1,1.082,541.1,1.082
+TES_089,SPBU Flamboyan Baru,Flamboyan Baru,500.0,500.0,BPBD 2025,500.0,1.0,500.0,1.0
+TES_090,PASAR RAYA BLOK I,Kampung Jao,,3273.0,estimasi (jejak bangunan RTRW),0.0,,77.9,0.024
+TES_091,PASAR RAYA BLOK II,Kampung Jao,,4377.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_092,PASAR RAYA BLOK III,Kampung Jao,,3014.0,estimasi (jejak bangunan RTRW),64.2,,925.3,0.307
+TES_093,PASAR RAYA BLOK IV,Kampung Jao,,137.0,estimasi (jejak bangunan RTRW),0.0,,15.8,0.116
+TES_094,PASAR RAYA FASE VII,Kampung Jao,,5156.0,estimasi (jejak bangunan RTRW),0.0,,189.4,0.037
+TES_095,Gudang Soelaiman Kayo,Kampung Pondok,,197.0,estimasi (jejak bangunan RTRW),129.7,,199.9,1.015
+TES_096,HOMESTAY PONDOK MINANG,Kampung Pondok,,104.0,estimasi (jejak bangunan RTRW),0.0,,104.0,1.0
+TES_097,MENARA AGUNG,Kampung Pondok,,63.0,estimasi (jejak bangunan RTRW),72.7,,63.0,1.0
+TES_098,SANDI SELULER,Kampung Pondok,,175.0,estimasi (jejak bangunan RTRW),0.0,,175.0,1.0
+TES_099,SMKN 9 PADANG,Kampung Pondok,,985.0,estimasi (jejak bangunan RTRW),0.0,,250.7,0.255
+TES_100,SUZUKI MOTOR PADANG,Kampung Pondok,,535.0,estimasi (jejak bangunan RTRW),0.0,,535.0,1.0
+TES_101,BANK NAGARI CABANG UTAMA,Olo,,1203.0,estimasi (jejak bangunan RTRW),92.8,,1203.0,1.0
+TES_102,DEALER HONDA (Olo),Olo,,743.0,estimasi (jejak bangunan RTRW),0.0,,743.0,1.0
+TES_103,PLAZA ANDALAS,Olo,,5827.0,estimasi (jejak bangunan RTRW),0.0,,970.7,0.167
+TES_104,Escape Building Kantor Gubernur,Padang Pasir,3000.0,3000.0,BPBD 2025,3000.0,1.0,2768.2,0.923
+TES_105,HOTEL SANTIKA,Padang Pasir,,357.0,estimasi (jejak bangunan RTRW),51.0,,357.0,1.0
+TES_106,Kantor Lurah Padang Pasir,Padang Pasir,100.0,100.0,BPBD 2025,300.0,3.0,100.0,1.0
+TES_107,STBA Prayoga Padang,Padang Pasir,1500.0,1500.0,BPBD 2025,1500.0,1.0,1500.0,1.0
+TES_108,Universitas Ekasakti,Padang Pasir,3000.0,3000.0,BPBD 2025,3000.0,1.0,1801.2,0.6
+TES_109,Hotel Mercure,Purus,500.0,500.0,BPBD 2025,500.0,1.0,500.0,1.0
+TES_110,SDN 4 Purus,Purus,500.0,500.0,BPBD 2025,500.0,1.0,500.0,1.0
+TES_111,Kantor Kementrian Agama Kota Padang,Ujung Gurun,200.0,200.0,BPBD 2025,200.0,1.0,200.0,1.0
+TES_112,Kantor Lurah Ujung Gurun,Ujung Gurun,150.0,150.0,BPBD 2025,150.0,1.0,150.0,1.0
+TES_113,Masjid Al-Marhamah,Ujung Gurun,200.0,200.0,BPBD 2025,514.5,2.572,200.0,1.0
+TES_114,POLDA Sumatera Barat,Ujung Gurun,2500.0,2500.0,BPBD 2025,1100.1,0.44,0.0,0.0
+TES_115,Rumah Sakit Bedah Ropanasuri,Ujung Gurun,200.0,200.0,BPBD 2025,200.0,1.0,200.0,1.0
+TES_116,SDN 22 Ujung Gurun,Ujung Gurun,200.0,200.0,BPBD 2025,293.9,1.47,200.0,1.0
+TES_117,SDN 24 Ujung Gurun,Ujung Gurun,2000.0,2000.0,BPBD 2025,2000.0,1.0,2000.0,1.0
+TES_118,SDN Percobaan,Ujung Gurun,200.0,200.0,BPBD 2025,487.1,2.436,200.0,1.0
+TES_119,Bukit Jalan Teluk Bayur,Air Manis,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_120,Imelda Resort,Air Manis,300.0,300.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_121,Pintu Masuk Marawa Beach Club,Air Manis,200.0,200.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_122,Warung Kopi,Air Manis,1200.0,1200.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_123,Hotel ZHM Premiere,Alang Laweh,750.0,750.0,BPBD 2025,750.0,1.0,549.4,0.733
+TES_124,RSU Bundo Padang,Alang Laweh,800.0,800.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_125,SDN 1 Alang Lawas,Alang Laweh,250.0,250.0,BPBD 2025,250.0,1.0,0.0,0.0
+TES_127,Youth Center,Alang Laweh,250.0,250.0,BPBD 2025,250.0,1.0,19.0,0.076
+TES_128,Bukit Belakag Tugu Kapal,Batang Arau,300.0,300.0,BPBD 2025,82.6,0.275,82.6,0.275
+TES_129,Galeri,Batang Arau,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_130,Gunung Padang,Batang Arau,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_131,Jenjang 500,Batang Arau,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_132,Kuburan Lincintai,Batang Arau,300.0,300.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_133,Perumahan RW 01,Batang Arau,500.0,500.0,BPBD 2025,460.6,0.921,460.6,0.921
+TES_134,SDN 29 Pebayan,Batang Arau,200.0,200.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_135,TK SD Tirtonadi,Batang Arau,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_136,Himpunan Keluarga Lie-Kwee,Belakang Pondok,500.0,500.0,BPBD 2025,1419.0,2.838,532.5,1.065
+TES_137,Masjid Nurul Iman,Belakang Pondok,1000.0,1000.0,BPBD 2025,1000.0,1.0,803.4,0.803
+TES_138,PSKP St. Yusuf,Belakang Pondok,1000.0,1000.0,BPBD 2025,1000.0,1.0,1000.0,1.0
+TES_139,Gedung Juang BPPI Padang,Pasa Gadang,750.0,750.0,BPBD 2025,1020.6,1.361,912.0,1.216
+TES_140,Lapangan Bola Pemancungan,Pasa Gadang,150.0,150.0,BPBD 2025,435.6,2.904,435.6,2.904
+TES_141,Masjid Amal Palinggal,Pasa Gadang,400.0,400.0,BPBD 2025,400.0,1.0,400.0,1.0
+TES_142,Masjid Raya Pasa Gadang,Pasa Gadang,300.0,300.0,BPBD 2025,300.0,1.0,300.0,1.0
+TES_143,Puskesman Pemancungan,Pasa Gadang,100.0,100.0,BPBD 2025,1634.1,16.341,1634.1,16.341
+TES_144,Rumah Duka HBT,Pasa Gadang,,195.0,estimasi (jejak bangunan RTRW),383.5,,797.8,4.092
+TES_145,Surau Papan,Pasa Gadang,300.0,300.0,BPBD 2025,579.6,1.932,579.6,1.932
+TES_146,Yayasan Pendidikan Dedikasi Edukasi Kualiva,Ranah Parak Rumbio,500.0,500.0,BPBD 2025,1741.7,3.483,1741.7,3.483
+TES_147,Bukit Keran,Rawang,300.0,300.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_148,Kantor Bea Cukai,Rawang,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_149,Kantor Lurah Rawang,Rawang,100.0,100.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_150,Masjid Al-Hijrah,Rawang,200.0,200.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_151,Masjid Al-Mutmainah,Rawang,250.0,250.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_152,Masjid Nurul Ikhlas,Rawang,250.0,250.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_153,Lapangan Sepak Bola,Seberang Padang,1500.0,1500.0,BPBD 2025,152.1,0.101,152.1,0.101
+TES_154,Masjid Jabal Nur,Seberang Padang,1000.0,1000.0,BPBD 2025,649.0,0.649,649.0,0.649
+TES_155,MIN Seberang Palinggam,Seberang Palinggam,1200.0,1200.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_156,Masjid Darussalam,Seberang Palinggam,800.0,800.0,BPBD 2025,800.0,1.0,800.0,1.0
+TES_157,SMPN 35 Padang,Seberang Palinggam,1300.0,1300.0,BPBD 2025,754.3,0.58,754.3,0.58
+TES_158,Bukit Air Manis,Taluak Bayua,1000.0,1000.0,BPBD 2025,431.1,0.431,431.1,0.431
+TES_159,Bukit Karan (Taluak Bayua),Taluak Bayua,1000.0,1000.0,BPBD 2025,61.8,0.062,61.8,0.062
+TES_160,Bukit Peti-peti,Taluak Bayua,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_161,Sekolah Dasar Kartika I-11,Ganting Parak Gadang,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_162,ADABIAH,Jati,,1168.0,estimasi (jejak bangunan RTRW),5.6,,0.0,0.0
+TES_163,FK UNAND,Jati,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_165,Home Stay,Jati,200.0,200.0,BPBD 2025,769.3,3.847,408.5,2.042
+TES_166,MESJID AKBAR,Jati,,407.0,estimasi (jejak bangunan RTRW),0.0,,407.0,1.0
+TES_167,Masjid Akbar,Jati,200.0,200.0,BPBD 2025,246.2,1.231,200.0,1.0
+TES_168,SMP N 5 PADANG,Jati,,1048.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_169,SMPN 5 Padang,Jati,2500.0,2500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_170,Yayasan Syarikat Usaha Adabiah,Jati,5000.0,5000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_171,Bank BTN,Jati Baru,,881.0,estimasi (jejak bangunan RTRW),136.7,,881.0,1.0
+TES_172,Bank Indonesia,Jati Baru,2000.0,2000.0,BPBD 2025,1568.4,0.784,1114.6,0.557
+TES_173,Dinas Kelautan dan Perikanan Provinsi Sumbar,Jati Baru,,271.0,estimasi (jejak bangunan RTRW),50.9,,195.2,0.72
+TES_174,Dinas Pendidikan Provinsi Sumbar,Jati Baru,,1298.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_175,Fakultas Kedokteran Gigi UNAND,Jati Baru,,839.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_176,RS Yos Sudarso,Jati Baru,300.0,300.0,BPBD 2019 (daftar resmi),670.1,2.234,279.9,0.933
+TES_177,SMAN 10 PADANG,Jati Baru,,55.0,estimasi (jejak bangunan RTRW),131.0,,131.0,2.382
+TES_178,SMK N 6 PADANG,Jati Baru,,2649.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_179,BCA KCU Padang,Sawahan,1000.0,1000.0,BPBD 2025,261.1,0.261,0.0,0.0
+TES_180,PDAM Padang,Sawahan,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_181,RSIA Restu Ibu,Sawahan,500.0,500.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_182,RSU BMC Padang,Sawahan,200.0,200.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_183,Rusun Wisma Syariah PGAI,Sawahan,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_184,STAI-PIQ Sumatera Barat,Sawahan,2000.0,2000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_185,RSUP Dr. M. Djamil Padang,Sawahan Timur,,18362.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_186,RSUP dr. M.Jamil Padang,Sawahan Timur,5000.0,5000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_187,SPBU Sawahan,Sawahan Timur,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_188,STIKES Ranah Minang,Simpang Haru,1000.0,1000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_189,FIP UNP,Air Tawar Barat,1500.0,1500.0,BPBD 2019 (daftar resmi),732.6,0.488,0.0,0.0
+TES_190,Fakultas Bahasa dan Seni UNP,Air Tawar Barat,,5838.0,estimasi (jejak bangunan RTRW),2118.7,,3020.8,0.517
+TES_191,Fakultas Ekonomi UNP,Air Tawar Barat,,1021.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_192,Fakultas Ilmu Sosial UNP,Air Tawar Barat,,634.0,estimasi (jejak bangunan RTRW),202.1,,202.1,0.319
+TES_193,Fakultas MIPA UNP,Air Tawar Barat,,1272.0,estimasi (jejak bangunan RTRW),0.0,,384.6,0.302
+TES_194,Gedung MKU,Air Tawar Barat,,1401.0,estimasi (jejak bangunan RTRW),2385.6,,1507.0,1.076
+TES_195,Pascasarjana UNP,Air Tawar Barat,1000.0,1000.0,BPBD 2019 (daftar resmi),1000.0,1.0,406.4,0.406
+TES_196,Perhotelan UNP,Air Tawar Barat,,1501.0,estimasi (jejak bangunan RTRW),821.4,,620.5,0.413
+TES_197,Psikologi UNP,Air Tawar Barat,,999.0,estimasi (jejak bangunan RTRW),733.6,,999.0,1.0
+TES_198,Rektorat UNP,Air Tawar Barat,,500.0,estimasi (median TES BPBD),27.9,,27.9,0.056
+TES_199,Rumah Kos 3 lantai,Air Tawar Timur,,189.0,estimasi (jejak bangunan RTRW),0.0,,373.5,1.976
+TES_200,SDIT NURUL IKHLAS,Air Tawar Timur,,65.0,estimasi (jejak bangunan RTRW),0.0,,78.6,1.21
+TES_201,Shelter Air Tawar Timur,Air Tawar Timur,200.0,200.0,BPBD 2019 (verifikasi),1609.2,8.046,1140.2,5.701
+TES_202,Universitas Syedza Saintika,Air Tawar Timur,,441.0,estimasi (jejak bangunan RTRW),2395.0,,1867.6,4.235
+TES_203,Jln. Batag Kapur,Alai Parak Kopi,2000.0,2000.0,BPBD 2025,1837.4,0.919,898.5,0.449
+TES_204,Jln. KH Ahmad Dahlan,Alai Parak Kopi,2000.0,2000.0,BPBD 2025,1052.0,0.526,1052.0,0.526
+TES_205,Masjid Raya Syekh Ahmad Khatib Al-Minangkabawi,Alai Parak Kopi,15000.0,15000.0,BPBD 2019 (daftar resmi),501.6,0.033,501.6,0.033
+TES_206,SPBU Ampang,Alai Parak Kopi,2000.0,2000.0,BPBD 2025,0.0,0.0,0.0,0.0
+TES_207,TK Kemala Bhayangkari 1,Alai Parak Kopi,500.0,500.0,BPBD 2025,383.8,0.768,371.6,0.743
+TES_209,Kantor Lurah Gunung Pangilun,Gunung Pangilun,,500.0,estimasi (median TES BPBD),285.1,,0.0,0.0
+TES_210,PDAM Gunung Pangilun,Gunung Pangilun,,648.0,estimasi (jejak bangunan RTRW),2557.6,,0.0,0.0
+TES_211,RS Ibnu Sina,Gunung Pangilun,,640.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_212,Lantai 3 SDIT Adzkia 3 Padang,Lolong Belanti,400.0,400.0,BPBD 2025,10.5,0.026,0.0,0.0
+TES_213,Padang Eye Center,Lolong Belanti,2500.0,2500.0,BPBD 2025,2500.0,1.0,2178.9,0.872
+TES_214,SMA 1 Padang,Lolong Belanti,2000.0,2000.0,BPBD 2025,2000.0,1.0,2000.0,1.0
+TES_215,SMK 5 Padang,Lolong Belanti,2500.0,2500.0,BPBD 2025,1003.4,0.401,1003.4,0.401
+TES_216,SMPN 25 Padang,Lolong Belanti,2000.0,2000.0,BPBD 2025,2000.0,1.0,2000.0,1.0
+TES_217,SMPN 7 Padang,Lolong Belanti,1000.0,1000.0,BPBD 2025,1000.0,1.0,1000.0,1.0
+TES_218,Universitas Metamedia,Lolong Belanti,700.0,700.0,BPBD 2025,700.0,1.0,700.0,1.0
+TES_219,Dealer Honda (Ulak Karang Selatan),Ulak Karang Selatan,,1524.0,estimasi (jejak bangunan RTRW),0.0,,1342.6,0.881
+TES_220,Dealer Hyundai,Ulak Karang Selatan,,1053.0,estimasi (jejak bangunan RTRW),0.0,,1053.0,1.0
+TES_221,Dealer Suzuki,Ulak Karang Selatan,,2516.0,estimasi (jejak bangunan RTRW),0.0,,0.0,0.0
+TES_222,Hotel Whiz Prime,Ulak Karang Selatan,,981.0,estimasi (jejak bangunan RTRW),208.0,,448.3,0.457
+TES_223,Kantor BPK RI,Ulak Karang Selatan,800.0,800.0,BPBD 2019 (daftar resmi),3421.2,4.276,800.0,1.0
+TES_224,Kantor Suku Dinas PU Sumbar,Ulak Karang Selatan,,469.0,estimasi (jejak bangunan RTRW),322.1,,469.0,1.0
+TES_225,Pengadilan Negeri Padang,Ulak Karang Selatan,,1142.0,estimasi (jejak bangunan RTRW),0.0,,771.5,0.676
+TES_226,RS HERMINA,Ulak Karang Selatan,,500.0,estimasi (median TES BPBD),616.7,,500.0,1.0
+TES_227,STIKES SITEBA,Ulak Karang Selatan,,650.0,estimasi (jejak bangunan RTRW),543.8,,650.0,1.0
+TES_228,Sekolah Al-Azhar,Ulak Karang Selatan,,905.0,estimasi (jejak bangunan RTRW),132.9,,146.8,0.162
+TES_229,Transmart,Ulak Karang Selatan,,1986.0,estimasi (jejak bangunan RTRW),928.7,,1986.0,1.0
+TES_230,Balai Latihan Koperasi (BALATKOP),Ulak Karang Utara,,533.0,estimasi (jejak bangunan RTRW),1860.9,,1695.9,3.182
+TES_231,Dinas PSDA Provinsi Sumbar,Ulak Karang Utara,200.0,200.0,BPBD 2019 (daftar resmi),311.6,1.558,200.0,1.0
+TES_232,Kantor DPRD Provinsi Sumbar,Ulak Karang Utara,100.0,100.0,BPBD 2019 (daftar resmi),2020.3,20.203,107.4,1.074
+TES_233,Masjid Taufiq,Ulak Karang Utara,,297.0,estimasi (jejak bangunan RTRW),30.8,,297.0,1.0
+TES_234,Shelter Ulak Karang,Ulak Karang Utara,,162.0,estimasi (jejak bangunan RTRW),855.4,,1339.5,8.269
+TES_235,Hotel Inna Muara,Belakang Tangsi,,2298.0,estimasi (jejak bangunan RTRW),0.0,,521.3,0.227
+TES_236,Hotel Rocky,Kampung Jao,,1245.0,estimasi (jejak bangunan RTRW),1188.8,,1245.0,1.0
+TES_237,Axana Hotel,Kampung Pondok,,1255.0,estimasi (jejak bangunan RTRW),0.0,,276.8,0.221
+TES_238,Bumi Minang Hotel,Kampung Pondok,,14736.0,estimasi (jejak bangunan RTRW),0.0,,213.7,0.015
+TES_239,Damar Plaza,Olo,1000.0,1000.0,BPBD 2019 (daftar resmi),1640.0,1.64,1000.0,1.0
+TES_240,Masjid Al Wustha,Padang Pasir,,1159.0,estimasi (jejak bangunan RTRW),0.0,,1159.0,1.0
+TES_241,PT Sutan Kasim,Padang Pasir,800.0,800.0,BPBD 2019 (daftar resmi),800.0,1.0,666.9,0.834
+TES_242,Rusunawa,Purus,,1541.0,estimasi (jejak bangunan RTRW),0.0,,636.8,0.413
+TES_243,Hotel Grand Zuri,Alang Laweh,,168.0,estimasi (jejak bangunan RTRW),0.0,,114.8,0.683
+TES_244,Dinas Peternakan Prov. Sumbar,Jati Baru,,1099.0,estimasi (jejak bangunan RTRW),240.7,,1099.0,1.0
+TES_245,Basko Hotel & Plaza,Air Tawar Timur,,29204.0,estimasi (jejak bangunan RTRW),400.9,,156.8,0.005
+TES_246,Hotel Ibis,Alai Parak Kopi,,17947.0,estimasi (jejak bangunan RTRW),0.0,,891.6,0.05
+TES_247,Daihatsu & ACC Finance,Ulak Karang Utara,30.0,30.0,BPBD 2019 (daftar resmi),1638.8,54.627,30.0,1.0
+TES_248,Universitas Bung Hatta,Ulak Karang Utara,600.0,600.0,BPBD 2019 (daftar resmi),203.2,0.339,203.2,0.339
