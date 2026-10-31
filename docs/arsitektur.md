@@ -34,15 +34,16 @@ Isi DB mengikuti kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`
    - TES dicocokkan dengan daftar resmi BPBD 2019 (`sumber` BPBD atau WARGA) dan verifikasi 2019 (lantai, kapasitas, status);
    - TES ≤ 2 lantai atau "tidak potensial", serta TEA di dalam landaan, dikeluarkan;
    - nama dibuat unik (titik ganda ≤ 100 m digabung).
-   Kapasitas di `tb_tes` hanya dari data BPBD; estimasi internal (jejak bangunan, median) hanya untuk penugasan.
+   Kapasitas di `tb_tes` hanya dari data BPBD; estimasi internal (jejak bangunan, median) hanya dicatat di `tb_fasilitas_info` sebagai pembanding.
 5. **Reverse Dijkstra.** Dijalankan dari setiap TES/TEA pada graf terbalik (`scipy.sparse.csgraph.dijkstra`), sehingga satu pencarian menghasilkan biaya dari *semua* node menuju fasilitas itu. *Predecessor* pada graf terbalik adalah *next-hop* pada rute asli. Waktu riil dan flag jembatan diakumulasi dengan *pointer jumping*.
 6. **Syarat arah (filter keras, K-B1).** Fasilitas hanya menjadi kandidat untuk node asal bila menjauh dari pantai lebih dari 15°, yaitu (jarak pantai tujuan − asal) ÷ jarak lurus > sin 15°. Tujuan ≤ 100 m tidak dinilai. Rank 2 dan 3 boleh kosong.
 7. **Zona aman.** Kantong aman (< 50 ha, dikelilingi zona merah) tidak dijadikan tujuan.
    - **Pohon global** dari semua node aman (`tb_safe_routes` / `tb_safe_next`): `safe_eta = 0` menandai tujuan zona hijau.
-   - **Rute navigasi** (`tb_safe_routes_v2` / `tb_safe_next_v2`): untuk tiap node merah dipilih "gerbang" zona aman termurah yang lolos syarat arah; rantainya disimpan per gerbang (`kelompok`).
-8. **Demand & penugasan (opsi A).** Jiwa terpapar per kelurahan (tabel KRB) disebar ke node zona merah menurut luas jejak bangunan, lalu dialokasikan secara *greedy*. Tujuan ≤ 20 menit didahulukan; di antaranya, keluar zona (TEA/zona aman) sebelum TES (K-B6). TES dibatasi kapasitas, TEA dan zona aman tidak.
-9. **Zona spasial.** Raster landaan dipoligonkan, dipotong per kelurahan menjadi zona merah dan zona hijau, lalu disimpan sebagai WKT `MULTIPOLYGON` 7 desimal.
-10. **SQLite & paket.** Kolom ETA ditulis pada 1,2 m/s (kontrak). Tabel ditulis, lalu `VACUUM`. DB dipaketkan ke `ranah_siaga_v4.db.zip`; checksum ditulis ke `dataset_manifest.json` dan `dataset_manifest_android.json`. Ikut ditulis: `daftar_tes_tea.csv`, `bpbd_2019_tanpa_titik.csv`, `peta_celah_kelurahan.csv`. Laporan build dicetak di terminal.
+   - Simpul merah di pohon global hanya diberi baris bila tujuannya lolos syarat arah (pola tabel sesuai kontrak).
+   - **Rute v2, navigasi zona aman** (`tb_safe_routes_v2` / `tb_safe_next_v2`): Dijkstra maju dari tiap node merah; dipilih titik zona hijau **terjauh dari pantai** yang sempat ≤ 15 menit dan lolos syarat arah (bila tidak ada, batas zona hijau yang tercepat dicapai); rantainya disimpan per titik tujuan (`kelompok`).
+8. **Demand & porsi TES (sejak 2026.10.18).** Jiwa terpapar per kelurahan (tabel KRB) disebar ke node zona merah menurut luas jejak bangunan. Simpang yang pada t = 0 tidak bisa keluar zona (TEA/zona aman) dalam 15 menit dibagi ke 167 TES berdaya tampung tercatat dengan program linear (`scipy.optimize.linprog`, minimum jiwa × menit, beban ≤ kapasitas). TES tanpa kapasitas hanya cadangan; TEA dan zona aman tidak dibatasi. Hasilnya `tb_route_shares` dan rantai `tb_tes_next` ([kontrak_porsi_tujuan.md](kontrak_porsi_tujuan.md)).
+9. **Zona spasial.** Zona merah dibentuk di awal build (langkah 1) dari raster landaan dengan kontur sub-piksel, ditambah zona rawan peta evakuasi BPBD (`data_bpbd_digitasi/`), dipotong ke daratan menurut garis pantai OSM, dan dipakai bersama untuk `is_safe`, TEA di landaan, dan sebaran penduduk. Pita pantai di luar batas kelurahan dibagi ke kelurahan terdekat, lalu zona merah dan zona hijau (kelurahan di darat − zona merah) dipotong per kelurahan, lalu disimpan sebagai WKT `MULTIPOLYGON` 7 desimal.
+10. **SQLite & paket.** Kolom ETA ditulis pada 1,2 m/s (kontrak). Tabel ditulis, lalu `VACUUM`. DB dipaketkan ke `ranah_siaga_v4.db.zip`; checksum ditulis ke `dataset_manifest.json` dan `dataset_manifest_android.json`. Ikut ditulis: `daftar_tes_tea.csv`, `bpbd_2019_tanpa_titik.csv`, `peta_celah_kelurahan.csv`, `beban_tes.csv`. Laporan build dicetak di terminal.
 
 Build bersifat deterministik: input dan label versi (`--versi`) yang sama menghasilkan SHA-256 DB dan zip yang sama.
 
@@ -53,10 +54,11 @@ Build bersifat deterministik: input dan label versi (`--versi`) yang sama mengha
 | Posisi pengguna di zona merah atau aman | `tb_nodes.is_safe` di node terdekat, atau pemeriksaan poligon `tb_inundation_zones` / `tb_safe_zones` |
 | Rute ke TES (evakuasi vertikal) | `tb_routes` (hanya ada untuk node zona merah) → `rank_X_path` |
 | Rute ke TEA (evakuasi horizontal) | `tb_tea_routes` → rangkai dari `tb_tea_next` dalam satu kueri |
-| Rute keluar ke zona aman | `tb_safe_routes_v2` → rangkai dari `tb_safe_next_v2` dengan `kelompok` node asal |
+| Rute keluar ke zona aman | `tb_safe_routes_v2` → rangkai dari `tb_safe_next_v2` dengan `kelompok` node asal (tabel lama `tb_safe_routes` / `tb_safe_next` tetap ada untuk status tiba dan cadangan) |
 | Status tiba di zona aman | `tb_safe_routes.safe_eta = 0` pada node terdekat |
 | Keterangan "lewat jembatan" | `tb_bridge_edges` (edge_id ruas rute) |
 | Daftar & peta fasilitas | `v_fasilitas_evakuasi` |
+| Pemilihan TES menurut daya tampung (belum dibaca aplikasi) | `tb_route_shares` → rangkai dari `tb_tes_next` sampai `tb_tes.nearest_node_id` |
 | Jalan tidak bisa dilewati | Cek tetangga di `tb_edges` lalu pakai rute tetangga ([konsep_pengalihan_rute_lokal.md](konsep_pengalihan_rute_lokal.md)) |
 
 ## Pipeline lama (diarsipkan)

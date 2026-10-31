@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1830" viewBox="0 0 1360 1830" font-family="Segoe UI, Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><marker id="kepala" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#3d4757"/></marker></defs>
+<rect x="40" y="40" width="340" height="1705" fill="#f4f6f9" stroke="#d5d9e0"/>
+<rect x="40" y="40" width="340" height="44" fill="#2f3b4c"/>
+<text x="210.0" y="68" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">Pengguna</text>
+<rect x="380" y="40" width="580" height="1705" fill="#ffffff" stroke="#d5d9e0"/>
+<rect x="380" y="40" width="580" height="44" fill="#2f3b4c"/>
+<text x="670.0" y="68" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">Proses Sistem</text>
+<rect x="960" y="40" width="360" height="1705" fill="#f4f6f9" stroke="#d5d9e0"/>
+<rect x="960" y="40" width="360" height="44" fill="#2f3b4c"/>
+<text x="1140.0" y="68" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">Tampilan Aplikasi</text>
+<path d="M210.0,176.0 L210.0,222.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M330.0,250.0 L530.0,250.0 L530.0,322.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M680.0,150.0 L1150.0,150.0 L1150.0,222.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="7 5" marker-end="url(#kepala)"/>
+<path d="M1150.0,278.0 L1150.0,300.0 L590.0,300.0 L590.0,322.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M680.0,350.0 L1030.0,350.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,378.0 L560.0,417.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,473.0 L560.0,505.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M645.0,550.0 L820.0,550.0 L820.0,642.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M920.0,670.0 L1030.0,670.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M1270.0,670.0 L1290.0,670.0 L1290.0,832.0 L620.0,832.0 L620.0,871.8" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,595.0 L560.0,633.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,707.0 L560.0,770.0 L1030.0,770.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M1150.0,798.0 L1150.0,814.0 L560.0,814.0 L560.0,840.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M645.0,885.0 L1030.0,885.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,930.0 L560.0,965.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M645.0,1010.0 L1030.0,1010.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,1055.0 L560.0,1100.0 L1030.0,1100.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M1270.0,1100.0 L1280.0,1100.0 L1280.0,1142.0 L150.0,1142.0 L150.0,1207.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M1270.0,1010.0 L1295.0,1010.0 L1295.0,1158.0 L210.0,1158.0 L210.0,1207.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M1270.0,885.0 L1310.0,885.0 L1310.0,1174.0 L270.0,1174.0 L270.0,1207.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M330.0,1235.0 L440.0,1235.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,1263.0 L560.0,1289.0 L210.0,1289.0 L210.0,1315.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M210.0,1405.0 L210.0,1452.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M330.0,1480.0 L440.0,1480.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,1508.0 L560.0,1530.0 L58.0,1530.0 L58.0,863.0 L516.6,863.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M680.0,1480.0 L720.0,1480.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="7 5" marker-end="url(#kepala)"/>
+<path d="M295.0,1360.0 L475.0,1360.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M560.0,1405.0 L560.0,1428.5 L215.0,1428.5 A5,5 0 0 0 205.0,1428.5 L80.0,1428.5 L80.0,885.0 L475.0,885.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M645.0,1360.0 L1030.0,1360.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M1150.0,1388.0 L1150.0,1600.0 L330.0,1600.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#kepala)"/>
+<path d="M210.0,1628.0 L210.0,1685.0 L440.0,1685.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="7 5" marker-end="url(#kepala)"/>
+<path d="M680.0,1685.0 L1030.0,1685.0" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="7 5" marker-end="url(#kepala)"/>
+<rect x="90.0" y="124.0" width="240" height="52" rx="26.0" fill="#e6f2ea" stroke="#2f7d4f" stroke-width="1.6"/><text x="210" y="154.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Merasakan guncangan kuat</text>
+<rect x="440.0" y="122.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="560" y="145.9" font-size="13.5" fill="#1f2733" text-anchor="middle">Menerima peringatan tsunami</text><text x="560" y="163.5" font-size="13.5" fill="#1f2733" text-anchor="middle">(server)</text>
+<rect x="90.0" y="222.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="210" y="245.9" font-size="13.5" fill="#1f2733" text-anchor="middle">Membuka aplikasi lewat widget</text><text x="210" y="263.5" font-size="13.5" fill="#1f2733" text-anchor="middle">atau ikon</text>
+<rect x="1030.0" y="222.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="245.9" font-size="13.5" fill="#1f2733" text-anchor="middle">Layar evakuasi terbuka sendiri,</text><text x="1150" y="263.5" font-size="13.5" fill="#1f2733" text-anchor="middle">sirene berbunyi</text>
+<rect x="440.0" y="322.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="560" y="354.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Membaca GPS dan sensor arah</text>
+<rect x="1030.0" y="322.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="354.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Status lokasi dan kondisi GPS</text>
+<rect x="440.0" y="417.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="560" y="441.0" font-size="13.5" fill="#1f2733" text-anchor="middle">Memeriksa posisi terhadap zona</text><text x="560" y="458.5" font-size="13.5" fill="#1f2733" text-anchor="middle">merah</text>
+<path d="M560,505.0 L645.0,550 L560,595.0 L475.0,550 Z" fill="#fff8e8" stroke="#b7791f" stroke-width="1.5"/><text x="560" y="554.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Di zona merah?</text>
+<rect x="440.0" y="633.0" width="240" height="74" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="560" y="657.2" font-size="13.5" fill="#1f2733" text-anchor="middle">Memilih tujuan: zona hijau/TEA</text><text x="560" y="674.7" font-size="13.5" fill="#1f2733" text-anchor="middle">yang masih sempat; bila tidak ada,</text><text x="560" y="692.3" font-size="13.5" fill="#1f2733" text-anchor="middle">TES menurut daya tampung</text>
+<rect x="720.0" y="642.0" width="200" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="820" y="666.0" font-size="13.5" fill="#1f2733" text-anchor="middle">Mencari rute ke TEA yang</text><text x="820" y="683.5" font-size="13.5" fill="#1f2733" text-anchor="middle">tetap di zona hijau</text>
+<rect x="1030.0" y="642.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="666.0" font-size="13.5" fill="#1f2733" text-anchor="middle">“Anda di zona hijau” + tombol</text><text x="1150" y="683.5" font-size="13.5" fill="#1f2733" text-anchor="middle">“Arah ke TEA”</text>
+<rect x="1030.0" y="742.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="774.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Tujuan, jarak, dan sisa waktu</text>
+<path d="M560,840.0 L645.0,885 L560,930.0 L475.0,885 Z" fill="#fff8e8" stroke="#b7791f" stroke-width="1.5"/><text x="560" y="889.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Sudah di jalur?</text>
+<rect x="1030.0" y="857.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="889.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Garis putus-putus: “… m ke jalan”</text>
+<path d="M560,965.0 L645.0,1010 L560,1055.0 L475.0,1010 Z" fill="#fff8e8" stroke="#b7791f" stroke-width="1.5"/><text x="560" y="1014.7" font-size="13.5" fill="#1f2733" text-anchor="middle">HP searah rute?</text>
+<rect x="1030.0" y="982.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="1014.7" font-size="13.5" fill="#1f2733" text-anchor="middle">“Belok kiri dalam 30 m”</text>
+<rect x="1030.0" y="1072.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="1104.7" font-size="13.5" fill="#1f2733" text-anchor="middle">“Putar balik” / “Ke kiri” / “Ke kanan”</text>
+<rect x="90.0" y="1207.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="210" y="1239.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Berjalan mengikuti arahan</text>
+<rect x="440.0" y="1207.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="560" y="1230.9" font-size="13.5" fill="#1f2733" text-anchor="middle">Memperbarui posisi, arah, jarak, dan</text><text x="560" y="1248.5" font-size="13.5" fill="#1f2733" text-anchor="middle">sisa waktu</text>
+<path d="M210,1315.0 L295.0,1360 L210,1405.0 L125.0,1360 Z" fill="#fff8e8" stroke="#b7791f" stroke-width="1.5"/><text x="210" y="1364.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Jalur terhalang?</text>
+<path d="M560,1315.0 L645.0,1360 L560,1405.0 L475.0,1360 Z" fill="#fff8e8" stroke="#b7791f" stroke-width="1.5"/><text x="560" y="1364.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Sudah tiba?</text>
+<rect x="1030.0" y="1332.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="1150" y="1355.9" font-size="13.5" fill="#1f2733" text-anchor="middle">“Anda sudah sampai. Tetap di sini</text><text x="1150" y="1373.5" font-size="13.5" fill="#1f2733" text-anchor="middle">sampai ada info resmi”</text>
+<rect x="90.0" y="1452.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="210" y="1484.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Menekan “Ada kendala?”</text>
+<rect x="440.0" y="1452.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="560" y="1475.9" font-size="13.5" fill="#1f2733" text-anchor="middle">Mengambil jalan memutar atau</text><text x="560" y="1493.5" font-size="13.5" fill="#1f2733" text-anchor="middle">alternatif tujuan</text>
+<rect x="720.0" y="1452.0" width="200" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="820" y="1475.9" font-size="13.5" fill="#1f2733" text-anchor="middle">Mengirim laporan jalan ke</text><text x="820" y="1493.5" font-size="13.5" fill="#1f2733" text-anchor="middle">posko</text>
+<rect x="90.0" y="1572.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="210" y="1604.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Menekan “Lapor selamat”</text>
+<rect x="440.0" y="1657.0" width="240" height="56" rx="6" fill="#ffffff" stroke="#8f9aab" stroke-width="1.3"/><text x="560" y="1680.9" font-size="13.5" fill="#1f2733" text-anchor="middle">Mengirim lapor selamat dan kabar</text><text x="560" y="1698.5" font-size="13.5" fill="#1f2733" text-anchor="middle">keluarga</text>
+<rect x="1030.0" y="1659.0" width="240" height="52" rx="26.0" fill="#e6f2ea" stroke="#2f7d4f" stroke-width="1.6"/><text x="1150" y="1689.7" font-size="13.5" fill="#1f2733" text-anchor="middle">Selesai: menunggu info resmi</text>
+<text x="652" y="542" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Tidak</text>
+<text x="568" y="612" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Ya</text>
+<text x="652" y="877" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Belum</text>
+<text x="568" y="947" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Sudah</text>
+<text x="652" y="1002" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Ya</text>
+<text x="568" y="1072" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Tidak</text>
+<text x="302" y="1352" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Tidak</text>
+<text x="202" y="1422" font-size="12" font-weight="700" fill="#5b6575" text-anchor="end">Ya</text>
+<text x="652" y="1352" font-size="12" font-weight="700" fill="#5b6575" text-anchor="start">Ya</text>
+<text x="552" y="1422.5" font-size="12" font-weight="700" fill="#5b6575" text-anchor="end">Belum</text>
+<text x="300" y="1422.5" font-size="12" font-style="italic" fill="#5b6575" text-anchor="start">arahan terus diperbarui</text>
+<text x="300" y="1524.0" font-size="12" font-style="italic" fill="#5b6575" text-anchor="start">kembali dengan rute baru</text>
+<text transform="translate(1303,751) rotate(90)" font-size="12" font-style="italic" fill="#5b6575" text-anchor="middle">bila menekan “Arah ke TEA”</text>
+<text x="658" y="1394" font-size="11.5" font-style="italic" fill="#5b6575">Tiba bila ≤ 20 m dari TES/TEA,</text>
+<text x="658" y="1409" font-size="11.5" font-style="italic" fill="#5b6575">keluar zona merah 3×, atau</text>
+<text x="658" y="1424" font-size="11.5" font-style="italic" fill="#5b6575">tombol “Saya sudah sampai”</text>
+<rect x="40" y="1781" width="34" height="18" rx="9" fill="#e6f2ea" stroke="#2f7d4f" stroke-width="1.4"/>
+<text x="82" y="1794.5" font-size="12.5" fill="#1f2733">Mulai / selesai</text>
+<rect x="188.0" y="1781" width="34" height="18" rx="3" fill="#fff" stroke="#8f9aab" stroke-width="1.3"/>
+<text x="230.0" y="1794.5" font-size="12.5" fill="#1f2733">Langkah</text>
+<path d="M304.0,1790 L321.0,1779 L338.0,1790 L321.0,1801 Z" fill="#fff8e8" stroke="#b7791f" stroke-width="1.4"/>
+<text x="346.0" y="1794.5" font-size="12.5" fill="#1f2733">Pertanyaan Ya/Tidak</text>
+<path d="M485.4765625,1790 H525.4765625" stroke="#3d4757" stroke-width="1.5" marker-end="url(#kepala)"/>
+<text x="535.4765625" y="1794.5" font-size="12.5" fill="#1f2733">Tanpa internet</text>
+<path d="M642.953125,1790 H682.953125" stroke="#3d4757" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#kepala)"/>
+<text x="692.953125" y="1794.5" font-size="12.5" fill="#1f2733">Perlu internet</text>
+</svg>

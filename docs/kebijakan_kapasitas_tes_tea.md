@@ -12,19 +12,19 @@ Sistem memberlakukan aturan perhitungan rute yang sangat berbeda untuk Tempat Ev
     TEA merupakan kawasan evakuasi horizontal menjauhi pantai berupa lahan terbuka yang luas. Angka kapasitas yang tertera di data TEA berfungsi sebagai estimasi logistik pengungsian pasca-bencana, bukan sebagai batas hidup/mati saat *Golden Hour*. 
     Memaksa warga yang sudah berjalan cepat dan tiba di zona aman/kaki bukit untuk berpindah ke bukit lain (hanya karena alasan kuota) sangatlah berbahaya. Oleh karena itu, rute menuju TEA **tidak dibatasi kapasitas**, dan hanya murni mencari waktu tempuh tercepat dari posisi warga.
 
-## 2. Sumber angka kapasitas di database (versi 2026.10.12)
+## 2. Sumber angka kapasitas di database (versi 2026.10.18)
 
 *   **`tb_tes.kapasitas`** hanya berisi daya tampung dari data BPBD, berurutan: titik TES/TEA 2025, daftar resmi BPBD 2019 ("TES OK"), lalu verifikasi BPBD 2019. Bila tidak ada, kolom **kosong** (77 dari 244 TES), sesuai kontrak DB aplikasi; nilai bawaan seperti 300 tidak dipakai lagi.
-*   **Penugasan internal (opsi A, `tb_route_shares`)** tetap butuh angka untuk TES yang kosong. Engine memperkirakannya dari luas jejak bangunan RTRW × jumlah lantai di atas lantai 2 ÷ 1 m² per orang, atau median TES BPBD. Estimasi ini hanya ada di `tb_fasilitas_info` (`kapasitas_sumber` = "estimasi …") dan tidak ditampilkan sebagai data resmi.
+*   **Porsi TES (`tb_route_shares`, sejak 2026.10.18)** hanya memakai 167 TES yang daya tampungnya tercatat; 77 TES tanpa angka tidak diberi perkiraan dan hanya menjadi cadangan bagi simpang yang tidak punya TES berkapasitas, TEA, atau zona hijau yang sempat ([kontrak_porsi_tujuan.md](kontrak_porsi_tujuan.md)). Engine tetap mencatat perkiraan dari luas jejak bangunan RTRW × jumlah lantai di atas lantai 2 ÷ 1 m² per orang, atau median TES BPBD, di `tb_fasilitas_info` (`kapasitas_sumber` = "estimasi …") sebagai pembanding; angka ini tidak dipakai porsi dan tidak ditampilkan sebagai data resmi. Hasil banding kedua skenario: `analisis/banding_porsi_kapasitas.py`.
 *   **TEA**: `kapasitas = 0` berarti tidak ada data. TEA tidak dibatasi kapasitas.
 
 ## 3. Dampak terhadap metrik simulasi
 
 Angka lama di proposal (74,49% selamat) dihitung dengan asumsi semua warga ke TES dan tidak dapat direproduksi. Simulasi kanonis dijalankan ulang dengan data BPBD terbaru, TES berbatas kapasitas, serta TEA dan zona aman tanpa batas ([simulasi_kanonis.md](simulasi_kanonis.md)):
 
-*   **Baseline** (warga ke tempat terdekat, kapasitas diabaikan): 35,6% selamat, 82 TES kelebihan beban.
-*   **Siaga Padang** (rekomendasi DB): **70,9%** selamat, **0** TES kelebihan beban. Sekitar 83% warga diarahkan keluar zona (zona aman/TEA) karena kebijakan "keluar zona dulu bila sempat" (K-B6), sehingga beban TES jauh berkurang.
-*   Angka tidak mendekati 100% karena aturan BPBD (tujuan harus menjauhi pantai, hindari jembatan) dan sebaran TES: sekitar 22% warga zona merah tidak sempat ke tempat evakuasi mana pun dalam 20 menit pada laju orang terlemah.
+*   **Baseline** (warga ke tempat terdekat, kapasitas diabaikan): 36,7% selamat, 104 TES kelebihan beban.
+*   **Siaga Padang** (rekomendasi DB, rute zona aman v2): **68,2%** selamat, **0** TES kelebihan beban (66,0% bila aplikasi tetap memakai tabel zona aman kontrak lama). Sekitar 70% warga diarahkan keluar zona (zona aman/TEA), karena keluar zona didahulukan bila sempat dalam 15 menit (K-B6). Beban TES jadi jauh berkurang.
+*   Angka tidak mendekati 100% karena aturan BPBD (tujuan harus menjauhi pantai, hindari jembatan) dan sebaran TES: sekitar 21% warga zona merah tidak sempat ke tempat evakuasi mana pun dalam 20 menit pada laju orang terlemah.
 
 ## 4. Kebijakan Antarmuka (UI) dan Mode Darurat
 

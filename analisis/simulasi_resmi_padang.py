@@ -4,8 +4,9 @@ SIMULASI KANONIS EVAKUASI TSUNAMI KOTA PADANG (BASELINE vs SIAGA PADANG) - DATA 
 Membandingkan dua skenario dengan agen yang sama:
   A. Baseline     : warga tanpa aplikasi berjalan ke TES/TEA terdekat (jarak murni), tanpa aturan
                     pantai/jembatan dan tanpa memperhatikan kapasitas.
-  B. Siaga Padang : warga mengikuti rekomendasi database (TES rank 1-3 berkapasitas, lalu TEA atau
-                    zona aman terdekat), dengan aturan evakuasi BPBD yang sudah tertanam di rute.
+  B. Siaga Padang : warga mengikuti rekomendasi database (TES rank 1-3 berkapasitas, TEA, zona aman):
+                    di antara tujuan yang sempat <= 20 menit dipilih yang paling jauh dari pantai,
+                    dengan aturan evakuasi BPBD yang sudah tertanam di rute.
 
 Seluruh masukan dibaca dari ranah_siaga_v4.db (hasil build_db.py), sehingga simulasi dan aplikasi
 memakai fasilitas, demand penduduk, dan rute yang sama. Parameter: docs/simulasi_kanonis.md.
@@ -16,6 +17,7 @@ Keluaran (analisis/output/):
   - hasil_simulasi_kelurahan.csv    : tingkat keselamatan per kelurahan
 """
 import sys
+import argparse
 import os
 import json
 import time
@@ -36,12 +38,24 @@ sys.stdout.reconfigure(encoding="utf-8")
 RANDOM_SEED = 42
 TOTAL_AGEN = 20000
 BATAS_WAKTU_MENIT = 20.0
+# Batas "sempat" untuk memilih tujuan, sama dengan aplikasi (K-B6, 12 Oktober): 20 menit dikurangi cadangan 5 menit.
+BATAS_SEMPAT_MENIT = 15.0
 # Skenario pembanding kecepatan rata-rata (bukan kecepatan resmi).
 KECEPATAN_PEMBANDING_MS = 1.2
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT, "hasil_build", "ranah_siaga_v4.db")
 DIR_OUTPUT = os.path.join(ROOT, "analisis", "output")
+
+# Sumber rute zona aman skenario Siaga Padang:
+#   v2 (bawaan): tb_safe_routes_v2, navigasi zona aman per warga ke titik zona hijau terjauh dari pantai yang
+#       sempat <= 20 menit (usulan perubahan kontrak: tabel wajib dibaca aplikasi);
+#   kontrak: tb_safe_routes (kontrak §2.1 lama, pohon global ke batas zona hijau terdekat). Akhiran _kontrak.
+_arg = argparse.ArgumentParser(description="Simulasi kanonis Baseline vs Siaga Padang")
+_arg.add_argument("--rute-aman", choices=["v2", "kontrak"], default="v2")
+RUTE_AMAN = _arg.parse_args().rute_aman
+TABEL_AMAN = "tb_safe_routes_v2" if RUTE_AMAN == "v2" else "tb_safe_routes"
+AKHIRAN = "" if RUTE_AMAN == "v2" else "_kontrak"
 
 start_total = time.time()
 
@@ -78,7 +92,7 @@ nodes = pd.read_sql("SELECT n.node_id, n.is_safe, i.kelurahan, i.demand_jiwa FRO
 N = len(nodes)
 idx_of = pd.Series(np.arange(N), index=nodes["node_id"].to_numpy())
 
-fas = pd.read_sql("SELECT facility_id, jenis, nama, kelurahan, kapasitas, nearest_node_id, snap_dist_m, lat, lon "
+fas = pd.read_sql("SELECT facility_id, jenis, nama, kelurahan, kapasitas, d_pantai_m, nearest_node_id, snap_dist_m, lat, lon "
                   "FROM tb_fasilitas_info WHERE dipakai = 1 ORDER BY facility_id", conn)
 fas["node_idx"] = idx_of[fas["nearest_node_id"]].to_numpy()
 fas["akses_menit"] = menit(fas["snap_dist_m"])
@@ -163,7 +177,8 @@ for tea_id, grup in pd.read_sql("SELECT tea_id, node_id, next_node_id FROM tb_te
     k = k_of[tea_id]
     eta_tea[k] = menit(jarak) + fas.at[k, "akses_menit"]
 
-# 4b. Kandidat per node asal: TES rank 1-3, TEA utama & alternatif, zona aman terdekat (urut ETA).
+# 4b. Kandidat per node asal: TES rank 1-3, TEA utama & alternatif, zona aman (kandidat = (k, eta riil, jarak pantai)).
+d_fas = fas["d_pantai_m"].to_numpy()
 tes_by_nama_node = {(r.nama, r.nearest_node_id): k for k, r in fas[is_tes].iterrows()}
 kandidat = {}
 for r in pd.read_sql("SELECT * FROM tb_routes", conn).itertuples(index=False):
@@ -175,30 +190,36 @@ for r in pd.read_sql("SELECT * FROM tb_routes", conn).itertuples(index=False):
             continue
         k = tes_by_nama_node[(nama, int(path.rsplit(",", 1)[-1]))]
         if all(k != d[0] for d in daftar):
-            daftar.append((k, float(eta) * KONVERSI_ETA))
+            daftar.append((k, float(eta) * KONVERSI_ETA, d_fas[k]))
     kandidat[n] = daftar
 for r in pd.read_sql("SELECT * FROM tb_tea_routes", conn).itertuples(index=False):
     n = idx_of[r.origin_node_id]
     for tea_id in dict.fromkeys([r.nearest_tea_id, r.alt_tea_id]):
         k = k_of[tea_id]
-        kandidat.setdefault(n, []).append((k, float(eta_tea[k][n])))
+        kandidat.setdefault(n, []).append((k, float(eta_tea[k][n]), d_fas[k]))
 eta_aman = np.full(N, np.inf)
-# Rute zona aman v2: tujuan selalu lebih jauh dari pantai daripada titik asal (aturan BPBD).
-safe = pd.read_sql("SELECT origin_node_id, safe_eta FROM tb_safe_routes_v2", conn)
+d_aman = np.zeros(N)
+# Rute zona aman (v2 atau tabel kontrak lama); keduanya hanya berisi tujuan yang lolos syarat arah BPBD.
+safe = pd.read_sql(f"SELECT r.origin_node_id, r.safe_eta, t.jarak_pantai_m FROM {TABEL_AMAN} r "
+                   "JOIN tb_nodes t ON t.node_id = r.safe_node_id", conn)
 eta_aman[idx_of[safe["origin_node_id"]].to_numpy()] = safe["safe_eta"].to_numpy() * KONVERSI_ETA
+d_aman[idx_of[safe["origin_node_id"]].to_numpy()] = safe["jarak_pantai_m"].to_numpy()
 ZONA_AMAN = -1
 
 
 def urutan(c):
-    """Asumsi kerja K-B6: bila sempat dalam batas waktu, keluar zona (TEA / zona aman) didahulukan; lalu ETA."""
-    k, eta = c
+    """Aturan aplikasi (K-B6, 12 Oktober): bila TEA atau zona aman sempat <= 15 menit, itu lebih dulu; lalu TES yang
+    sempat; di dalam tiap kelompok yang paling jauh dari pantai lebih dulu. Yang tidak sempat menyusul, urut ETA."""
+    k, eta, d = c
+    if eta > BATAS_SEMPAT_MENIT:
+        return (2, eta)
     keluar_zona = k == ZONA_AMAN or not is_tes[k]
-    return (0 if keluar_zona and eta <= BATAS_WAKTU_MENIT else 1, eta)
+    return (0 if keluar_zona else 1, -d)
 
 
 for n in np.unique(asal_agen):
     if np.isfinite(eta_aman[n]):
-        kandidat.setdefault(n, []).append((ZONA_AMAN, float(eta_aman[n])))
+        kandidat.setdefault(n, []).append((ZONA_AMAN, float(eta_aman[n]), float(d_aman[n])))
     kandidat[n] = sorted(kandidat.get(n, []), key=urutan)
 
 # 4c. Agen diproses berurutan menurut ETA kandidat pertama; TES penuh dilewati.
@@ -208,7 +229,7 @@ beban_b = np.zeros(K)
 tujuan_b = np.full(TOTAL_AGEN, -2)
 eta_b = np.full(TOTAL_AGEN, np.inf)
 for i in urut_b:
-    for k, eta in kandidat[asal_agen[i]]:
+    for k, eta, _ in kandidat[asal_agen[i]]:
         if k == ZONA_AMAN or beban_b[k] < kap_agen[k]:
             tujuan_b[i], eta_b[i] = k, eta
             if k != ZONA_AMAN:
@@ -273,14 +294,14 @@ fas_out = fas[["facility_id", "jenis", "nama", "kelurahan", "kapasitas", "lat", 
 fas_out["kapasitas_agen"] = np.where(is_tes, kap_agen, np.nan)
 fas_out["beban_baseline_agen"] = beban_a
 fas_out["beban_siaga_agen"] = beban_b
-fas_out.to_csv(os.path.join(DIR_OUTPUT, "hasil_simulasi_fasilitas.csv"), index=False, encoding="utf-8-sig")
+fas_out.to_csv(os.path.join(DIR_OUTPUT, f"hasil_simulasi_fasilitas{AKHIRAN}.csv"), index=False, encoding="utf-8-sig")
 
 kel = nodes["kelurahan"].fillna("-").to_numpy()[asal_agen]
 df_kel = pd.DataFrame({"kelurahan": kel, "baseline": selamat_a, "siaga": selamat_b}).groupby("kelurahan").agg(
     agen=("baseline", "size"), selamat_baseline=("baseline", "sum"), selamat_siaga=("siaga", "sum"))
 df_kel["persen_baseline"] = (df_kel["selamat_baseline"] / df_kel["agen"] * 100).round(1)
 df_kel["persen_siaga"] = (df_kel["selamat_siaga"] / df_kel["agen"] * 100).round(1)
-df_kel.sort_values("persen_siaga").to_csv(os.path.join(DIR_OUTPUT, "hasil_simulasi_kelurahan.csv"), encoding="utf-8-sig")
+df_kel.sort_values("persen_siaga").to_csv(os.path.join(DIR_OUTPUT, f"hasil_simulasi_kelurahan{AKHIRAN}.csv"), encoding="utf-8-sig")
 
 # ==============================================================================
 # 6. PETA BERDAMPINGAN
@@ -386,10 +407,11 @@ fas.forEach(f => {{ tambah(mapA, f, false); tambah(mapB, f, true); }});
 </body>
 </html>
 """
-path_html = os.path.join(DIR_OUTPUT, "peta_simulasi_berdampingan.html")
+path_html = os.path.join(DIR_OUTPUT, f"peta_simulasi_berdampingan{AKHIRAN}.html")
 with open(path_html, "w", encoding="utf-8") as f:
     f.write(html)
 
-print(f"\nKeluaran di {os.path.relpath(DIR_OUTPUT, ROOT)}/: peta_simulasi_berdampingan.html, "
-      f"hasil_simulasi_fasilitas.csv, hasil_simulasi_kelurahan.csv")
+print(f"\nRute zona aman: {TABEL_AMAN} ({RUTE_AMAN})")
+print(f"Keluaran di {os.path.relpath(DIR_OUTPUT, ROOT)}/: peta_simulasi_berdampingan{AKHIRAN}.html, "
+      f"hasil_simulasi_fasilitas{AKHIRAN}.csv, hasil_simulasi_kelurahan{AKHIRAN}.csv")
 print(f"Total waktu: {time.time() - start_total:.1f} detik")

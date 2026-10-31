@@ -90,14 +90,23 @@ Ukuran "arah" yang dipakai adalah **jarak ke garis pantai**, bukan arah mata ang
 1. **Jarak ke pantai** setiap node dan fasilitas dihitung dari garis pantai OpenStreetMap (`natural=coastline`), disimpan sebagai `jarak_pantai_m`.
 2. **Syarat arah (aturan keras) untuk semua jenis tujuan.** TES, TEA, dan titik zona aman hanya boleh menjadi tujuan bila **menjauh**: (jarak pantai tujuan − jarak pantai warga) ÷ jarak lurus warga–tujuan > sin 15° (engine memakai rasio > 0,27: ambang 0,26 milik skrip audit tim + margin pembulatan). Tujuan yang sejajar pantai (dalam ±15°) atau mendekat dibuang. Tujuan dalam 100 m dari warga tidak dinilai arahnya. Arah tidak pernah dilonggarkan.
    - TES dan TEA dinilai per pasangan warga–fasilitas.
-   - Zona aman: kandidatnya "gerbang", yaitu titik zona aman yang bertetangga dengan jalan di luar zona aman. Untuk tiap warga dipilih gerbang termurah yang lolos syarat (`tb_safe_routes_v2` + `tb_safe_next_v2`).
+   - Zona aman: `tb_safe_routes_v2` + `tb_safe_next_v2` menilai syarat per pasangan warga–titik zona aman, sehingga semua 11.418 simpul merah punya rute; aplikasi memakainya untuk navigasi zona aman. Tabel kontrak lama `tb_safe_routes` / `tb_safe_next` (satu pohon global) hanya memberi rute kepada simpul merah yang tujuannya lolos syarat (10.444 dari 11.418).
    - Hasil: skrip audit tim (`siagapadang/docs/audit/analisis_masukan_bpbd.py`) mencatat 0% tujuan utama mendekat dan 0% sejajar; verifikasi engine juga 0% untuk TES rank 1–3, TEA, dan zona aman.
-3. **Kantong aman kecil bukan tujuan.** Bagian zona aman yang dikelilingi zona merah dan < 50 ha (84 kantong, 123 ha) tidak dijadikan tujuan.
+3. **Kantong aman kecil bukan tujuan.** Bagian zona aman yang dikelilingi zona merah dan < 50 ha (5 kantong, 34 ha pada DB 2026.10.18) tidak dijadikan tujuan.
 4. **Bobot jalur (penalti), dua lapis**, supaya jalur menuju tujuan yang sudah lolos syarat tidak memutar mendekati laut:
    - setiap meter jalur bergerak ke arah pantai dihitung seperti berjalan 10 m tambahan;
    - ruas yang sekaligus mendekati pantai lebih dari 50 m dikalikan 50.
    - Ruas tidak dihapus: larangan total membuat 7,9% node zona merah (terutama Koto Tangah) kehilangan jalan keluar. Nilai penalti dari uji sensitivitas di [build_db_v4.md](build_db_v4.md).
 5. **Sisa yang tidak terhindarkan dilaporkan.** Jalur yang tetap sempat mendekati pantai > 50 m dicatat per node (`tb_node_info`) dan per kelurahan (`tb_kelurahan_info`). Node yang tidak sempat ke tujuan mana pun dalam 20/30 menit direkap di `hasil_build/peta_celah_kelurahan.csv` sebagai usulan lokasi TES baru ke BPBD.
+
+#### 5.1.2 Pilihan tujuan: keluar zona dulu, lalu yang terjauh dari pantai (K-B6, keputusan tim 12 Oktober)
+
+- **Batas "sempat": 15 menit** pada laju orang terlemah 0,894 m/s (kolom `eta` tabel ≤ 11,175 menit), yaitu 20 menit dikurangi cadangan 5 menit untuk waktu gempa yang meleset, orang yang lebih lambat, dan jalan tertutup. Tanpa cadangan, 27,7% warga tiba di 5 menit terakhir; dengan cadangan 8,5% (hitungan tim aplikasi).
+- **Keluar zona dulu:** bila TEA atau zona hijau sempat, itu yang dipilih. Bila tidak, TES terjauh dari pantai yang sempat. Bila tidak ada yang sempat, tujuan tercepat yang lolos syarat arah.
+- **Zona aman: masuk sedalam mungkin.** Rute zona hijau (`tb_safe_routes_v2`) menuju titik zona hijau (bukan kantong < 50 ha) yang paling jauh dari pantai dan masih sempat ≤ 15 menit. Bila tidak ada, ke batas zona hijau yang tercepat dicapai.
+- **TES dan TEA:** urutan `rank_1..3` dan `nearest_tea_id`/`alt_tea_id` adalah yang terjauh dari pantai di antara yang ≤ 20 menit, lalu yang tercepat (aplikasi mengambil yang pertama sempat menurut urutan ini).
+- **Jembatan tetap cadangan:** pilihan tanpa jembatan ≥ 20 m selalu didahulukan.
+- **Di data:** kaidahnya tercatat di `tb_metadata.aturan_tujuan` dan `batas_sempat_menit`; simulasi kanonis memakai kaidah yang sama dengan aplikasi. Sejak 2026.10.18, TES untuk simpang yang tidak bisa keluar zona dipilih dari porsi berkapasitas `tb_route_shares` ([kontrak_porsi_tujuan.md](kontrak_porsi_tujuan.md)); porsi itu belum dibaca aplikasi.
 6. Waktu tempuh dihitung dari panjang jalan asli. Kolom ETA untuk aplikasi disimpan pada 1,2 m/s sesuai kontrak; aplikasi mengonversinya ke 0,89 m/s.
 
 Untuk pengguna yang **sudah berada di dalam TES** atau di zona aman, aturan ini tidak berlaku lagi. Perpindahan TES ke TEA mengikuti bagian 7.
@@ -120,7 +129,7 @@ Implementasi (asumsi kerja K-B2):
 - **Yang dihindari adalah jembatan ≥ 20 m** (`tb_bridge_edges`). Jembatan kecil di atas saluran diperlakukan sebagai jalan biasa (lihat 5.2.2).
 - **Rute dicari dulu pada graf tanpa jembatan ≥ 20 m.** Hanya bila sebuah tujuan tidak terjangkau tanpa jembatan, rute lewat jembatan dipakai sebagai cadangan (berpenalti, agar jembatan sesedikit mungkin), dan selalu kalah dari tujuan mana pun yang tanpa jembatan. Aplikasi memberi keterangan "lewat jembatan".
 - Edge jembatan tidak dihapus total: tanpa cadangan, node di seberang tidak punya rute sama sekali.
-- Panjang badan jembatan diambil dari data jembatan OSM (`data_osm/jembatan_osm.json`): 176 ruas. Bila berkas itu tidak ada, diperkirakan dari lebar sungai BPBD yang dipotong ruas.
+- Panjang badan jembatan diambil dari data jembatan OSM (`data_osm/jembatan_osm.json`): 176 ruas pada DB 2026.10.18. Bila berkas itu tidak ada, diperkirakan dari lebar sungai BPBD yang dipotong ruas.
 - Node yang hanya bisa mencapai TES lewat jembatan dicatat (`tb_node_info.rute_tes_lewat_jembatan`) sebagai **kantong terisolasi**, kandidat lokasi TES vertikal baru.
 
 #### 5.2.2 Menilai risiko jembatan
@@ -318,21 +327,21 @@ Prinsip penulisan: **singkat**, karena orang hanya bisa mengingat ±3 hal. Pakai
 
 ## 16. Kesesuaian dengan Engine Saat Ini
 
-Status per 11 Oktober 2026 (DB versi 2026.10.12). Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `hasil_build/ranah_siaga_v4.db`), mengikuti aturan di dokumen ini dan kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
+Status per 27 Oktober 2026 (DB versi 2026.10.18). Pembangun DB sekarang adalah [`build_db.py`](../build_db.py) (keluaran `hasil_build/ranah_siaga_v4.db`), mengikuti aturan di dokumen ini dan kontrak DB aplikasi (`siagapadang/docs/PEMBAGIAN_TUGAS_BPBD.md`). Rincian teknisnya ada di [build_db_v4.md](build_db_v4.md).
 
 | Aturan BPBD | Kondisi engine (`build_db.py`) | Status |
 |---|---|---|
-| Batas waktu 20 menit | `BATAS_WAKTU_MENIT = 20`; di antara tujuan ≤ 20 menit, keluar zona (TEA/zona aman) didahulukan sebelum TES (K-B6) | ✅ Sesuai |
+| Batas waktu 20 menit | `BATAS_WAKTU_MENIT = 20` untuk kriteria selamat; tujuan dipilih dengan batas sempat 15 menit (cadangan 5 menit), keluar zona dulu, lalu terjauh dari pantai (5.1.2, K-B6) | ✅ Sesuai |
 | Kecepatan acuan orang terlemah (FEMA, ±1 km / 20 menit) | `KECEPATAN_JALAN_MS = 0.894` (3,22 km/jam) untuk semua keputusan engine; kolom ETA untuk aplikasi disimpan pada 1,2 m/s sesuai kontrak dan dikonversi di aplikasi | ✅ Sesuai |
 | Tujuan harus menjauhi pantai, tidak sejajar | Syarat arah ±15° (K-B1) untuk TES, TEA, dan zona aman: 0% mendekat, 0% sejajar (metrik skrip audit tim). Tujuan ≤ 100 m tidak dinilai. Kantong aman < 50 ha bukan tujuan. Garis pantai OSM. | ✅ Sesuai (batas 15° dan 100 m menunggu konfirmasi BPBD) |
-| Jalur tidak memutar ke pantai | Penalti 10 m per meter mendekat + ×50 untuk ruas yang mendekat > 50 m. Sisa jalur yang sempat mendekat > 50 m: TES rank-1 14,0%, zona aman 12,8% node zona merah (> 200 m: 3,0% dan 2,9%), terutama di Koto Tangah, karena jalannya memang hanya ke arah itu. Tujuannya tetap lolos syarat arah. | ⚠️ Sesuai sejauh jaringan jalan memungkinkan |
+| Jalur tidak memutar ke pantai | Penalti 10 m per meter mendekat + ×50 untuk ruas yang mendekat > 50 m. Sisa jalur yang sempat mendekat > 50 m: TES rank-1 13,8%, zona aman v2 14,2% node zona merah (> 200 m: 2,7% dan 3,9%), terutama di Koto Tangah, karena jalannya memang hanya ke arah itu. Tujuannya tetap lolos syarat arah. | ⚠️ Sesuai sejauh jaringan jalan memungkinkan |
 | Rute tidak melewati jembatan | Jembatan ≥ 20 m dihindari: rute dicari dulu tanpa jembatan, rute lewat jembatan hanya cadangan bila tujuan tidak terjangkau tanpa jembatan (K-B2). Ruas di `tb_bridge_edges`. | ✅ Sesuai kebijakan 5.2.1 (masih perlu konfirmasi BPBD) |
-| Zona merah = area landaan | `is_safe` dan poligon zona merah diambil dari raster `Peta_Bahaya_Tsunami` KRB 2023–2027 | ✅ Sesuai |
+| Zona merah = area landaan | Zona merah = landaan raster `Peta_Bahaya_Tsunami` KRB 2023–2027 (sel 30 m, kontur sub-piksel) **ditambah** zona rawan tsunami peta evakuasi BPBD (Blue Line, digitasi `data_bpbd_digitasi/`, ±20–40 m), **dipotong ke daratan menurut garis pantai OSM** (kontrak H-3), **tidak dipotong batas kelurahan** (pita pantai di luar poligon kelurahan BPBD tetap merah dan dibagi ke kelurahan terdekat). Lubang kering dan serpihan hijau < 1 ha yang dikelilingi zona merah ikut merah. `is_safe` simpul, TEA di landaan, dan sebaran penduduk memakai poligon yang sama, jadi peta dan rute selalu sepakat. 7.272 ha, 68 kelurahan | ✅ Sesuai (zona peta evakuasi hasil digitasi; menunggu berkas vektor BPBD) |
 | Peta evakuasi hanya merah/hijau | `tb_inundation_zones.tingkat_bahaya` diisi `Tinggi` untuk semua zona merah | ✅ Sesuai |
 | TEA tidak terkena bencana | TEA yang titiknya berada di area landaan dikeluarkan dari routing (21 titik, lihat laporan build) | ✅ Sesuai, daftar perlu dikonfirmasi BPBD |
 | Data TES bangunan ≤ 2 lantai tidak layak | Engine mengikuti penilaian BPBD 2019: yang "tidak potensial" dikeluarkan (Universitas Taman Siswa). Jumlah lantai bukan syarat tersendiri, karena di data BPBD 6 dari 7 bangunan ≤ 2 lantai sudah "tidak potensial"; satu-satunya pengecualian, Masjid Raya Sumbar (2 lantai, potensial, 15.000 orang), tetap dipakai dan ditanyakan ke BPBD. | ⚠️ Data lantai TES warga 2025 belum ada |
-| TEA tanpa batas kapasitas, TES *capacity-aware*; data BPBD vs warga | Penugasan greedy di `tb_route_shares`. Kolom `sumber`: BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025) | ✅ Sesuai |
-| Daya tampung per orang | `tb_tes.kapasitas` hanya dari data BPBD (2025 → daftar resmi 2019 → verifikasi 2019), kosong bila tidak ada (77 TES). Untuk penugasan internal: jejak bangunan RTRW × (lantai − 2) / 1 m² per orang → median. | ⚠️ 73 TES tanpa data daya tampung BPBD |
+| TEA tanpa batas kapasitas, TES *capacity-aware*; data BPBD vs warga | Porsi TES berkapasitas di `tb_route_shares` (program linear atas 167 TES berdaya tampung tercatat; TEA dan zona hijau tanpa batas). Kolom `sumber`: BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025) | ✅ Sesuai |
+| Daya tampung per orang | `tb_tes.kapasitas` hanya dari data BPBD (2025 → daftar resmi 2019 → verifikasi 2019), kosong bila tidak ada (77 TES). TES tanpa angka hanya menjadi cadangan porsi; estimasi jejak bangunan RTRW × (lantai − 2) / 1 m² per orang hanya dicatat di `tb_fasilitas_info` sebagai pembanding. | ⚠️ 77 TES tanpa data daya tampung BPBD |
 | Ikuti jalur/rambu evakuasi | Ruas di jalur evakuasi resmi BPBD diberi faktor biaya 0,8 | ✅ Sesuai |
 | Ketinggian safe zone ≥ 11 m (TES) / ≥ 18 m (TEA) | Tidak ada data elevasi; `tb_safe_zones.elevasi_m` dikosongkan | ⚠️ Butuh DEM |
 | Istilah "berjalan cepat" | Sudah ditetapkan di kebijakan UI | ✅ Sesuai |

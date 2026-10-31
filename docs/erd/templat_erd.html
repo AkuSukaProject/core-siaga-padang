@@ -1,0 +1,263 @@
+<title>ERD Siaga Padang</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Tata letak: kepala ringkas, lalu tiga bagian bertab (diagram di atas "kertas" putih, kamus data, relasi & metadata). */
+:root {
+  --bg: #f3f5f7; --panel: #ffffff; --fg: #142030; --muted: #5b6878; --line: #dbe1e8;
+  --accent: #0b5c73; --accent-soft: #e0eef2; --chip: #eef1f4; --warn: #9a3412; --warn-soft: #fff1e6;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f161d; --panel: #16212b; --fg: #e3e9ef; --muted: #93a2b2; --line: #2a3a48;
+  --accent: #6cc3d9; --accent-soft: #173543; --chip: #1f2d39; --warn: #fdba74; --warn-soft: #3a2414; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f161d; --panel: #16212b; --fg: #e3e9ef; --muted: #93a2b2; --line: #2a3a48;
+  --accent: #6cc3d9; --accent-soft: #173543; --chip: #1f2d39; --warn: #fdba74; --warn-soft: #3a2414; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1480px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header h1 { font-size: clamp(24px, 3.2vw, 34px); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.01em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 78ch; }
+.fakta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 18px 0 0; padding: 0; list-style: none;
+  font-variant-numeric: tabular-nums; }
+.fakta li { display: flex; flex-direction: column; }
+.fakta b { font-size: 20px; font-weight: 600; }
+.fakta span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+nav.tab { display: flex; gap: 4px; margin: 26px 0 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+nav.tab button { font: inherit; font-weight: 500; background: none; border: 0; color: var(--muted); padding: 10px 14px;
+  border-bottom: 2px solid transparent; cursor: pointer; margin-bottom: -1px; }
+nav.tab button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.alat { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { font: inherit; font-size: 13.5px; background: none; border: 0; color: var(--fg); padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.petunjuk { color: var(--muted); font-size: 13px; }
+.kertas { background: #ffffff; border: 1px solid var(--line); border-radius: 10px; overflow: auto; height: min(78vh, 980px);
+  cursor: grab; touch-action: pan-x pan-y; }
+.kertas.seret { cursor: grabbing; user-select: none; }
+.kertas svg { display: block; }
+.erd .tbl, .erd .rel { transition: opacity .15s; }
+.erd .tbl { cursor: pointer; }
+.erd.fokus .tbl:not(.on) { opacity: .16; }
+.erd.fokus .rel:not(.on) { opacity: .06; }
+.erd.fokus .rel.on path.g { stroke-width: 2.6; stroke-opacity: 1; }
+.pilihan { margin-top: 10px; min-height: 24px; font-size: 14px; }
+.pilihan a { color: var(--accent); }
+.cari { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg);
+  width: min(100%, 420px); }
+.kartu { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-top: 16px; overflow: hidden; scroll-margin-top: 16px; }
+.kartu > .kepala { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; padding: 14px 16px 10px; border-top: 4px solid var(--g); }
+.kartu h3 { margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 600; }
+.chip { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+.chip.app { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.kartu .uraian { padding: 0 16px 12px; margin: 0; color: var(--muted); max-width: 110ch; }
+.gulir { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; background: var(--bg); white-space: nowrap; }
+td.k { font-family: var(--mono); white-space: nowrap; }
+td.n { text-align: right; white-space: nowrap; }
+td.contoh { font-family: var(--mono); font-size: 12.5px; color: var(--muted); max-width: 34ch; word-break: break-word; }
+.kunci { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 0 5px; border-radius: 3px; margin-right: 3px; }
+.kunci.pk { background: #fef3c7; color: #8a5a00; } .kunci.fk { background: #dbeafe; color: #1d4ed8; } .kunci.uk { background: #f3e8ff; color: #7e22ce; }
+.yatim { color: var(--warn); background: var(--warn-soft); padding: 0 6px; border-radius: 4px; }
+.kosong { color: var(--muted); padding: 18px 0; }
+h2 { font-size: 20px; margin: 26px 0 4px; }
+.catatan { color: var(--muted); max-width: 90ch; margin: 4px 0 0; }
+@media (prefers-reduced-motion: reduce) { .erd .tbl, .erd .rel { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>ERD basis data lokal Siaga Padang</h1>
+    <p id="sub"></p>
+    <ul class="fakta" id="fakta"></ul>
+  </header>
+
+  <nav class="tab" role="tablist">
+    <button role="tab" id="tab-diagram" aria-selected="true" data-p="diagram">Diagram</button>
+    <button role="tab" id="tab-kamus" aria-selected="false" data-p="kamus">Kamus data</button>
+    <button role="tab" id="tab-relasi" aria-selected="false" data-p="relasi">Relasi &amp; metadata</button>
+  </nav>
+
+  <section id="p-diagram">
+    <div class="alat">
+      <span class="seg" aria-label="Versi diagram">
+        <button id="v-lengkap" aria-pressed="true">Lengkap (semua kolom)</button>
+        <button id="v-ringkas" aria-pressed="false">Ringkas (laporan)</button>
+      </span>
+      <span class="seg" aria-label="Perbesaran">
+        <button id="z-kecil" aria-label="Perkecil">&minus;</button>
+        <button id="z-pas">Pas layar</button>
+        <button id="z-besar" aria-label="Perbesar">+</button>
+      </span>
+      <span class="petunjuk">Klik tabel untuk menyorot relasinya. Seret untuk menggeser.</span>
+    </div>
+    <div class="kertas" id="kertas">
+      <div id="svg-lengkap">__SVG_LENGKAP__</div>
+      <div id="svg-ringkas" hidden>__SVG_RINGKAS__</div>
+    </div>
+    <div class="pilihan" id="pilihan"></div>
+  </section>
+
+  <section id="p-kamus" hidden>
+    <input class="cari" id="cari" type="search" placeholder="Cari tabel, kolom, atau keterangan" aria-label="Cari di kamus data">
+    <div id="kamus"></div>
+  </section>
+
+  <section id="p-relasi" hidden>
+    <h2>Relasi logis</h2>
+    <p class="catatan">SQLite di aplikasi tidak memakai foreign key; semua relasi di bawah dijaga oleh build engine dan dicek terhadap isi DB.
+      Kardinalitas dibaca "asal : tujuan". Rujukan tak cocok hanya muncul pada relasi lewat nama, karena tb_kelurahan_info hanya memuat kelurahan terpapar.</p>
+    <div class="kartu"><div class="gulir"><table id="t-relasi"></table></div></div>
+    <h2>Indeks</h2>
+    <div class="kartu"><div class="gulir"><table id="t-indeks"></table></div></div>
+    <h2>tb_metadata</h2>
+    <div class="kartu"><div class="gulir"><table id="t-meta"></table></div></div>
+  </section>
+</div>
+
+<script>
+const D = __DATA__;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const KARD = { "11": "1", "01": "0..1", "1N": "1..N", "0N": "0..N" };
+const JENIS = { id: "kunci ID", nama: "lewat nama", grup: "kunci kelompok", turunan: "sumber VIEW" };
+const tabel = Object.fromEntries(D.tabel.map(t => [t.nama, t]));
+
+const nTabel = D.tabel.filter(t => t.jenis === "table").length, nView = D.tabel.length - nTabel;
+const nKolom = Object.values(D.kolom).reduce((a, k) => a + k.length, 0);
+$("#sub").textContent = `ranah_siaga_v4.db versi ${D.versi}. Struktur, isi, dan keterkaitan semua tabel yang dibundel ke aplikasi Android. Dibangkitkan langsung dari DB; tanda APP dicek terhadap branch aplikasi (commit ${D.commit_aplikasi}).`;
+const baris = n => tabel[n].baris;
+$("#fakta").innerHTML = [
+  [`${nTabel} + ${nView}`, "tabel + view"], [nKolom, "kolom"], [D.relasi.length, "relasi logis"],
+  [baris("tb_nodes"), "simpul"], [baris("tb_edges"), "ruas"], [baris("tb_tes"), "TES"], [baris("tb_tea"), "TEA"],
+  [D.tabel.filter(t => t.aplikasi).length, "dibaca aplikasi"],
+].map(([b, s]) => `<li><b>${esc(b)}</b><span>${esc(s)}</span></li>`).join("");
+
+// Tab
+const panel = { diagram: $("#p-diagram"), kamus: $("#p-kamus"), relasi: $("#p-relasi") };
+function buka(p) {
+  for (const [k, el] of Object.entries(panel)) el.hidden = k !== p;
+  document.querySelectorAll("nav.tab button").forEach(b => b.setAttribute("aria-selected", b.dataset.p === p));
+}
+document.querySelectorAll("nav.tab button").forEach(b => b.addEventListener("click", () => buka(b.dataset.p)));
+
+// Diagram: versi, perbesaran, seret, sorot
+const kertas = $("#kertas");
+let versi = "lengkap", skala = 1;
+const svgAktif = () => $(`#svg-${versi} svg`);
+function terapkan() {
+  const s = svgAktif(), vb = s.viewBox.baseVal;
+  s.setAttribute("width", Math.round(vb.width * skala));
+  s.setAttribute("height", Math.round(vb.height * skala));
+}
+function pas() { const vb = svgAktif().viewBox.baseVal; skala = Math.min(1.4, (kertas.clientWidth - 2) / vb.width); terapkan(); }
+function pilihVersi(v) {
+  versi = v;
+  $("#svg-lengkap").hidden = v !== "lengkap"; $("#svg-ringkas").hidden = v !== "ringkas";
+  $("#v-lengkap").setAttribute("aria-pressed", v === "lengkap"); $("#v-ringkas").setAttribute("aria-pressed", v === "ringkas");
+  pas(); sorot(terpilih);
+}
+$("#v-lengkap").onclick = () => pilihVersi("lengkap");
+$("#v-ringkas").onclick = () => pilihVersi("ringkas");
+function zoom(f) {
+  const cx = kertas.scrollLeft + kertas.clientWidth / 2, cy = kertas.scrollTop + kertas.clientHeight / 2, lama = skala;
+  skala = Math.max(0.2, Math.min(3, skala * f)); terapkan();
+  kertas.scrollLeft = cx * skala / lama - kertas.clientWidth / 2; kertas.scrollTop = cy * skala / lama - kertas.clientHeight / 2;
+}
+$("#z-kecil").onclick = () => zoom(1 / 1.25); $("#z-besar").onclick = () => zoom(1.25); $("#z-pas").onclick = pas;
+
+let seret = null, geser = false;
+kertas.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") return; seret = { x: e.clientX, y: e.clientY, l: kertas.scrollLeft, t: kertas.scrollTop }; geser = false; });
+window.addEventListener("pointermove", e => {
+  if (!seret) return;
+  const dx = e.clientX - seret.x, dy = e.clientY - seret.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) { geser = true; kertas.classList.add("seret"); }
+  kertas.scrollLeft = seret.l - dx; kertas.scrollTop = seret.t - dy;
+});
+window.addEventListener("pointerup", () => { seret = null; kertas.classList.remove("seret"); });
+
+let terpilih = null;
+function sorot(t) {
+  terpilih = t;
+  document.querySelectorAll("svg.erd").forEach(s => {
+    s.classList.toggle("fokus", !!t);
+    const tetangga = new Set([t]);
+    s.querySelectorAll(".rel").forEach(r => {
+      const on = !!t && (r.dataset.a === t || r.dataset.b === t);
+      r.classList.toggle("on", on);
+      if (on) { tetangga.add(r.dataset.a); tetangga.add(r.dataset.b); }
+    });
+    s.querySelectorAll(".tbl").forEach(g => g.classList.toggle("on", !!t && tetangga.has(g.dataset.t)));
+  });
+  const el = $("#pilihan");
+  if (!t) { el.textContent = ""; return; }
+  const rel = D.relasi.filter(r => r.asal === t || r.tujuan === t);
+  el.innerHTML = `<b>${esc(t)}</b>: ${esc(tabel[t].baris)} baris, ${rel.length} relasi. ` +
+    `<a href="#t-${esc(t)}" data-ke="${esc(t)}">Lihat kolom di kamus data</a> · <a href="#" data-lepas>Lepas sorotan</a>`;
+}
+document.querySelectorAll("svg.erd").forEach(s => s.addEventListener("click", e => {
+  if (geser) return;
+  const g = e.target.closest(".tbl");
+  sorot(g && g.dataset.t !== terpilih ? g.dataset.t : null);
+}));
+$("#pilihan").addEventListener("click", e => {
+  const a = e.target.closest("a"); if (!a) return;
+  e.preventDefault();
+  if (a.dataset.lepas !== undefined) return sorot(null);
+  buka("kamus"); $("#cari").value = ""; saring("");
+  document.getElementById("t-" + a.dataset.ke)?.scrollIntoView({ behavior: "smooth" });
+});
+
+// Kamus data
+function kartu(t) {
+  const g = D.grup[t.grup];
+  const rows = D.kolom[t.nama].map(k => {
+    const kunci = (k.pk ? '<span class="kunci pk">PK</span>' : "") + (k.fk ? '<span class="kunci fk">FK</span>' : "") + (k.uk ? '<span class="kunci uk">UK</span>' : "");
+    return `<tr data-cari="${esc((k.nama + " " + k.ket + " " + k.fk).toLowerCase())}">
+      <td class="k">${esc(k.nama)}</td><td class="k">${esc(k.tipe)}${k.nn && !k.pk ? " NN" : ""}</td><td>${kunci}</td>
+      <td class="k">${esc(k.fk)}</td><td class="n">${esc(k.null)}%</td><td class="n">${esc(k.beda)}</td>
+      <td class="contoh">${esc(k.contoh)}</td><td>${esc(k.ket)}</td></tr>`;
+  }).join("");
+  return `<article class="kartu" id="t-${esc(t.nama)}" style="--g:${g[1]}" data-cari="${esc((t.nama + " " + t.uraian).toLowerCase())}">
+    <div class="kepala"><h3>${esc(t.nama)}</h3><span class="chip">${esc(g[0])}</span><span class="chip">${t.jenis === "view" ? "VIEW" : "tabel"}</span>
+      <span class="chip">${esc(t.baris)} baris</span>${t.aplikasi ? '<span class="chip app">dibaca aplikasi</span>' : '<span class="chip">khusus engine</span>'}</div>
+    <p class="uraian">${esc(t.uraian)}</p>
+    <div class="gulir"><table><thead><tr><th>Kolom</th><th>Tipe</th><th>Kunci</th><th>Merujuk</th><th>NULL</th><th>Nilai beda</th><th>Rentang / contoh</th><th>Keterangan</th></tr></thead>
+    <tbody>${rows}</tbody></table></div></article>`;
+}
+$("#kamus").innerHTML = D.tabel.map(kartu).join("") + '<p class="kosong" id="kosong" hidden>Tidak ada tabel atau kolom yang cocok.</p>';
+function saring(q) {
+  q = q.trim().toLowerCase(); let ada = 0;
+  document.querySelectorAll("#kamus .kartu").forEach(k => {
+    const cocokTabel = !q || k.dataset.cari.includes(q);
+    let n = 0;
+    k.querySelectorAll("tbody tr").forEach(r => { const c = cocokTabel || r.dataset.cari.includes(q); r.hidden = !c; n += c; });
+    k.hidden = n === 0; ada += n > 0;
+  });
+  $("#kosong").hidden = ada > 0;
+}
+$("#cari").addEventListener("input", e => saring(e.target.value));
+
+// Relasi, indeks, metadata
+$("#t-relasi").innerHTML = "<thead><tr><th>Asal</th><th>Kolom asal</th><th>Kardinalitas</th><th>Tujuan</th><th>Jenis</th><th>Syarat</th><th>Rujukan tak cocok</th></tr></thead><tbody>" +
+  D.relasi.map(r => `<tr><td class="k">${esc(r.asal)}</td><td class="k">${esc(r.kols.join(", "))}</td>
+    <td class="k">${KARD[r.sa]} : ${KARD[r.st]}</td><td class="k">${esc(r.tujuan)}.${esc(r.kol_t)}</td><td>${JENIS[r.jenis]}</td>
+    <td class="k">${esc(r.where || "")}</td><td class="n">${r.yatim ? `<span class="yatim">${r.yatim.toLocaleString("id-ID")}</span>` : "0"}</td></tr>`).join("") + "</tbody>";
+$("#t-indeks").innerHTML = "<thead><tr><th>Indeks</th><th>Tabel</th><th>Definisi</th></tr></thead><tbody>" +
+  D.indeks.map(([n, t, s]) => `<tr><td class="k">${esc(n)}</td><td class="k">${esc(t)}</td><td class="k">${esc(s)}</td></tr>`).join("") + "</tbody>";
+$("#t-meta").innerHTML = "<thead><tr><th>Kunci</th><th>Nilai</th></tr></thead><tbody>" +
+  D.metadata.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v)}</td></tr>`).join("") + "</tbody>";
+
+const awal = location.hash.slice(1);
+if (awal === "kamus" || awal === "relasi") buka(awal);
+requestAnimationFrame(pas);
+window.addEventListener("resize", () => { if (!panel.diagram.hidden) pas(); });
+</script>

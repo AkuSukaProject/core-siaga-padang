@@ -18,7 +18,7 @@ OUTPUT_PATH = os.path.join("docs", "siaga_padang_erd.dbml")
 # Kelompok tabel (urutan = urutan di berkas DBML).
 KELOMPOK = {
     "Graf_Jalan": ["tb_nodes", "tb_edges"],
-    "Rute_TES_Vertikal": ["tb_tes", "tb_routes"],
+    "Rute_TES_Vertikal": ["tb_tes", "tb_routes", "tb_tes_next", "v_fasilitas_evakuasi"],
     "Rute_TEA_Horizontal": ["tb_tea", "tb_tea_routes", "tb_tea_next"],
     "Rute_Zona_Aman": ["tb_safe_routes_v2", "tb_safe_next_v2", "tb_safe_routes", "tb_safe_next"],
     "Zona_Spasial": ["tb_inundation_zones", "tb_safe_zones"],
@@ -28,26 +28,28 @@ KELOMPOK = {
 }
 
 CATATAN_TABEL = {
-    "tb_nodes": "Simpul persimpangan jalan (OSM). is_safe dari raster bahaya tsunami KRB 2023-2027; jarak_pantai_m dari garis pantai OSM.",
+    "tb_nodes": "Simpul persimpangan jalan (OSM). is_safe dari poligon zona merah (landaan KRB 2023-2027 + zona rawan peta evakuasi BPBD); jarak_pantai_m dari garis pantai OSM.",
     "tb_edges": "Ruas jalan untuk menggambar rute di peta.",
     "tb_tes": "TES yang dipakai routing; sumber BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025). Nama unik.",
-    "tb_routes": "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. rank 2/3 boleh kosong. ETA pada 1,2 m/s.",
+    "tb_routes": "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. Yang sempat <= 20 menit urut jarak pantai (terjauh = rank 1), lalu tercepat. rank 2/3 boleh kosong. ETA pada 1,2 m/s.",
     "tb_tea": "TEA yang dipakai routing (di luar area landaan).",
-    "tb_tea_routes": "TEA utama & alternatif per node.",
+    "tb_tea_routes": "TEA utama & alternatif per node (urutan sama dengan TES: terjauh dari pantai yang sempat <= 20 menit).",
     "tb_tea_next": "Tabel next-hop menuju tiap TEA (rangkai rute di memori).",
-    "tb_safe_routes_v2": "Zona aman per node ZONA MERAH yang patuh aturan pantai: tujuan selalu lebih jauh dari pantai daripada asal. Dipakai aplikasi baru.",
-    "tb_safe_next_v2": "Next-hop menuju zona aman per gerbang tujuan (kelompok milik node asal).",
-    "tb_safe_routes": "LAMA (kompatibilitas): zona aman terdekat per node dari satu pohon global; tidak menjamin aturan pantai.",
-    "tb_safe_next": "LAMA (kompatibilitas): next-hop pohon global menuju zona aman.",
-    "tb_inundation_zones": "Zona merah per kelurahan dari raster bahaya tsunami. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau).",
-    "tb_safe_zones": "Bagian kelurahan di luar area landaan (zona hijau).",
-    "tb_route_shares": "Porsi penugasan warga per node ke TES/TEA/zona aman (greedy berkapasitas).",
+    "tb_safe_routes_v2": "Navigasi zona aman (K-B6): per node ZONA MERAH, titik zona hijau terjauh dari pantai yang sempat <= 15 menit dan lolos syarat arah; bila tidak ada, batas zona hijau tercepat.",
+    "tb_safe_next_v2": "Next-hop menuju zona aman per titik tujuan (kelompok milik node asal).",
+    "tb_safe_routes": "Kontrak lama: batas zona hijau terdekat per node dari satu pohon global; simpul merah hanya bila tujuan lolos syarat arah. safe_eta = 0 = tujuan zona hijau (status tiba).",
+    "tb_safe_next": "Kontrak: next-hop pohon global menuju zona aman.",
+    "tb_inundation_zones": "Zona merah per kelurahan: landaan KRB + zona rawan peta evakuasi BPBD, dipotong ke daratan. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau).",
+    "tb_safe_zones": "Bagian darat kelurahan di luar zona merah (zona hijau).",
+    "tb_route_shares": "Porsi TES per simpul zona merah dari program linear berkapasitas (docs/kontrak_porsi_tujuan.md). Jumlah porsi per simpul = 1; porsi 0 = kandidat cadangan.",
+    "tb_tes_next": "Tabel next-hop menuju tiap TES untuk kandidat tb_route_shares (rangkai seperti tb_tea_next).",
     "tb_fasilitas_info": "Semua TES/TEA sumber BPBD termasuk yang tidak dipakai, beserta alasan & sumber kapasitas.",
     "tb_node_info": "Atribut tambahan node: kelurahan, jarak ke pantai, indeks bahaya, demand, ketergantungan jembatan.",
     "tb_kelurahan_info": "Profil tsunami per kelurahan dari tabel KRB 2023-2027.",
     "tb_bridge_edges": "edge_id tb_edges yang memuat jembatan >= 20 m (kontrak H-4).",
     "tb_jalur_resmi": "Ruas graf yang mengikuti jalur evakuasi resmi BPBD.",
     "tb_metadata": "Versi, sumber data, dan parameter build.",
+    "v_fasilitas_evakuasi": "VIEW (bukan tabel): tb_tes UNION ALL tb_tea, untuk daftar dan peta fasilitas.",
 }
 
 CATATAN_KOLOM = {
@@ -60,14 +62,17 @@ CATATAN_KOLOM = {
     ("tb_routes", "rank_1_path"): "ID node dipisah koma, dari asal ke TES",
     ("tb_tea", "kapasitas"): "0 = tidak tersedia (TEA tidak dibatasi kapasitas saat routing)",
     ("tb_safe_zones", "elevasi_m"): "NULL (belum ada data elevasi)",
-    ("tb_route_shares", "jenis"): "TES / TEA / ZONA_AMAN",
-    ("tb_safe_routes_v2", "kelompok"): "Nomor gerbang tujuan; kunci penelusuran tb_safe_next_v2",
+    ("tb_route_shares", "jenis"): "'TES' (pilihan A kontrak porsi)",
+    ("tb_route_shares", "eta_tabel"): "Menit pada 1,2 m/s, termasuk jalan lurus simpul -> titik TES",
+    ("tb_route_shares", "kapasitas_tercatat"): "0 = TES tanpa kapasitas, hanya cadangan",
+    ("tb_route_shares", "cadangan"): "1 = simpul yang keluar zona pada t = 0 (porsi dari sisa kapasitas)",
+    ("tb_safe_routes_v2", "kelompok"): "Nomor titik tujuan; kunci penelusuran tb_safe_next_v2",
     ("tb_safe_routes_v2", "mendekat_pantai_maks_m"): "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal",
     ("tb_node_info", "kantong_aman"): "1 = zona aman kecil (< 50 ha) dikelilingi zona merah; bukan tujuan evakuasi",
     ("tb_fasilitas_info", "dipakai"): "1 = dipakai routing",
     ("tb_fasilitas_info", "d_pantai_m"): "Jarak ke garis pantai (batimetri BPBD)",
     ("tb_fasilitas_info", "indeks_bahaya"): "Indeks bahaya tsunami; NULL = di luar landaan",
-    ("tb_node_info", "demand_jiwa"): "Jiwa terpapar KRB, disebar menurut jejak bangunan",
+    ("tb_node_info", "demand_jiwa"): "Jiwa terpapar KRB disebar menurut jejak bangunan, ditambah perkiraan penduduk zona merah peta evakuasi",
 }
 
 # Relasi logis (bukan foreign key SQLite): (tabel, kolom) -> "tabel.kolom".
@@ -96,6 +101,11 @@ RELASI = {
     ("tb_safe_next_v2", "node_id"): "tb_nodes.node_id",
     ("tb_safe_next_v2", "next_node_id"): "tb_nodes.node_id",
     ("tb_route_shares", "origin_node_id"): "tb_nodes.node_id",
+    ("tb_route_shares", "facility_id"): "tb_tes.tes_id",
+    ("tb_tes_next", "tes_id"): "tb_tes.tes_id",
+    ("tb_tes_next", "node_id"): "tb_nodes.node_id",
+    ("tb_tes_next", "next_node_id"): "tb_nodes.node_id",
+    ("tb_tes", "nearest_node_id"): "tb_nodes.node_id",
     ("tb_fasilitas_info", "nearest_node_id"): "tb_nodes.node_id",
     ("tb_node_info", "node_id"): "tb_nodes.node_id",
     ("tb_bridge_edges", "edge_id"): "tb_edges.edge_id",
@@ -106,6 +116,16 @@ RELASI = {
 SATU_SATU = {("tb_routes", "origin_node_id"), ("tb_tea_routes", "origin_node_id"),
              ("tb_safe_routes", "origin_node_id"), ("tb_safe_routes_v2", "origin_node_id"),
              ("tb_node_info", "node_id")}
+# Relasi yang tidak bisa ditulis sebagai ref satu kolom (satu kolom ke dua tabel, kunci kelompok, atau lewat nama),
+# ditulis sebagai blok Ref terpisah. Sama dengan RELASI di generate_erd_gambar.py.
+REF_TAMBAHAN = [
+    ("tb_safe_routes_v2.kelompok", "<>", "tb_safe_next_v2.kelompok", "kunci kelompok pohon next-hop v2"),
+    ("tb_tes.tes_id", "-", "tb_fasilitas_info.facility_id", "TES yang dipakai routing"),
+    ("tb_tea.tea_id", "-", "tb_fasilitas_info.facility_id", "TEA yang dipakai routing"),
+    ("tb_node_info.kelurahan", ">", "tb_kelurahan_info.kelurahan", "lewat nama; hanya 56 kelurahan terpapar"),
+    ("tb_inundation_zones.nama_zona", "-", "tb_kelurahan_info.kelurahan", "lewat nama"),
+    ("tb_safe_zones.nama_zona", "-", "tb_kelurahan_info.kelurahan", "lewat nama"),
+]
 
 
 def esc(teks):
@@ -116,7 +136,8 @@ def main():
     if not os.path.exists(DB_PATH):
         sys.exit(f"[ERROR] {DB_PATH} tidak ditemukan. Jalankan build_db.py terlebih dahulu.")
     conn = sqlite3.connect(DB_PATH)
-    tabel_db = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+    tabel_db = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'")}
     versi = dict(conn.execute("SELECT kunci, nilai FROM tb_metadata")).get("versi", "?") if "tb_metadata" in tabel_db else "?"
 
     out = [
@@ -162,6 +183,12 @@ def main():
         anggota = [t for t in daftar if t in tabel_db]
         if anggota:
             out += [f"TableGroup {grup} {{"] + [f"  {t}" for t in anggota] + ["}", ""]
+
+    out.append("// Relasi tambahan (logis)")
+    for asal, jenis, tujuan, cat in REF_TAMBAHAN:
+        assert asal.split(".")[0] in tertulis and tujuan.split(".")[0] in tertulis, (asal, tujuan)
+        out.append(f"Ref: {asal} {jenis} {tujuan} // {cat}")
+    out.append("")
 
     lain = sorted(tabel_db - set(tertulis))
     if lain:

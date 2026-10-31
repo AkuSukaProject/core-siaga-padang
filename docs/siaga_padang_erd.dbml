@@ -1,5 +1,5 @@
 // DBML Schema Definition for dbdiagram.io
-// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.12). Jangan diedit manual.
+// Dibangkitkan otomatis oleh generate_dbml_file.py dari hasil_build\ranah_siaga_v4.db (versi data 2026.10.18). Jangan diedit manual.
 
 Project SiagaPadangERD {
   database_type: 'SQLite'
@@ -16,7 +16,7 @@ Table tb_nodes {
   is_safe INTEGER [default: 0, note: "0 = zona merah (area landaan), 1 = zona aman"]
   jarak_pantai_m INTEGER
 
-  Note: "Simpul persimpangan jalan (OSM). is_safe dari raster bahaya tsunami KRB 2023-2027; jarak_pantai_m dari garis pantai OSM."
+  Note: "Simpul persimpangan jalan (OSM). is_safe dari poligon zona merah (landaan KRB 2023-2027 + zona rawan peta evakuasi BPBD); jarak_pantai_m dari garis pantai OSM."
 }
 
 Table tb_edges {
@@ -44,6 +44,8 @@ Table tb_tes {
   sumber TEXT [note: "BPBD atau WARGA"]
   jarak_pantai_m INTEGER
   lantai INTEGER
+  nearest_node_id INTEGER [ref: > tb_nodes.node_id]
+  snap_dist_m REAL
 
   Note: "TES yang dipakai routing; sumber BPBD (daftar resmi 2019) atau WARGA (Kelurahan Tangguh/latihan 2025). Nama unik."
 }
@@ -60,12 +62,41 @@ Table tb_routes {
   rank_3_path TEXT
   rank_3_eta REAL
 
-  Note: "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. rank 2/3 boleh kosong. ETA pada 1,2 m/s."
+  Note: "Hingga 3 TES per node ZONA MERAH yang lolos syarat arah (menjauh > 15 derajat; <= 100 m tidak dinilai); jembatan >= 20 m hanya cadangan. Yang sempat <= 20 menit urut jarak pantai (terjauh = rank 1), lalu tercepat. rank 2/3 boleh kosong. ETA pada 1,2 m/s."
+}
+
+Table tb_tes_next {
+  tes_id TEXT [ref: > tb_tes.tes_id]
+  node_id INTEGER [ref: > tb_nodes.node_id]
+  next_node_id INTEGER [not null, ref: > tb_nodes.node_id]
+
+  indexes {
+    (tes_id, node_id) [pk]
+  }
+
+  Note: "Tabel next-hop menuju tiap TES untuk kandidat tb_route_shares (rangkai seperti tb_tea_next)."
+}
+
+Table v_fasilitas_evakuasi {
+  facility_id TEXT
+  kode TEXT
+  nama TEXT
+  jenis TEXT
+  tipe_evakuasi TEXT
+  zona_sektor TEXT
+  kapasitas REAL
+  lat REAL
+  lon REAL
+  sumber TEXT
+
+  Note: "VIEW (bukan tabel): tb_tes UNION ALL tb_tea, untuk daftar dan peta fasilitas."
 }
 
 TableGroup Rute_TES_Vertikal {
   tb_tes
   tb_routes
+  tb_tes_next
+  v_fasilitas_evakuasi
 }
 
 Table tb_tea {
@@ -83,6 +114,7 @@ Table tb_tea {
   rute_evakuasi TEXT
   jarak_pantai_m INTEGER
   sumber TEXT
+  snap_dist_m REAL
 
   Note: "TEA yang dipakai routing (di luar area landaan)."
 }
@@ -92,7 +124,7 @@ Table tb_tea_routes {
   nearest_tea_id TEXT [ref: > tb_tea.tea_id]
   alt_tea_id TEXT [ref: > tb_tea.tea_id]
 
-  Note: "TEA utama & alternatif per node."
+  Note: "TEA utama & alternatif per node (urutan sama dengan TES: terjauh dari pantai yang sempat <= 20 menit)."
 }
 
 Table tb_tea_next {
@@ -115,7 +147,7 @@ TableGroup Rute_TEA_Horizontal {
 
 Table tb_safe_routes_v2 {
   origin_node_id INTEGER [pk, ref: - tb_nodes.node_id]
-  kelompok INTEGER [not null, note: "Nomor gerbang tujuan; kunci penelusuran tb_safe_next_v2"]
+  kelompok INTEGER [not null, note: "Nomor titik tujuan; kunci penelusuran tb_safe_next_v2"]
   safe_node_id INTEGER [not null, ref: > tb_nodes.node_id]
   safe_zone_nama TEXT
   safe_eta REAL
@@ -123,7 +155,7 @@ Table tb_safe_routes_v2 {
   mendekat_pantai_maks_m REAL [note: "Seberapa jauh rute sempat lebih dekat ke pantai daripada asal"]
   safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
-  Note: "Zona aman per node ZONA MERAH yang patuh aturan pantai: tujuan selalu lebih jauh dari pantai daripada asal. Dipakai aplikasi baru."
+  Note: "Navigasi zona aman (K-B6): per node ZONA MERAH, titik zona hijau terjauh dari pantai yang sempat <= 15 menit dan lolos syarat arah; bila tidak ada, batas zona hijau tercepat."
 }
 
 Table tb_safe_next_v2 {
@@ -135,7 +167,7 @@ Table tb_safe_next_v2 {
     (kelompok, node_id) [pk]
   }
 
-  Note: "Next-hop menuju zona aman per gerbang tujuan (kelompok milik node asal)."
+  Note: "Next-hop menuju zona aman per titik tujuan (kelompok milik node asal)."
 }
 
 Table tb_safe_routes {
@@ -145,7 +177,7 @@ Table tb_safe_routes {
   safe_eta REAL
   safe_zone_id INTEGER [ref: > tb_safe_zones.safe_zone_id]
 
-  Note: "LAMA (kompatibilitas): zona aman terdekat per node dari satu pohon global; tidak menjamin aturan pantai."
+  Note: "Kontrak lama: batas zona hijau terdekat per node dari satu pohon global; simpul merah hanya bila tujuan lolos syarat arah. safe_eta = 0 = tujuan zona hijau (status tiba)."
 }
 
 Table tb_safe_next {
@@ -156,7 +188,7 @@ Table tb_safe_next {
     (node_id, next_node_id) [pk]
   }
 
-  Note: "LAMA (kompatibilitas): next-hop pohon global menuju zona aman."
+  Note: "Kontrak: next-hop pohon global menuju zona aman."
 }
 
 TableGroup Rute_Zona_Aman {
@@ -172,7 +204,7 @@ Table tb_inundation_zones {
   tingkat_bahaya TEXT
   geometry_wkt TEXT
 
-  Note: "Zona merah per kelurahan dari raster bahaya tsunami. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau)."
+  Note: "Zona merah per kelurahan: landaan KRB + zona rawan peta evakuasi BPBD, dipotong ke daratan. tingkat_bahaya selalu 'Tinggi' (peta evakuasi hanya merah/hijau)."
 }
 
 Table tb_safe_zones {
@@ -181,7 +213,7 @@ Table tb_safe_zones {
   elevasi_m REAL [note: "NULL (belum ada data elevasi)"]
   geometry_wkt TEXT
 
-  Note: "Bagian kelurahan di luar area landaan (zona hijau)."
+  Note: "Bagian darat kelurahan di luar zona merah (zona hijau)."
 }
 
 TableGroup Zona_Spasial {
@@ -191,11 +223,21 @@ TableGroup Zona_Spasial {
 
 Table tb_route_shares {
   origin_node_id INTEGER [ref: > tb_nodes.node_id]
-  jenis TEXT [note: "TES / TEA / ZONA_AMAN"]
-  nama_tujuan TEXT
-  porsi REAL
+  urutan INTEGER
+  jenis TEXT [not null, note: "'TES' (pilihan A kontrak porsi)"]
+  facility_id TEXT [not null, ref: > tb_tes.tes_id]
+  porsi REAL [not null]
+  sempat_15 INTEGER [not null]
+  eta_tabel REAL [not null, note: "Menit pada 1,2 m/s, termasuk jalan lurus simpul -> titik TES"]
+  sumber_jalur TEXT [not null]
+  kapasitas_tercatat INTEGER [not null, note: "0 = TES tanpa kapasitas, hanya cadangan"]
+  cadangan INTEGER [not null, note: "1 = simpul yang keluar zona pada t = 0 (porsi dari sisa kapasitas)"]
 
-  Note: "Porsi penugasan warga per node ke TES/TEA/zona aman (greedy berkapasitas)."
+  indexes {
+    (origin_node_id, urutan) [pk]
+  }
+
+  Note: "Porsi TES per simpul zona merah dari program linear berkapasitas (docs/kontrak_porsi_tujuan.md). Jumlah porsi per simpul = 1; porsi 0 = kandidat cadangan."
 }
 
 TableGroup Penugasan {
@@ -243,7 +285,7 @@ Table tb_node_info {
   kelurahan TEXT
   d_pantai_m REAL
   indeks_bahaya REAL
-  demand_jiwa REAL [note: "Jiwa terpapar KRB, disebar menurut jejak bangunan"]
+  demand_jiwa REAL [note: "Jiwa terpapar KRB disebar menurut jejak bangunan, ditambah perkiraan penduduk zona merah peta evakuasi"]
   rute_tes_lewat_jembatan INTEGER
   rute_aman_lewat_jembatan INTEGER
   kantong_aman INTEGER [note: "1 = zona aman kecil (< 50 ha) dikelilingi zona merah; bukan tujuan evakuasi"]
@@ -277,6 +319,7 @@ Table tb_kelurahan_info {
   node_zona_merah INTEGER
   jiwa_rute_aman_mendekat_pantai REAL
   jiwa_tanpa_rute_aman REAL
+  jiwa_tambahan_peta_evakuasi REAL
 
   Note: "Profil tsunami per kelurahan dari tabel KRB 2023-2027."
 }
@@ -307,3 +350,11 @@ TableGroup Info_V4_Tambahan {
   tb_jalur_resmi
   tb_metadata
 }
+
+// Relasi tambahan (logis)
+Ref: tb_safe_routes_v2.kelompok <> tb_safe_next_v2.kelompok // kunci kelompok pohon next-hop v2
+Ref: tb_tes.tes_id - tb_fasilitas_info.facility_id // TES yang dipakai routing
+Ref: tb_tea.tea_id - tb_fasilitas_info.facility_id // TEA yang dipakai routing
+Ref: tb_node_info.kelurahan > tb_kelurahan_info.kelurahan // lewat nama; hanya 56 kelurahan terpapar
+Ref: tb_inundation_zones.nama_zona - tb_kelurahan_info.kelurahan // lewat nama
+Ref: tb_safe_zones.nama_zona - tb_kelurahan_info.kelurahan // lewat nama

@@ -10,7 +10,7 @@ env\Scripts\python.exe analisis\simulasi_resmi_padang.py
 
 | Skrip | Fungsi | Keluaran |
 |---|---|---|
-| `simulasi_resmi_padang.py` | Simulasi kanonis Baseline vs Siaga Padang (20.000 agen, seed 42) | `peta_simulasi_berdampingan.html`, `hasil_simulasi_fasilitas.csv`, `hasil_simulasi_kelurahan.csv` |
+| `simulasi_resmi_padang.py` | Simulasi kanonis Baseline vs Siaga Padang (20.000 agen, seed 42). Tujuan: terjauh dari pantai di antara yang sempat ≤ 20 menit. Bawaan memakai rute zona aman `tb_safe_routes_v2`; `--rute-aman kontrak` untuk pembanding tabel lama | `peta_simulasi_berdampingan.html`, `hasil_simulasi_fasilitas.csv`, `hasil_simulasi_kelurahan.csv` (akhiran `_kontrak` untuk pembanding) |
 | `contoh_rute_evakuasi.py` | Peta contoh rute evakuasi untuk satu posisi warga: TES rank 1–3, TEA, zona aman (`tb_safe_routes_v2`), zona merah, radius 1 km, jembatan sungai | `contoh_rute_<node>.html` (tidak di-commit) |
 
 Contoh pemakaian `contoh_rute_evakuasi.py`:

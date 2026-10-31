@@ -1,0 +1,52 @@
+Simpul zona merah: 11,418; jiwa di simpul merah: 313.862
+  semua_244        : punya >=1 TES lolos arah 10,688 simpul / 295.412 jiwa | TES <= 15 mnt 5,192 / 145.793 jiwa | <= 20 mnt 6,097 / 168.619 jiwa | median kandidat <= 15 mnt (simpul yang punya) 3
+  berkapasitas_167 : punya >=1 TES lolos arah 10,651 simpul / 294.734 jiwa | TES <= 15 mnt 4,354 / 122.425 jiwa | <= 20 mnt 5,211 / 144.523 jiwa | median kandidat <= 15 mnt (simpul yang punya) 2
+Kehilangan SEMUA TES karena skenario: 37 simpul, 678 jiwa
+Kehilangan TES <= 15 menit karena skenario: 838 simpul, 23.368 jiwa
+                     simpul_merah   jiwa  simpul_hilang_semua_tes  jiwa_hilang_semua_tes  simpul_hilang_tes_15mnt  jiwa_hilang_tes_15mnt  simpul_tanpa_tes_15mnt_167  jiwa_tanpa_tes_15mnt_167
+kelurahan                                                                                                                                                                                     
+Air Tawar Barat               342   9630                        0                      0                      229                   6831                         276                      7871
+Gunung Pangilun               175   4858                        0                      0                       91                   2665                         165                      4673
+Surau Gadang                  346  11999                       10                    222                       65                   2273                         346                     11999
+Ulak Karang Selatan           291   9271                        0                      0                       81                   1924                         143                      4125
+Parupuk Tabing                788  13886                        0                      0                       71                   1615                         621                     11338
+Ulak Karang Utara             246   4203                        0                      0                       64                   1358                          71                      1467
+Kampung Olo                   214   6357                        1                      9                       25                    896                         214                      6357
+Jati Baru                     235   9784                        0                      0                       15                    759                          18                       875
+Lolong Belanti                245  10179                        0                      0                       29                    741                          38                      1051
+Olo                           120   5072                        0                      0                       16                    710                          16                       710
+Alai Parak Kopi               403  12654                        6                     93                       15                    668                         263                      7229
+Kampung Jao                   212   4196                        0                      0                       26                    636                          28                       715
+Kampung Lapai                 231   9712                        0                      0                       14                    617                         231                      9712
+Bungus Timur                   72    848                        0                      0                       37                    589                          72                       848
+Air Tawar Timur                74   2857                        0                      0                       12                    372                          34                      1379
+Kelurahan bertitik merah yang punya TES tetapi tidak satu pun berkapasitas: 6 ['GUNUNG PANGILUN', 'KAMPUNG JAO', 'KAMPUNG OLO', 'KAMPUNG PONDOK', 'SURAU GADANG', 'TELUK KABUNG SELATAN']
+Kapasitas total 167 TES: 155.980 jiwa
+Tujuan apa pun <= 15 mnt [semua_244]: 7,587 simpul / 216.561 jiwa (69.0% dari 313.862); tanpa: 3,831 simpul / 97.301 jiwa
+Tujuan apa pun <= 15 mnt [berkapasitas_167]: 6,971 simpul / 200.585 jiwa (63.9% dari 313.862); tanpa: 4,447 simpul / 113.278 jiwa
+Tujuan apa pun <= 20 mnt [semua_244]: 8,788 simpul / 246.793 jiwa (78.6% dari 313.862); tanpa: 2,630 simpul / 67.070 jiwa
+Tujuan apa pun <= 20 mnt [berkapasitas_167]: 8,297 simpul / 234.548 jiwa (74.7% dari 313.862); tanpa: 3,121 simpul / 79.314 jiwa
+Tujuan apa pun <= 30 mnt [semua_244]: 10,069 simpul / 280.044 jiwa (89.2% dari 313.862); tanpa: 1,349 simpul / 33.818 jiwa
+Tujuan apa pun <= 30 mnt [berkapasitas_167]: 9,710 simpul / 272.593 jiwa (86.9% dari 313.862); tanpa: 1,708 simpul / 41.269 jiwa
+Kehilangan SATU-SATUNYA tujuan <= 15 mnt (tak ada TEA/zona hijau <= 15): 616 simpul, 15.976 jiwa
+Simpul yang di t=0 harus ke TES (tak ada TEA/zona hijau <= 15 mnt): 7,486 simpul / 202.436 jiwa; di antaranya punya TES 167 <= 15: 3,039 / 89.158 jiwa
+                      simpul  jiwa
+kelurahan                         
+Air Tawar Barat          229  6831
+Ulak Karang Selatan       80  1920
+Parupuk Tabing            71  1615
+Ulak Karang Utara         64  1358
+Lolong Belanti            29   741
+Olo                       16   710
+Kampung Jao               26   636
+Bungus Timur              36   584
+Air Tawar Timur           12   372
+Jati Baru                  6   298
+Rimbo Kaluang             10   210
+Kampung Pondok            11   181
+Teluk Kabung Selatan      11   180
+Kampung Lapai              6   178
+Belakang Tangsi            2    73
+Padang Pasir               1    51
+Gunung Pangilun            1    27
+Berok Nipah                5    10
